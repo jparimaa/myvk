@@ -1,16 +1,28 @@
+CC = g++
+CFLAGS = -std=c++11 -Wall
 VULKAN_SDK_PATH = ../../Tools/VulkanSDK/1.0.61.1/x86_64
-
-CFLAGS = -std=c++11 -I$(VULKAN_SDK_PATH)/include
-LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
+INCLUDES = -I$(VULKAN_SDK_PATH)/include
+LIBS = -L$(VULKAN_SDK_PATH)/lib -lvulkan `pkg-config --static --libs glfw3`
+EXECUTABLE = VulkanTest
 BUILD = build/
+OUTPUT = $(BUILD)$(EXECUTABLE)
+SOURCES = \
+	main.cpp \
+	TestApp.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
 
-VulkanTest: main.cpp
-	g++ $(CFLAGS) -o $(BUILD)VulkanTest main.cpp $(LDFLAGS)
+all: $(OBJECTS) $(OUTPUT)
 
-.PHONY: test clean
+$(OUTPUT): $(OBJECTS) 
+	$(CC) $(OBJECTS) -o $(OUTPUT) $(LIBS)
 
-test: VulkanTest
-	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d  $(BUILD)VulkanTest
+%.o: %.cpp 
+	$(CC) -c $(CFLAGS) $(INCLUDES) $<
+
+test: $(OUTPUT)
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)
+
+.PHONY: clean
 
 clean:
-	rm -f $(BUILD)VulkanTest
+	rm -f *.o $(OUTPUT)
