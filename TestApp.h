@@ -6,14 +6,15 @@
 
 class TestApp {
  public:
+  ~TestApp();
   void run();
 
  private:
   GLFWwindow* window;
   VkInstance instance;
+  VkDebugReportCallbackEXT callback;
 
   void init();
-  void cleanup();
 };
 
 #endif
