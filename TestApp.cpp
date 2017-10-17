@@ -16,66 +16,6 @@ const bool enableValidationLayers = true;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 
-bool isValidationLayerAvailable() {
-  uint32_t layerCount;
-  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-  std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-  for (const char* layerName : validationLayers) {
-    bool layerFound = false;
-    for (const auto& layerProperties : availableLayers) {
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
-        layerFound = true;
-        break;
-      }
-    }
-    if (!layerFound) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-VkResult createDebugReportCallbackEXT(VkInstance instance,
-                                      const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
-                                      const VkAllocationCallbacks* pAllocator,
-                                      VkDebugReportCallbackEXT* pCallback) {
-  auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
-  if (func != nullptr) {
-    return func(instance, pCreateInfo, pAllocator, pCallback);
-  } else {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
-
-void destroyDebugReportCallbackEXT(VkInstance instance,
-                                   VkDebugReportCallbackEXT callback,
-                                   const VkAllocationCallbacks* pAllocator) {
-  auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-  if (func != nullptr) {
-    func(instance, callback, pAllocator);
-  }
-}
-
-std::vector<const char*> getRequiredExtensions() {
-  std::vector<const char*> extensions;
-  unsigned int glfwExtensionCount = 0;
-  const char** glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  for (unsigned int i = 0; i < glfwExtensionCount; i++) {
-    extensions.push_back(glfwExtensions[i]);
-  }
-
-  if (enableValidationLayers) {
-    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-  }
-
-  return extensions;
-}
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags,
                                                     VkDebugReportObjectTypeEXT objType,
                                                     uint64_t obj,
@@ -88,21 +28,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags,
   return VK_FALSE;
 }
 
-void printExtensions() {
-  uint32_t extensionCount = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-  std::vector<VkExtensionProperties> extensions(extensionCount);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-  std::cout << "Available extensions:\n";
-  for (const auto& extension : extensions) {
-    std::cout << "\t" << extension.extensionName << "\n";
-  }
-}
-
 }  // unnamed
 
 TestApp::~TestApp() {
-  destroyDebugReportCallbackEXT(instance, callback, nullptr);
+  auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+  if (destroyDebugReportCallback != nullptr) {
+    destroyDebugReportCallback(instance, callback, nullptr);
+  }
   vkDestroyInstance(instance, nullptr);
   glfwDestroyWindow(window);
   glfwTerminate();
@@ -117,11 +49,42 @@ void TestApp::run() {
 }
 
 void TestApp::init() {
+  createWindow();
+  createInstance();
+  createDebugReportCallback();
+  getPhysicalDevice();
+}
+
+void TestApp::createWindow() {
   glfwInit();
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+}
+
+void TestApp::createInstance() {
+  auto isValidationLayerAvailable = []() {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+    for (const char* layerName : validationLayers) {
+      bool layerFound = false;
+      for (const auto& layerProperties : availableLayers) {
+        if (strcmp(layerName, layerProperties.layerName) == 0) {
+          layerFound = true;
+          break;
+        }
+      }
+      if (!layerFound) {
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   if (enableValidationLayers && !isValidationLayerAvailable()) {
     throw std::runtime_error("ERROR: Validation layers requested but not available");
@@ -134,6 +97,23 @@ void TestApp::init() {
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.apiVersion = VK_API_VERSION_1_0;
+
+  auto getRequiredExtensions = []() {
+    std::vector<const char*> extensions;
+    unsigned int glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    for (unsigned int i = 0; i < glfwExtensionCount; i++) {
+      extensions.push_back(glfwExtensions[i]);
+    }
+
+    if (enableValidationLayers) {
+      extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    }
+
+    return extensions;
+  };
 
   VkInstanceCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -151,17 +131,54 @@ void TestApp::init() {
   if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
     throw std::runtime_error("ERROR: Failed to create instance");
   }
+}
 
-  printExtensions();
+void TestApp::createDebugReportCallback() {
+  if (!enableValidationLayers) {
+    return;
+  }
 
-  if (enableValidationLayers) {
-    VkDebugReportCallbackCreateInfoEXT createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-    createInfo.pfnCallback = debugCallback;
+  VkDebugReportCallbackCreateInfoEXT createInfo = {};
+  createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+  createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+  createInfo.pfnCallback = debugCallback;
 
-    if (createDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback) != VK_SUCCESS) {
-      throw std::runtime_error("ERROR: Failed to set up debug callback");
+  auto createDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+  if (createDebugReportCallback != nullptr) {
+    createDebugReportCallback(instance, &createInfo, nullptr, &callback);
+  } else {
+    throw std::runtime_error("ERROR: Failed to set up debug callback");
+  }
+}
+
+void TestApp::getPhysicalDevice() {
+  uint32_t deviceCount = 0;
+  vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+  if (deviceCount == 0) {
+    throw std::runtime_error("ERROR: Failed to find a GPU with Vulkan support");
+  }
+  std::vector<VkPhysicalDevice> devices(deviceCount);
+  vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+  physicalDevice = devices.front();
+
+  auto isSuitableDevice = [](VkPhysicalDevice device) {
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    for (const auto& queueFamily : queueFamilies) {
+      if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  for (VkPhysicalDevice device : devices) {
+    if (isSuitableDevice(device)) {
+      physicalDevice = device;
+      return;
     }
   }
+  throw std::runtime_error("ERROR: Did not find a suitable GPU");
 }

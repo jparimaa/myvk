@@ -10,11 +10,16 @@ class TestApp {
   void run();
 
  private:
-  GLFWwindow* window;
+  GLFWwindow* window = nullptr;
   VkInstance instance;
   VkDebugReportCallbackEXT callback;
+  VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
   void init();
+  void createWindow();
+  void createInstance();
+  void createDebugReportCallback();
+  void getPhysicalDevice();
 };
 
 #endif
