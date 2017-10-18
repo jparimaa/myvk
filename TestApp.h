@@ -6,6 +6,10 @@
 
 class TestApp {
  public:
+  struct QueueFamilyIndices {
+    int graphicsFamily = -1;
+  };
+
   ~TestApp();
   void run();
 
@@ -14,12 +18,15 @@ class TestApp {
   VkInstance instance;
   VkDebugReportCallbackEXT callback;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+  VkDevice device;
+  VkQueue graphicsQueue;
 
   void init();
   void createWindow();
   void createInstance();
   void createDebugReportCallback();
   void getPhysicalDevice();
+  void createLogicalDevice();
 };
 
 #endif
