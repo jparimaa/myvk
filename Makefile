@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++11 -Wall -MMD
+CFLAGS = -std=c++11 -Wall -MMD -ggdb
 VULKAN_SDK_PATH = ../../Tools/VulkanSDK/1.0.61.1/x86_64
 INCLUDES = -I$(VULKAN_SDK_PATH)/include
 LIBS = -L$(VULKAN_SDK_PATH)/lib -lvulkan `pkg-config --static --libs glfw3`
@@ -25,6 +25,6 @@ run: $(OUTPUT)
 .PHONY: clean
 
 clean:
-	rm -f *.o *.d $(OUTPUT)
+	rm -f *.o *.d $(OUTPUT) core
 
 -include *.d

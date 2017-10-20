@@ -5,4 +5,6 @@ build/
 *.o
 *.d
 make.sh
+debug.sh
 buildlog
+core

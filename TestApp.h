@@ -8,25 +8,32 @@ class TestApp {
  public:
   struct QueueFamilyIndices {
     int graphicsFamily = -1;
+    int presentFamily = -1;
+
+    bool isComplete() const;
   };
 
   ~TestApp();
   void run();
 
  private:
-  GLFWwindow* window = nullptr;
+  GLFWwindow* window;
   VkInstance instance;
   VkDebugReportCallbackEXT callback;
+  VkSurfaceKHR surface;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  VkDevice device;
+  VkDevice logicalDevice;
   VkQueue graphicsQueue;
+  VkQueue presentQueue;
 
   void init();
   void createWindow();
   void createInstance();
   void createDebugReportCallback();
+  void createSurface();
   void getPhysicalDevice();
   void createLogicalDevice();
+  TestApp::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 };
 
 #endif
