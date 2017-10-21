@@ -4,6 +4,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <vector>
+
 class TestApp {
    public:
     struct QueueFamilyIndices {
@@ -13,18 +15,32 @@ class TestApp {
         bool isComplete() const;
     };
 
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
     ~TestApp();
     void run();
 
    private:
     GLFWwindow* window;
+
     VkInstance instance;
     VkDebugReportCallbackEXT callback;
     VkSurfaceKHR surface;
+
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice logicalDevice;
+
     VkQueue graphicsQueue;
     VkQueue presentQueue;
+
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
 
     void init();
     void createWindow();
@@ -33,7 +49,11 @@ class TestApp {
     void createSurface();
     void getPhysicalDevice();
     void createLogicalDevice();
-    TestApp::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void createSwapChain();
+
+    QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
+    bool hasDeviceExtensionSupport(VkPhysicalDevice device) const;
+    SwapChainSupportDetails getSwapChainSupport(VkPhysicalDevice device) const;
 };
 
 #endif

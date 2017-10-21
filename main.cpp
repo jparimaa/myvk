@@ -3,7 +3,9 @@
 #include <iostream>
 #include <stdexcept>
 
-int main() {
+int main(int argc, char** argv) {
+    std::cout << "\n"
+              << "Executing: " << argv[0] << "\n\n";
     TestApp app;
     try {
         app.run();
