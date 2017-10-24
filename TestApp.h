@@ -41,6 +41,7 @@ class TestApp {
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
 
     void init();
     void createWindow();
@@ -50,6 +51,7 @@ class TestApp {
     void getPhysicalDevice();
     void createLogicalDevice();
     void createSwapChain();
+    void createImageView();
 
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
     bool hasDeviceExtensionSupport(VkPhysicalDevice device) const;
