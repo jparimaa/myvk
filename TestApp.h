@@ -43,6 +43,8 @@ class TestApp {
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
 
+    VkPipelineLayout pipelineLayout;
+
     void init();
     void createWindow();
     void createInstance();
@@ -52,10 +54,12 @@ class TestApp {
     void createLogicalDevice();
     void createSwapChain();
     void createImageView();
+    void createGraphicsPipeline();
 
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
     bool hasDeviceExtensionSupport(VkPhysicalDevice device) const;
     SwapChainSupportDetails getSwapChainSupport(VkPhysicalDevice device) const;
+    VkShaderModule createShaderModule(const std::vector<char>& code) const;
 };
 
 #endif
