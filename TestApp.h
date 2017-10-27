@@ -45,6 +45,7 @@ class TestApp {
 
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
     void init();
     void createWindow();
