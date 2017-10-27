@@ -43,6 +43,7 @@ class TestApp {
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
 
+    VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
 
     void init();
@@ -54,6 +55,7 @@ class TestApp {
     void createLogicalDevice();
     void createSwapChain();
     void createImageView();
+    void createRenderPass();
     void createGraphicsPipeline();
 
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
