@@ -52,7 +52,11 @@ class TestApp {
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
 
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+
     void init();
+    void drawFrame();
     void createWindow();
     void createInstance();
     void createDebugReportCallback();
@@ -66,6 +70,7 @@ class TestApp {
     void createFramebuffers();
     void createCommandPool();
     void createCommandBuffers();
+    void createSemaphores();
 
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
     bool hasDeviceExtensionSupport(VkPhysicalDevice device) const;

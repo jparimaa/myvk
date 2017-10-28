@@ -83,6 +83,8 @@ bool TestApp::QueueFamilyIndices::isComplete() const {
 }
 
 TestApp::~TestApp() {
+    vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
+    vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, nullptr);
     vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
     for (size_t i = 0; i < swapChainFramebuffers.size(); ++i) {
         vkDestroyFramebuffer(logicalDevice, swapChainFramebuffers[i], nullptr);
@@ -110,7 +112,10 @@ void TestApp::run() {
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        drawFrame();
     }
+
+    vkDeviceWaitIdle(logicalDevice);
 }
 
 void TestApp::init() {
@@ -127,6 +132,43 @@ void TestApp::init() {
     createFramebuffers();
     createCommandPool();
     createCommandBuffers();
+    createSemaphores();
+}
+
+void TestApp::drawFrame() {
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        throw std::runtime_error("ERROR: Failed to submit a draw command buffer");
+    }
+
+    VkPresentInfoKHR presentInfo = {};
+    VkSwapchainKHR swapChains[] = {swapChain};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;  // Optional
+
+    vkQueuePresentKHR(presentQueue, &presentInfo);
+    vkQueueWaitIdle(presentQueue);  // Optional sync for validation layers
 }
 
 void TestApp::createWindow() {
@@ -388,6 +430,14 @@ void TestApp::createRenderPass() {
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
     VkSubpassDescription subpass = {};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
@@ -399,6 +449,8 @@ void TestApp::createRenderPass() {
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("ERROR: Failed to create render pass");
@@ -623,6 +675,21 @@ void TestApp::createCommandBuffers() {
             throw std::runtime_error("ERROR: Failed to record command buffer");
         }
     }
+}
+
+void TestApp::createSemaphores() {
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    auto createSemaphore = [this, semaphoreInfo](VkSemaphore& semaphore) {
+        if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS) {
+            throw std::runtime_error("ERROR: Failed to create semaphores");
+        }
+
+    };
+
+    createSemaphore(imageAvailableSemaphore);
+    createSemaphore(renderFinishedSemaphore);
 }
 
 TestApp::QueueFamilyIndices TestApp::getQueueFamilies(VkPhysicalDevice device) const {
