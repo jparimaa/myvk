@@ -47,6 +47,11 @@ class TestApp {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
+
     void init();
     void createWindow();
     void createInstance();
@@ -58,6 +63,9 @@ class TestApp {
     void createImageView();
     void createRenderPass();
     void createGraphicsPipeline();
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffers();
 
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
     bool hasDeviceExtensionSupport(VkPhysicalDevice device) const;
