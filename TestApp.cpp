@@ -16,9 +16,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
-
 const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -63,11 +60,11 @@ VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> avail
     return bestMode;
 }
 
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     } else {
-        VkExtent2D actualExtent = {WIDTH, HEIGHT};
+        VkExtent2D actualExtent = {width, height};
 
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
@@ -83,19 +80,10 @@ bool TestApp::QueueFamilyIndices::isComplete() const {
 }
 
 TestApp::~TestApp() {
+    clearSwapChain();
     vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
     vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, nullptr);
     vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-    for (size_t i = 0; i < swapChainFramebuffers.size(); ++i) {
-        vkDestroyFramebuffer(logicalDevice, swapChainFramebuffers[i], nullptr);
-    }
-    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-    vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
-    for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-        vkDestroyImageView(logicalDevice, swapChainImageViews[i], nullptr);
-    }
-    vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
     auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
     if (destroyDebugReportCallback != nullptr) {
         destroyDebugReportCallback(instance, callback, nullptr);
@@ -126,7 +114,7 @@ void TestApp::init() {
     getPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
-    createImageView();
+    createImageViews();
     createRenderPass();
     createGraphicsPipeline();
     createFramebuffers();
@@ -137,7 +125,13 @@ void TestApp::init() {
 
 void TestApp::drawFrame() {
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        recreateSwapChain();
+        return;
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("ERROR: Failed to acquire swap chain image");
+    }
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -166,15 +160,35 @@ void TestApp::drawFrame() {
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;  // Optional
 
-    vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS) {
+        throw std::runtime_error("ERROR: Failed to present swap chain image");
+    }
+
     vkQueueWaitIdle(presentQueue);  // Optional sync for validation layers
 }
 
 void TestApp::createWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Vulkan", nullptr, nullptr);
+
+    auto resizeWindow = [](GLFWwindow* window, int width, int height) {
+        if (width == 0 || height == 0) {
+            return;
+        }
+
+        TestApp* app = static_cast<TestApp*>(glfwGetWindowUserPointer(window));
+        app->windowWidth = width;
+        app->windowHeight = height;
+        app->recreateSwapChain();
+    };
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetWindowSizeCallback(window, resizeWindow);
 }
 
 void TestApp::createInstance() {
@@ -346,7 +360,7 @@ void TestApp::createSwapChain() {
     SwapChainSupportDetails swapChainSupport = getSwapChainSupport(physicalDevice);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, windowWidth, windowHeight);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -392,7 +406,33 @@ void TestApp::createSwapChain() {
     swapChainExtent = extent;
 }
 
-void TestApp::createImageView() {
+void TestApp::recreateSwapChain() {
+    vkDeviceWaitIdle(logicalDevice);
+    clearSwapChain();
+
+    createSwapChain();
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandBuffers();
+}
+
+void TestApp::clearSwapChain() {
+    for (size_t i = 0; i < swapChainFramebuffers.size(); ++i) {
+        vkDestroyFramebuffer(logicalDevice, swapChainFramebuffers[i], nullptr);
+    }
+    vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+    vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
+        vkDestroyImageView(logicalDevice, swapChainImageViews[i], nullptr);
+    }
+    vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
+}
+
+void TestApp::createImageViews() {
     swapChainImageViews.resize(swapChainImages.size());
     for (size_t i = 0; i < swapChainImages.size(); ++i) {
         VkImageViewCreateInfo createInfo = {};

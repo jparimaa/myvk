@@ -25,6 +25,8 @@ class TestApp {
     void run();
 
    private:
+    int windowWidth = 800;
+    int windowHeight = 600;
     GLFWwindow* window = nullptr;
 
     VkInstance instance = nullptr;
@@ -63,7 +65,9 @@ class TestApp {
     void getPhysicalDevice();
     void createLogicalDevice();
     void createSwapChain();
-    void createImageView();
+    void recreateSwapChain();
+    void clearSwapChain();
+    void createImageViews();
     void createRenderPass();
     void createGraphicsPipeline();
     void createFramebuffers();
