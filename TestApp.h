@@ -25,35 +25,34 @@ class TestApp {
     void run();
 
    private:
-    GLFWwindow* window;
+    GLFWwindow* window = nullptr;
 
-    VkInstance instance;
-    VkDebugReportCallbackEXT callback;
-    VkSurfaceKHR surface;
+    VkInstance instance = nullptr;
+    VkDebugReportCallbackEXT callback = nullptr;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice logicalDevice;
+    VkDevice logicalDevice = nullptr;
 
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
+    VkQueue graphicsQueue = nullptr;
+    VkQueue presentQueue = nullptr;
 
-    VkSwapchainKHR swapChain;
+    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
-
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
-
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkCommandPool commandPool;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+
+    VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+    VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
 
     void init();
     void drawFrame();

@@ -141,16 +141,15 @@ void TestApp::drawFrame() {
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
+    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
     submitInfo.pWaitSemaphores = waitSemaphores;
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
     submitInfo.signalSemaphoreCount = 1;
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
@@ -255,7 +254,9 @@ void TestApp::createDebugReportCallback() {
 
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT |
+                       VK_DEBUG_REPORT_WARNING_BIT_EXT |
+                       VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
     createInfo.pfnCallback = debugCallback;
 
     auto createDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
@@ -661,9 +662,8 @@ void TestApp::createCommandBuffers() {
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         renderPassInfo.renderArea.offset = {0, 0};
         renderPassInfo.renderArea.extent = swapChainExtent;
-
-        VkClearValue clearColor = {0.0f, 0.0f, 0.2f, 1.0f};
         renderPassInfo.clearValueCount = 1;
+        VkClearValue clearColor = {0.0f, 0.0f, 0.2f, 1.0f};
         renderPassInfo.pClearValues = &clearColor;
 
         vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
