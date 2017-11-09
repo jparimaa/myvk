@@ -27,6 +27,12 @@ class TestApp {
         glm::vec3 color;
     };
 
+    struct MatrixUBO {
+        glm::mat4 world;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
     ~TestApp();
     void run();
 
@@ -53,6 +59,7 @@ class TestApp {
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
@@ -60,6 +67,8 @@ class TestApp {
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory;
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformBufferMemory;
 
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -67,8 +76,12 @@ class TestApp {
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
 
+    VkDescriptorPool descriptorPool = nullptr;
+    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
     void init();
     void drawFrame();
+    void updateUniformBuffer();
     void createWindow();
     void createInstance();
     void createDebugReportCallback();
@@ -80,11 +93,15 @@ class TestApp {
     void clearSwapChain();
     void createImageViews();
     void createRenderPass();
+    void createDescriptorSetLayout();
     void createGraphicsPipeline();
     void createFramebuffers();
     void createCommandPool();
     void createVertexBuffer();
     void createIndexBuffer();
+    void createUniformBuffer();
+    void createDescriptorPool();
+    void createDescriptorSet();
     void createCommandBuffers();
     void createSemaphores();
 
