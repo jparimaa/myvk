@@ -1,7 +1,8 @@
 CC = g++
 CFLAGS = -std=c++11 -MMD -Wall -ggdb
 VULKAN_SDK_PATH = ../../Tools/VulkanSDK/1.0.61.1/x86_64
-INCLUDES = -I$(VULKAN_SDK_PATH)/include
+STB_INCLUDE_PATH = ../../Tools/stb
+INCLUDES = -I$(VULKAN_SDK_PATH)/include -I$(STB_INCLUDE_PATH)
 LIBS = -L$(VULKAN_SDK_PATH)/lib -lvulkan `pkg-config --static --libs glfw3`
 
 EXECUTABLE = VulkanTest
