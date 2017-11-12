@@ -25,6 +25,7 @@ class TestApp {
     struct Vertex {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
     };
 
     struct MatrixUBO {
@@ -81,6 +82,8 @@ class TestApp {
 
     VkImage textureImage = VK_NULL_HANDLE;
     VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+    VkImageView textureImageView = VK_NULL_HANDLE;
+    VkSampler textureSampler = VK_NULL_HANDLE;
 
     void init();
     void drawFrame();
@@ -101,6 +104,8 @@ class TestApp {
     void createFramebuffers();
     void createCommandPool();
     void createTextureImage();
+    void createTextureImageView();
+    void createTextureSampler();
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffer();
