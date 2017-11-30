@@ -5,6 +5,7 @@ build/
 *.o
 *.d
 *.spv
+*.a
 make.sh
 debug.sh
 buildlog

@@ -1,9 +1,4 @@
-CC = g++
-CFLAGS = -std=c++1z -MMD -Wall -ggdb
-VULKAN_SDK_PATH = ../../../Tools/VulkanSDK/1.0.61.1/x86_64
-STB_INCLUDE_PATH = ../../../Tools/stb
-INCLUDES = -I$(VULKAN_SDK_PATH)/include -I$(STB_INCLUDE_PATH)
-LIBS = -L$(VULKAN_SDK_PATH)/lib -lvulkan `pkg-config --static --libs glfw3`
+include ../common.mk
 
 EXECUTABLE = VulkanTest
 BUILD_DIR = build/
@@ -24,10 +19,11 @@ VERT_SHADER_BINARIES = $(VERTEX_SHADERS:.vert=_vert.spv)
 
 all: $(OUTPUT) $(VERT_SHADER_BINARIES) $(FRAG_SHADER_BINARIES)
 
-$(OUTPUT): $(OBJECTS) 
+$(OUTPUT): $(OBJECTS)
+	mkdir -p $(BUILD_DIR)
 	$(CC) $(OBJECTS) -o $(OUTPUT) $(LIBS)
 
-%.o: %.cpp 
+%.o: %.cpp
 	$(CC) -c $(CFLAGS) $(INCLUDES) $<
 
 $(VERT_SHADER_BINARIES): %_vert.spv: $(SHADER_DIR)%.vert
