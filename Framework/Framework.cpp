@@ -6,8 +6,15 @@ namespace fw {
 
 Framework::Framework() {}
 
-void Framework::callFramework() const {
-    std::cout << "Framework called\n";
+bool Framework::initialize() {
+    window.initialize();
+    return true;
+}
+
+void Framework::execute() {
+    while (!window.shouldClose()) {
+        window.pollEvents();
+    }
 }
 
 }  // namespace fw

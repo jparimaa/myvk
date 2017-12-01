@@ -1,3 +1,5 @@
+#include "Window.h"
+
 namespace fw {
 
 class Framework {
@@ -8,9 +10,11 @@ class Framework {
     Framework& operator=(const Framework&) = delete;
     Framework& operator=(Framework&&) = delete;
 
-    void callFramework() const;
+    bool initialize();
+    void execute();
 
    private:
+    Window window;
 };
 
 }  // namespace fw

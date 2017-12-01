@@ -2,7 +2,8 @@ include ../common.mk
 
 OUTPUT = $(FRAMEWORK_LIB)
 SOURCES = \
-	Framework.cpp
+	Framework.cpp \
+	Window.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

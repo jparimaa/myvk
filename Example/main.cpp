@@ -2,6 +2,9 @@
 
 int main(/*int argc, char** argv*/) {
     fw::Framework fw;
-    fw.callFramework();
+    if (fw.initialize()) { 
+        fw.execute();       
+    }
+
     return 0;
 }
