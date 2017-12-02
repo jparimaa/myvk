@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Context.h"
 
 namespace fw {
 
@@ -15,6 +16,7 @@ class Framework {
 
    private:
     Window window;
+    Context context;
 };
 
-}  // namespace fw
+} // namespace fw

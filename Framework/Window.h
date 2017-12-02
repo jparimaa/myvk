@@ -6,6 +6,7 @@ namespace fw {
 class Window {
    public:
     Window();
+    ~Window();
     Window(const Window&) = delete;
     Window(Window&&) = delete;
     Window& operator=(const Window&) = delete;
@@ -21,4 +22,4 @@ class Window {
     GLFWwindow* window = nullptr;
 };
 
-}  // namespace fw
+} // namespace fw

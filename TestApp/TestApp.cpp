@@ -121,7 +121,7 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
     }
 }
 
-}  // unnamed
+} // unnamed
 
 bool TestApp::QueueFamilyIndices::isComplete() const {
     return graphicsFamily >= 0 && presentFamily >= 0;

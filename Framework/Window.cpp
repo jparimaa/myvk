@@ -5,6 +5,11 @@ namespace fw {
 Window::Window() {
 }
 
+Window::~Window() {
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
 void Window::initialize() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -20,4 +25,4 @@ void Window::pollEvents() const {
     glfwPollEvents();
 }
 
-}  // namespace fw
+} // namespace fw

@@ -8,7 +8,8 @@ Framework::Framework() {}
 
 bool Framework::initialize() {
     window.initialize();
-    return true;
+    bool initializationSucceeded = context.initialize();
+    return initializationSucceeded;
 }
 
 void Framework::execute() {
@@ -17,4 +18,4 @@ void Framework::execute() {
     }
 }
 
-}  // namespace fw
+} // namespace fw
