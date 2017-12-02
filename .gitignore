@@ -1,12 +1,10 @@
-.vscode
-*~
-.clang-format
 build/
 *.o
 *.d
 *.spv
 *.a
-make.sh
-debug.sh
+*.sh
 buildlog
 core
+*.txt
+vgcore*

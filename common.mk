@@ -1,12 +1,13 @@
-CC = g++
-CFLAGS = -std=c++1z -MMD -Wall -ggdb
+framework:
+	make -C $(FRAMEWORK_PATH)
 
-VULKAN_SDK_PATH = ../../../Tools/VulkanSDK/1.0.61.1/x86_64
-STB_INCLUDE_PATH = ../../../Tools/stb
-FRAMEWORK_PATH = ../Framework
-FRAMEWORK_LIB_PATH = $(FRAMEWORK_PATH)/lib
-FRAMEWORK_LIB = $(FRAMEWORK_LIB_PATH)/framework.a
-INCLUDES = -I$(VULKAN_SDK_PATH)/include -I$(STB_INCLUDE_PATH)
-LIBS = $(FRAMEWORK_LIB) \
-	-L$(VULKAN_SDK_PATH)/lib -lvulkan \
-	`pkg-config --static --libs glfw3`
+%.o: %.cpp 
+	$(CC) -c $(CFLAGS) $(INCLUDES) $<
+
+.PHONY: clean
+
+clean:
+	rm -f *.o *.d *.spv $(OUTPUT) core buildlog *.txt vgcore*
+
+run: $(OUTPUT)
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)

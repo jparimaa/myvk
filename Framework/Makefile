@@ -1,4 +1,4 @@
-include ../common.mk
+include ../variables.mk
 
 OUTPUT = $(FRAMEWORK_LIB)
 SOURCES = \
@@ -13,12 +13,6 @@ $(OUTPUT): $(OBJECTS)
 	mkdir -p $(FRAMEWORK_LIB_PATH)
 	ar rcs $(OUTPUT) $(OBJECTS)
 
-%.o: %.cpp 
-	$(CC) -c $(CFLAGS) $(INCLUDES) $<
-
-.PHONY: clean
-
-clean:
-	rm -f *.o *.d $(OUTPUT) core buildlog
+include ../common.mk
 
 -include *.d

@@ -1,4 +1,4 @@
-include ../common.mk
+include ../variables.mk
 
 EXECUTABLE = VulkanTest
 BUILD_DIR = build/
@@ -23,21 +23,12 @@ $(OUTPUT): $(OBJECTS)
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(OBJECTS) -o $(OUTPUT) $(LIBS)
 
-%.o: %.cpp
-	$(CC) -c $(CFLAGS) $(INCLUDES) $<
-
 $(VERT_SHADER_BINARIES): %_vert.spv: $(SHADER_DIR)%.vert
 	$(GLSLANG_VALIDATOR) -V $? -o $@
 
 $(FRAG_SHADER_BINARIES): %_frag.spv: $(SHADER_DIR)%.frag
 	$(GLSLANG_VALIDATOR) -V $? -o $@
 
-run: $(OUTPUT)
-	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)
-
-.PHONY: clean
-
-clean:
-	rm -f *.o *.d *.spv $(OUTPUT) core buildlog
+include ../common.mk
 
 -include *.d
