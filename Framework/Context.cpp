@@ -1,4 +1,5 @@
 #include "Context.h"
+#include "Common.h"
 
 #include <vector>
 #include <cstdint>
@@ -56,17 +57,39 @@ std::vector<const char*> getRequiredExtensions() {
     return extensions;
 };
 
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags,
+                                                    VkDebugReportObjectTypeEXT objType,
+                                                    uint64_t obj,
+                                                    size_t location,
+                                                    int32_t code,
+                                                    const char* layerPrefix,
+                                                    const char* msg,
+                                                    void* userData) {
+    std::cerr << "Validation layer: " << msg << "\n";
+    return VK_FALSE;
+}
+
 } // unnamed
 
 Context::Context() {}
 
 Context::~Context() {
+    auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+    if (destroyDebugReportCallback != nullptr) {
+        destroyDebugReportCallback(instance, callback, nullptr);
+    }
     vkDestroyInstance(instance, nullptr);
 }
 
 bool Context::initialize() {
+    return createInstance() && createDebugReportCallback();
+    
+}
+
+bool Context::createInstance() {
     if (enableValidationLayers && !isValidationLayerAvailable()) {
-        std::cerr << "ERROR: Validation layers requested but not available\n";
+        printError("Validation layers requested but not available");
         return false;
     }
 
@@ -92,10 +115,32 @@ bool Context::initialize() {
     }
 
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-        std::cerr << "ERROR: Failed to create instance\n";
+        printError("Failed to create instance");
         return false;
     }
     
+    return true;
+}
+
+bool Context::createDebugReportCallback() {
+    if (!enableValidationLayers) {
+        return true;
+    }
+    
+    VkDebugReportCallbackCreateInfoEXT createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT |
+        VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+    createInfo.pfnCallback = debugCallback;
+
+    auto createDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+    if (createDebugReportCallback != nullptr) {
+        createDebugReportCallback(instance, &createInfo, nullptr, &callback);
+    } else {
+        printError("Failed to set up debug callback");
+        return false;
+    }
     return true;
 }
 

@@ -16,6 +16,10 @@ class Context {
 
    private:
     VkInstance instance = nullptr;
+    VkDebugReportCallbackEXT callback = nullptr;
+
+    bool createInstance();
+    bool createDebugReportCallback();
 };
 
 } // namespace fw

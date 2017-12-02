@@ -9,7 +9,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 all: framework $(OUTPUT) 
 
-$(OUTPUT): $(OBJECTS)
+$(OUTPUT): $(OBJECTS) $(FRAMEWORK_LIB)
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(OBJECTS) -o $(OUTPUT) $(LIBS)
 
