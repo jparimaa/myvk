@@ -117,8 +117,9 @@ bool Context::createInstance() {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-        printError("Failed to create instance");
+    if (VkResult r = vkCreateInstance(&createInfo, nullptr, &instance);
+        r != VK_SUCCESS) {
+        printError("Failed to create instance", &r);
         return false;
     }
     

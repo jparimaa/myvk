@@ -18,8 +18,9 @@ Window::~Window() {
 bool Window::initialize(const VkInstance* instance) {
     window = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
 
-    if (glfwCreateWindowSurface(*instance, window, nullptr, &surface) != VK_SUCCESS) {
-        printError("Failed to create window surface");
+    if (VkResult r = glfwCreateWindowSurface(*instance, window, nullptr, &surface);
+        r != VK_SUCCESS) {
+        printError("Failed to create window surface", &r);
         return false;
     }
 
