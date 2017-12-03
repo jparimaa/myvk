@@ -20,9 +20,7 @@ private:
     int width = 1600;
     int height = 1200;
     GLFWwindow* window = nullptr;
-    const VkInstance* instance = nullptr;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    
 };
 
 } // namespace fw

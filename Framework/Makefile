@@ -3,9 +3,11 @@ include ../variables.mk
 OUTPUT = $(FRAMEWORK_LIB)
 SOURCES = \
 	Framework.cpp \
-	Instance.cpp \
+	Common.cpp \
 	Context.cpp \
-	Window.cpp
+	Instance.cpp \
+	Window.cpp \
+	Device.cpp 
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

@@ -11,6 +11,7 @@ bool Framework::initialize() {
     bool success = true;
     success = success && instance.initialize();
     success = success && window.initialize();
+    success = success && device.initialize();
     return success;
 }
 

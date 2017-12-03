@@ -1,5 +1,6 @@
 #include "Window.h"
 #include "Instance.h"
+#include "Device.h"
 
 namespace fw {
 
@@ -17,6 +18,7 @@ public:
 private:
     Instance instance;
     Window window;
+    Device device;
 };
 
 } // namespace fw

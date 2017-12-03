@@ -23,7 +23,7 @@ bool Window::initialize() {
         return false;
     }
 
-    this->instance = instance;
+    Context::surface = surface;
     return true;
 }
 
