@@ -1,10 +1,10 @@
 #include "Window.h"
-#include "Context.h"
+#include "Instance.h"
 
 namespace fw {
 
 class Framework {
-   public:
+public:
     Framework();
     Framework(const Framework&) = delete;
     Framework(Framework&&) = delete;
@@ -14,8 +14,8 @@ class Framework {
     bool initialize();
     void execute();
 
-   private:
-    Context context;
+private:
+    Instance instance;
     Window window;
 };
 

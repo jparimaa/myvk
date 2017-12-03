@@ -4,24 +4,14 @@
 namespace fw {
 
 class Context {
-   public:
-    Context();
-    ~Context();
-    Context(const Context&) = delete;
-    Context(Context&&) = delete;
-    Context& operator=(const Context&) = delete;
-    Context& operator=(Context&&) = delete;
+public:
+    friend class Instance;
+    
+    Context() = delete;
+    static VkInstance getInstance();
 
-    bool initialize();
-
-    const VkInstance* getInstance() const;
-
-   private:
-    VkInstance instance = VK_NULL_HANDLE;
-    VkDebugReportCallbackEXT callback;
-
-    bool createInstance();
-    bool createDebugReportCallback();
+private:
+    static VkInstance instance;
 };
 
 } // namespace fw

@@ -4,7 +4,7 @@
 namespace fw {
 
 class Window {
-   public:
+public:
     Window();
     ~Window();
     Window(const Window&) = delete;
@@ -12,11 +12,11 @@ class Window {
     Window& operator=(const Window&) = delete;
     Window& operator=(Window&&) = delete;
 
-    bool initialize(const VkInstance* instance);
+    bool initialize();
     bool shouldClose() const;
     void pollEvents() const;
 
-   private:
+private:
     int width = 1600;
     int height = 1200;
     GLFWwindow* window = nullptr;

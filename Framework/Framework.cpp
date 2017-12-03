@@ -7,9 +7,10 @@ namespace fw {
 Framework::Framework() {}
 
 bool Framework::initialize() {
+    glfwInit();
     bool success = true;
-    success = success && context.initialize();
-    success = success && window.initialize(context.getInstance());
+    success = success && instance.initialize();
+    success = success && window.initialize();
     return success;
 }
 
