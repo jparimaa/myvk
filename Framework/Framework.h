@@ -15,8 +15,8 @@ class Framework {
     void execute();
 
    private:
-    Window window;
     Context context;
+    Window window;
 };
 
 } // namespace fw

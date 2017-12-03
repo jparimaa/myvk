@@ -84,7 +84,10 @@ Context::~Context() {
 
 bool Context::initialize() {
     return createInstance() && createDebugReportCallback();
-    
+}
+
+const VkInstance* Context::getInstance() const {
+    return &instance;    
 }
 
 bool Context::createInstance() {

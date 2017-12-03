@@ -14,9 +14,11 @@ class Context {
 
     bool initialize();
 
+    const VkInstance* getInstance() const;
+
    private:
-    VkInstance instance = nullptr;
-    VkDebugReportCallbackEXT callback = nullptr;
+    VkInstance instance = VK_NULL_HANDLE;
+    VkDebugReportCallbackEXT callback;
 
     bool createInstance();
     bool createDebugReportCallback();

@@ -12,7 +12,7 @@ class Window {
     Window& operator=(const Window&) = delete;
     Window& operator=(Window&&) = delete;
 
-    void initialize();
+    bool initialize(const VkInstance* instance);
     bool shouldClose() const;
     void pollEvents() const;
 
@@ -20,6 +20,9 @@ class Window {
     int width = 1600;
     int height = 1200;
     GLFWwindow* window = nullptr;
+    const VkInstance* instance = nullptr;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    
 };
 
 } // namespace fw

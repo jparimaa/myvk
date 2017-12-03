@@ -3,7 +3,7 @@
 
 namespace fw {
 
-void printError(std::string_view msg) {
+inline void printError(std::string_view msg) {
     std::cerr << "ERROR: " << msg << "\n";
 }
 
