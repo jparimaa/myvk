@@ -11,14 +11,6 @@ namespace fw {
 
 namespace {
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
-
 bool isValidationLayerAvailable() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);

@@ -3,12 +3,11 @@
 #include "Context.h"
 
 #include <set>
+#include <iostream>
 
 namespace fw {
 
 namespace {
-
-const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
     uint32_t extensionCount;
@@ -44,10 +43,12 @@ bool isDeviceSuitable(VkPhysicalDevice physicalDevice) {
 
 Device::Device() {}
 
-Device::~Device() {}
+Device::~Device() {
+    vkDestroyDevice(logicalDevice, nullptr);
+}
 
 bool Device::initialize() {
-    return getPhysicalDevice();
+    return getPhysicalDevice() && createLogicalDevice();
 }
 
 bool Device::getPhysicalDevice() {
@@ -70,6 +71,50 @@ bool Device::getPhysicalDevice() {
 
     printError("Did not find a suitable GPU");
     return false;
+}
+
+bool Device::createLogicalDevice() {
+    QueueFamilyIndices indices = getQueueFamilies(physicalDevice, Context::getSurface());
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+
+    float queuePriority = 1.0f;
+    for (int queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamily;        
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+    VkDeviceCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    if (VkResult r = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
+        r != VK_SUCCESS) {
+        printError("Failed to create a logical device", &r);
+        return false;
+    }
+
+    vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, indices.presentFamily, 0, &presentQueue);
+    return true;
 }
 
 }  // namespace fw

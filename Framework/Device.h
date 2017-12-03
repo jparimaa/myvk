@@ -18,7 +18,11 @@ private:
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice logicalDevice = VK_NULL_HANDLE;
     
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
+    
     bool getPhysicalDevice();
+    bool createLogicalDevice();
 };
 
 } // namespace fw
