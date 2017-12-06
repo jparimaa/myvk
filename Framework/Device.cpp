@@ -114,6 +114,10 @@ bool Device::createLogicalDevice() {
 
     vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
     vkGetDeviceQueue(logicalDevice, indices.presentFamily, 0, &presentQueue);
+
+    Context::physicalDevice = physicalDevice;
+    Context::logicalDevice = logicalDevice;
+    
     return true;
 }
 

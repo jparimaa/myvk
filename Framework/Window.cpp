@@ -35,4 +35,12 @@ void Window::pollEvents() const {
     glfwPollEvents();
 }
 
+int Window::getWidth() const {
+    return width;
+}
+
+int Window::getHeight() const {
+    return height;
+}
+
 } // namespace fw

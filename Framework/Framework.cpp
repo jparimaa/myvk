@@ -12,6 +12,7 @@ bool Framework::initialize() {
     success = success && instance.initialize();
     success = success && window.initialize();
     success = success && device.initialize();
+    success = success && swapChain.initialize(window.getWidth(), window.getHeight());
     return success;
 }
 

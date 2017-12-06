@@ -7,7 +7,8 @@ SOURCES = \
 	Context.cpp \
 	Instance.cpp \
 	Window.cpp \
-	Device.cpp 
+	Device.cpp \
+	SwapChain.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

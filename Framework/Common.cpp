@@ -4,6 +4,13 @@
 
 namespace fw {
 
+void printError(std::string_view msg, const VkResult* result) {
+    std::cerr << "ERROR: " << msg << "\n";
+    if (result != nullptr) {
+        std::cerr << "Result: " << *result << "\n";
+    }
+}
+
 bool QueueFamilyIndices::hasGraphicsAndPresentFamily() const {
     return graphicsFamily >= 0 && presentFamily >= 0;
 }
@@ -53,13 +60,6 @@ SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceK
     }
 
     return details;
-}
-
-void printError(std::string_view msg, const VkResult* result) {
-    std::cerr << "ERROR: " << msg << "\n";
-    if (result != nullptr) {
-        std::cerr << "Result: " << *result << "\n";
-    }
 }
 
 } // namespace fw

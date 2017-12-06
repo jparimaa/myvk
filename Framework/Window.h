@@ -16,6 +16,9 @@ public:
     bool shouldClose() const;
     void pollEvents() const;
 
+    int getWidth() const;
+    int getHeight() const;
+
 private:
     int width = 1600;
     int height = 1200;

@@ -15,11 +15,15 @@ const bool enableValidationLayers = true;
 const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+void printError(std::string_view msg, const VkResult* result = nullptr);
+
 struct QueueFamilyIndices {
     int graphicsFamily = -1;
     int presentFamily = -1;
     bool hasGraphicsAndPresentFamily() const;
 };
+
+QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 struct SwapChainSupport {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -27,10 +31,6 @@ struct SwapChainSupport {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-
 SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-
-void printError(std::string_view msg, const VkResult* result = nullptr);
     
 } // namespace fw

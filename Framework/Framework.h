@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "Instance.h"
 #include "Device.h"
+#include "SwapChain.h"
 
 namespace fw {
 
@@ -19,6 +20,7 @@ private:
     Instance instance;
     Window window;
     Device device;
+    SwapChain swapChain;
 };
 
 } // namespace fw
