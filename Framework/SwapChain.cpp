@@ -58,16 +58,20 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
 SwapChain::SwapChain() {}
 
 SwapChain::~SwapChain() {
+    for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
+        vkDestroyImageView(Context::getLogicalDevice(), swapChainImageViews[i], nullptr);
+    }
     vkDestroySwapchainKHR(Context::getLogicalDevice(), swapChain, nullptr);
 }
 
 bool SwapChain::initialize(uint32_t width, uint32_t height) {
-    return createSwapChain(width, height);
+    return createSwapChain(width, height) && createImageViews();
 }
 
 bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    swapChainImageFormat = surfaceFormat.format;
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     swapChainExtent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
 
@@ -115,8 +119,33 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     swapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, swapChainImages.data());
 
-    swapChainImageFormat = surfaceFormat.format;
+    return true;
+}
 
+bool SwapChain::createImageViews() {
+    swapChainImageViews.resize(swapChainImages.size());
+    for (size_t i = 0; i < swapChainImages.size(); ++i) {
+        VkImageViewCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = swapChainImages[i];
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = swapChainImageFormat;
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &createInfo, nullptr, &swapChainImageViews[i]);
+            r!= VK_SUCCESS) {
+            printError("ERROR: Failed to create an image view", &r);
+            return false;
+        }
+    }    
     return true;
 }
 

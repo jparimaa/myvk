@@ -17,12 +17,14 @@ public:
     bool initialize(uint32_t width, uint32_t height);
 
 private:
-    bool createSwapChain(uint32_t width, uint32_t height);
-
     VkExtent2D swapChainExtent;
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
+    std::vector<VkImage> swapChainImages;
+    std::vector<VkImageView> swapChainImageViews;
+
+    bool createSwapChain(uint32_t width, uint32_t height);
+    bool createImageViews();
 };
 
 } // namespace fw
