@@ -1,7 +1,10 @@
+#pragma once
+
 #include "Window.h"
 #include "Instance.h"
 #include "Device.h"
 #include "SwapChain.h"
+#include "Application.h"
 
 namespace fw {
 
@@ -14,6 +17,7 @@ public:
     Framework& operator=(Framework&&) = delete;
 
     bool initialize();
+    void setApplication(Application* app);
     void execute();
 
 private:
@@ -21,6 +25,8 @@ private:
     Window window;
     Device device;
     SwapChain swapChain;
+
+    Application* app = nullptr;
 };
 
 } // namespace fw

@@ -16,6 +16,10 @@ bool Framework::initialize() {
     return success;
 }
 
+void Framework::setApplication(Application* app) {
+    this->app = app;
+}
+
 void Framework::execute() {
     while (!window.shouldClose()) {
         window.pollEvents();

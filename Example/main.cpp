@@ -1,8 +1,11 @@
+#include "ExampleApp.h"
 #include "../Framework/Framework.h"
 
 int main(/*int argc, char** argv*/) {
     fw::Framework fw;
-    if (fw.initialize()) { 
+    if (fw.initialize()) {
+        ExampleApp app;
+        fw.setApplication(&app);
         fw.execute();       
     }
 

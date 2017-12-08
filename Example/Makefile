@@ -4,7 +4,8 @@ EXECUTABLE = Example
 BUILD_DIR = build/
 OUTPUT = $(BUILD_DIR)$(EXECUTABLE)
 SOURCES = \
-	main.cpp
+	main.cpp \
+	ExampleApp.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: framework $(OUTPUT) 
