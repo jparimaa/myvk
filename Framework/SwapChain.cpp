@@ -58,8 +58,8 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
 SwapChain::SwapChain() {}
 
 SwapChain::~SwapChain() {
-    for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-        vkDestroyImageView(Context::getLogicalDevice(), swapChainImageViews[i], nullptr);
+    for (size_t i = 0; i < imageViews.size(); ++i) {
+        vkDestroyImageView(Context::getLogicalDevice(), imageViews[i], nullptr);
     }
     vkDestroySwapchainKHR(Context::getLogicalDevice(), swapChain, nullptr);
 }
@@ -68,12 +68,16 @@ bool SwapChain::initialize(uint32_t width, uint32_t height) {
     return createSwapChain(width, height) && createImageViews();
 }
 
+VkFormat SwapChain::getImageFormat() const {
+    return imageFormat;
+}
+
 bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    swapChainImageFormat = surfaceFormat.format;
+    imageFormat = surfaceFormat.format;
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    swapChainExtent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
+    extent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     uint32_t maxImageCount = swapChainSupport.capabilities.maxImageCount;
@@ -87,7 +91,7 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = swapChainExtent;
+    createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -116,20 +120,20 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     }
     
     vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, swapChainImages.data());
+    images.resize(imageCount);
+    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, images.data());
 
     return true;
 }
 
 bool SwapChain::createImageViews() {
-    swapChainImageViews.resize(swapChainImages.size());
-    for (size_t i = 0; i < swapChainImages.size(); ++i) {
+    imageViews.resize(images.size());
+    for (size_t i = 0; i < images.size(); ++i) {
         VkImageViewCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swapChainImages[i];
+        createInfo.image = images[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swapChainImageFormat;
+        createInfo.format = imageFormat;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
         createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -140,7 +144,7 @@ bool SwapChain::createImageViews() {
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &createInfo, nullptr, &swapChainImageViews[i]);
+        if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &createInfo, nullptr, &imageViews[i]);
             r!= VK_SUCCESS) {
             printError("ERROR: Failed to create an image view", &r);
             return false;

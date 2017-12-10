@@ -10,6 +10,8 @@ namespace fw {
 
 class Framework {
 public:
+    friend class API;
+    
     Framework();
     Framework(const Framework&) = delete;
     Framework(Framework&&) = delete;

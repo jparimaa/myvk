@@ -1,10 +1,13 @@
 #include "Framework.h"
+#include "API.h"
 
 #include <iostream>
 
 namespace fw {
 
-Framework::Framework() {}
+Framework::Framework() {
+    API::framework = this;
+}
 
 bool Framework::initialize() {
     glfwInit();

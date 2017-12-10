@@ -1,3 +1,5 @@
+// This class is meant only for Vulkan handles
+
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN

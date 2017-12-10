@@ -3,12 +3,14 @@ include ../variables.mk
 OUTPUT = $(FRAMEWORK_LIB)
 SOURCES = \
 	Framework.cpp \
+	API.cpp \
 	Common.cpp \
 	Context.cpp \
 	Instance.cpp \
 	Window.cpp \
 	Device.cpp \
-	SwapChain.cpp
+	SwapChain.cpp \
+	RenderPass.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

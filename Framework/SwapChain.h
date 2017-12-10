@@ -18,12 +18,14 @@ public:
 
     bool initialize(uint32_t width, uint32_t height);
 
+    VkFormat getImageFormat() const;
+
 private:
-    VkExtent2D swapChainExtent;
+    VkExtent2D extent;
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    VkFormat swapChainImageFormat;
-    std::vector<VkImage> swapChainImages;
-    std::vector<VkImageView> swapChainImageViews;
+    VkFormat imageFormat;
+    std::vector<VkImage> images;
+    std::vector<VkImageView> imageViews;
 
     bool createSwapChain(uint32_t width, uint32_t height);
     bool createImageViews();
