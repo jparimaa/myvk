@@ -14,5 +14,9 @@ public:
     virtual bool initialize() final;
     virtual void update() final;
     virtual void render() final;
-};
 
+private:
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    
+    bool createRenderPass();
+};

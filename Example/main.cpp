@@ -5,8 +5,10 @@ int main(/*int argc, char** argv*/) {
     fw::Framework fw;
     if (fw.initialize()) {
         ExampleApp app;
-        fw.setApplication(&app);
-        fw.execute();       
+        if (app.initialize()) {
+            fw.setApplication(&app);
+            fw.execute();
+        }
     }
 
     return 0;
