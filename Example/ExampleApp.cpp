@@ -2,6 +2,7 @@
 #include "../Framework/RenderPass.h"
 #include "../Framework/Context.h"
 #include "../Framework/Common.h"
+#include "../Framework/Pipeline.h"
 
 #include <array>
 
@@ -15,6 +16,7 @@ ExampleApp::~ExampleApp() {
 bool ExampleApp::initialize() {
     bool success = true;
     success = success && createRenderPass();
+    success = success && createPipeline();
     return success;
 }
 
@@ -66,5 +68,20 @@ bool ExampleApp::createRenderPass() {
         fw::printError("Failed to create a render pass", &r);
         return false;
     }
+    return true;
+}
+
+bool ExampleApp::createPipeline() {
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfos =
+        fw::Pipeline::getDefaultShaderStageInfos("shader_vert.spv", "shader_frag.spv");
+
+    if (shaderStageInfos.empty()) {
+        return false;
+    }
+
+    for (const auto& info : shaderStageInfos) {
+        vkDestroyShaderModule(fw::Context::getLogicalDevice(), info.module, nullptr);
+    }
+    
     return true;
 }

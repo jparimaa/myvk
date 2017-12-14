@@ -10,7 +10,8 @@ SOURCES = \
 	Window.cpp \
 	Device.cpp \
 	SwapChain.cpp \
-	RenderPass.cpp
+	RenderPass.cpp \
+	Pipeline.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

@@ -19,4 +19,5 @@ private:
     VkRenderPass renderPass = VK_NULL_HANDLE;
     
     bool createRenderPass();
+    bool createPipeline();
 };
