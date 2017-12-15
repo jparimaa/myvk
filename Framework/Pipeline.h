@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
-#include <string_view>
+#include <string>
 
 namespace fw {
 
@@ -14,6 +14,8 @@ public:
     static std::vector<VkPipelineShaderStageCreateInfo> getDefaultShaderStageInfos(
         const std::string& vertexShaderFilename,
         const std::string& fragmentShaderFilename);
+    static VkPipelineVertexInputStateCreateInfo getDefaultVertexInputInfo();
+    static VkPipelineInputAssemblyStateCreateInfo getDefaultInputAssemblyInfo();
 };
 
 } // namespace fw

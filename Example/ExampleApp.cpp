@@ -79,6 +79,9 @@ bool ExampleApp::createPipeline() {
         return false;
     }
 
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = fw::Pipeline::getDefaultVertexInputInfo();
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = fw::Pipeline::getDefaultInputAssemblyInfo();
+
     for (const auto& info : shaderStageInfos) {
         vkDestroyShaderModule(fw::Context::getLogicalDevice(), info.module, nullptr);
     }
