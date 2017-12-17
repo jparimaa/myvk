@@ -8,6 +8,10 @@ VkFormat API::getSwapChainImageFormat() {
     return framework->swapChain.getImageFormat();
 }
 
+VkExtent2D API::getSwapChainExtent() {
+    return framework->swapChain.getExtent();
+}
+
 } // namespace fw
 
 

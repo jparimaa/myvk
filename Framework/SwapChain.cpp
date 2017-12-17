@@ -72,6 +72,10 @@ VkFormat SwapChain::getImageFormat() const {
     return imageFormat;
 }
 
+VkExtent2D SwapChain::getExtent() const {
+    return extent;
+}
+
 bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);

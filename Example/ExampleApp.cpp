@@ -82,15 +82,21 @@ bool ExampleApp::createPipeline() {
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getDefaultVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getDefaultAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &vertexDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo =
+        fw::Pipeline::getDefaultVertexInputInfo(&vertexDescription, &attributeDescriptions);
+    
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = fw::Pipeline::getDefaultInputAssemblyInfo();
 
+    VkViewport viewport = fw::Pipeline::getDefaultViewport();
+    VkRect2D scissor = fw::Pipeline::getDefaultScissorRect();
+    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getDefaultViewportState(&viewport, &scissor);
+
+    VkPipelineRasterizationStateCreateInfo rasterizationInfo = fw::Pipeline::getDefaultRasterizationInfo();
+    VkPipelineMultisampleStateCreateInfo multisampleInfo = fw::Pipeline::getDefaultMultisampleInfo();
+    VkPipelineDepthStencilStateCreateInfo depthStencilInfo = fw::Pipeline::getDefaultDepthStencilInfo();
+    VkPipelineColorBlendAttachmentState colorBlendState = fw::Pipeline::getDefaultColorBlendState();
+    VkPipelineColorBlendStateCreateInfo colorBlendInfo = fw::Pipeline::getDefaultColorBlendInfo(&colorBlendState);
+    
     for (const auto& info : shaderStageInfos) {
         vkDestroyShaderModule(fw::Context::getLogicalDevice(), info.module, nullptr);
     }

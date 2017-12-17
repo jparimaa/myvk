@@ -14,6 +14,7 @@ public:
     API() = delete;
 
     static VkFormat getSwapChainImageFormat();
+    static VkExtent2D getSwapChainExtent();
 
 private:
     static Framework* framework;

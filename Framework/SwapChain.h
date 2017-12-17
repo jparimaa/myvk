@@ -19,6 +19,7 @@ public:
     bool initialize(uint32_t width, uint32_t height);
 
     VkFormat getImageFormat() const;
+    VkExtent2D getExtent() const;
 
 private:
     VkExtent2D extent;
