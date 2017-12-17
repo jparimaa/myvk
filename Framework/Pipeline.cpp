@@ -178,4 +178,12 @@ VkPipelineColorBlendStateCreateInfo Pipeline::getDefaultColorBlendInfo(const VkP
     return colorBlendInfo;
 }
 
+VkPipelineLayoutCreateInfo Pipeline::getDefaultPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout) {
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = setLayout;
+    return pipelineLayoutInfo;
+}
+
 } // namespace fw

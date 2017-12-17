@@ -11,12 +11,16 @@ ExampleApp::ExampleApp() {
 }
 
 ExampleApp::~ExampleApp() {
-    vkDestroyRenderPass(fw::Context::getLogicalDevice(), renderPass, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+    vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
 bool ExampleApp::initialize() {
+    logicalDevice = fw::Context::getLogicalDevice();
     bool success = true;
     success = success && createRenderPass();
+    success = success && createDescriptorSetLayout();
     success = success && createPipeline();
     return success;
 }
@@ -64,7 +68,7 @@ bool ExampleApp::createRenderPass() {
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (VkResult r = vkCreateRenderPass(fw::Context::getLogicalDevice(), &renderPassInfo, nullptr, &renderPass);
+    if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
         r != VK_SUCCESS) {
         fw::printError("Failed to create a render pass", &r);
         return false;
@@ -72,33 +76,93 @@ bool ExampleApp::createRenderPass() {
     return true;
 }
 
+bool ExampleApp::createDescriptorSetLayout() {
+    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
+
+    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
+        r!= VK_SUCCESS) {
+        fw::printError("Failed to create descriptor set layout");
+        return false;
+    }
+    return true;
+}
+
 bool ExampleApp::createPipeline() {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStageInfos =
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
         fw::Pipeline::getDefaultShaderStageInfos("shader_vert.spv", "shader_frag.spv");
 
-    if (shaderStageInfos.empty()) {
+    if (shaderStages.empty()) {
         return false;
     }
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getDefaultVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getDefaultAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo =
+    VkPipelineVertexInputStateCreateInfo vertexInputState =
         fw::Pipeline::getDefaultVertexInputInfo(&vertexDescription, &attributeDescriptions);
     
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = fw::Pipeline::getDefaultInputAssemblyInfo();
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getDefaultInputAssemblyInfo();
 
     VkViewport viewport = fw::Pipeline::getDefaultViewport();
     VkRect2D scissor = fw::Pipeline::getDefaultScissorRect();
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getDefaultViewportState(&viewport, &scissor);
 
-    VkPipelineRasterizationStateCreateInfo rasterizationInfo = fw::Pipeline::getDefaultRasterizationInfo();
-    VkPipelineMultisampleStateCreateInfo multisampleInfo = fw::Pipeline::getDefaultMultisampleInfo();
-    VkPipelineDepthStencilStateCreateInfo depthStencilInfo = fw::Pipeline::getDefaultDepthStencilInfo();
-    VkPipelineColorBlendAttachmentState colorBlendState = fw::Pipeline::getDefaultColorBlendState();
-    VkPipelineColorBlendStateCreateInfo colorBlendInfo = fw::Pipeline::getDefaultColorBlendInfo(&colorBlendState);
+    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getDefaultRasterizationInfo();
+    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getDefaultMultisampleInfo();
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDefaultDepthStencilInfo();
+    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getDefaultColorBlendState();
+    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getDefaultColorBlendInfo(&colorBlendAttachmentState);
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getDefaultPipelineLayoutInfo(&descriptorSetLayout);
+
+    if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
+        r != VK_SUCCESS) {
+        fw::printError("Failed to create pipeline layout");
+        return false;
+    }
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+    pipelineInfo.pStages = shaderStages.data();
+    pipelineInfo.pVertexInputState = &vertexInputState;
+    pipelineInfo.pInputAssemblyState = &inputAssemblyState;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizationState;
+    pipelineInfo.pMultisampleState = &multisampleState;
+    pipelineInfo.pDepthStencilState = &depthStencilState;
+    pipelineInfo.pColorBlendState = &colorBlendState;
+    pipelineInfo.pDynamicState = nullptr;
+    pipelineInfo.layout = pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass = 0;
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    pipelineInfo.basePipelineIndex = -1;
+
+    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+        r != VK_SUCCESS) {
+        fw::printError("Failed to create graphics pipeline");
+        return false;
+    }
     
-    for (const auto& info : shaderStageInfos) {
-        vkDestroyShaderModule(fw::Context::getLogicalDevice(), info.module, nullptr);
+    for (const auto& info : shaderStages) {
+        vkDestroyShaderModule(logicalDevice, info.module, nullptr);
     }
     
     return true;

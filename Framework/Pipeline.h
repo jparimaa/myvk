@@ -28,6 +28,7 @@ public:
     static VkPipelineDepthStencilStateCreateInfo getDefaultDepthStencilInfo();
     static VkPipelineColorBlendAttachmentState getDefaultColorBlendState();
     static VkPipelineColorBlendStateCreateInfo getDefaultColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState);
+    static VkPipelineLayoutCreateInfo getDefaultPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
 };
 
 } // namespace fw

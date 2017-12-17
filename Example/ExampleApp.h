@@ -16,8 +16,13 @@ public:
     virtual void render() final;
 
 private:
+    VkDevice logicalDevice = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
     
     bool createRenderPass();
+    bool createDescriptorSetLayout();
     bool createPipeline();
 };
