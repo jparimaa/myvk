@@ -2,8 +2,6 @@
 #include "Common.h"
 #include "Model.h"
 
-#include <array>
-
 namespace fw {
 
 std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getDefaultShaderStageInfos(
@@ -35,13 +33,16 @@ std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getDefaultShaderStageInfo
     return std::vector<VkPipelineShaderStageCreateInfo>{vertexShaderStageInfo, fragmentShaderStageInfo};
 }
 
-VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputInfo() {
-    VkVertexInputBindingDescription bindingDescription = {};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Model::Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;    
-    
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+VkVertexInputBindingDescription Pipeline::getDefaultVertexDescription() {
+    VkVertexInputBindingDescription vertexDescription = {};
+    vertexDescription.binding = 0;
+    vertexDescription.stride = sizeof(Model::Vertex);
+    vertexDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    return vertexDescription;
+}
+
+std::vector<VkVertexInputAttributeDescription> Pipeline::getDefaultAttributeDescriptions() {
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
 
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
@@ -57,14 +58,8 @@ VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputInfo() {
     attributeDescriptions[2].location = 2;
     attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
     attributeDescriptions[2].offset = offsetof(Model::Vertex, texCoord);
-    
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-    return vertexInputInfo;
+
+    return attributeDescriptions;
 }
 
 VkPipelineInputAssemblyStateCreateInfo Pipeline::getDefaultInputAssemblyInfo() {

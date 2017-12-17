@@ -14,7 +14,8 @@ public:
     static std::vector<VkPipelineShaderStageCreateInfo> getDefaultShaderStageInfos(
         const std::string& vertexShaderFilename,
         const std::string& fragmentShaderFilename);
-    static VkPipelineVertexInputStateCreateInfo getDefaultVertexInputInfo();
+    static VkVertexInputBindingDescription getDefaultVertexDescription();
+    static std::vector<VkVertexInputAttributeDescription> getDefaultAttributeDescriptions();
     static VkPipelineInputAssemblyStateCreateInfo getDefaultInputAssemblyInfo();
 };
 

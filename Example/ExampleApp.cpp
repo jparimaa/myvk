@@ -4,6 +4,7 @@
 #include "../Framework/Common.h"
 #include "../Framework/Pipeline.h"
 
+#include <iostream>
 #include <array>
 
 ExampleApp::ExampleApp() {
@@ -79,7 +80,15 @@ bool ExampleApp::createPipeline() {
         return false;
     }
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = fw::Pipeline::getDefaultVertexInputInfo();
+    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getDefaultVertexDescription();
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getDefaultAttributeDescriptions();
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &vertexDescription;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = fw::Pipeline::getDefaultInputAssemblyInfo();
 
     for (const auto& info : shaderStageInfos) {
