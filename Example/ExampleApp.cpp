@@ -11,6 +11,7 @@ ExampleApp::ExampleApp() {
 }
 
 ExampleApp::~ExampleApp() {
+    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);

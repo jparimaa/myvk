@@ -5,6 +5,12 @@ framework:
 %.o: %.cpp 
 	$(CC) -c $(CFLAGS) $(INCLUDES) $<
 
+%_vert.spv: $(SHADER_DIR)%.vert
+	$(GLSLANG_VALIDATOR) -V $< -o $@
+
+%_frag.spv: $(SHADER_DIR)%.frag
+	$(GLSLANG_VALIDATOR) -V $< -o $@
+
 .PHONY: clean
 
 clean:
