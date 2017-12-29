@@ -5,11 +5,13 @@
 
 #include <vector>
 
-namespace fw {
+namespace fw
+{
 
-class SwapChain {
+class SwapChain
+{
 public:
-    SwapChain();
+    SwapChain() {};
     ~SwapChain();
     SwapChain(const SwapChain&) = delete;
     SwapChain(SwapChain&&) = delete;

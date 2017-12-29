@@ -3,11 +3,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace fw {
+namespace fw
+{
 
-class Instance {
+class Instance
+{
 public:
-    Instance();
+    Instance() {};
     ~Instance();
     Instance(const Instance&) = delete;
     Instance(Instance&&) = delete;

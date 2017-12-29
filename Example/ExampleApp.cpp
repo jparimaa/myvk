@@ -7,17 +7,20 @@
 #include <iostream>
 #include <array>
 
-ExampleApp::ExampleApp() {
+ExampleApp::ExampleApp()
+{
 }
 
-ExampleApp::~ExampleApp() {
+ExampleApp::~ExampleApp()
+{
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
-bool ExampleApp::initialize() {
+bool ExampleApp::initialize()
+{
     logicalDevice = fw::Context::getLogicalDevice();
     bool success = true;
     success = success && createRenderPass();
@@ -26,13 +29,16 @@ bool ExampleApp::initialize() {
     return success;
 }
 
-void ExampleApp::update() {
+void ExampleApp::update()
+{
 }
 
-void ExampleApp::render() {
+void ExampleApp::render()
+{
 }
 
-bool ExampleApp::createRenderPass() {
+bool ExampleApp::createRenderPass()
+{
     VkAttachmentDescription colorAttachment = fw::RenderPass::getDefaultColorAttachment();
 
     VkAttachmentReference colorAttachmentRef = {};
@@ -77,7 +83,8 @@ bool ExampleApp::createRenderPass() {
     return true;
 }
 
-bool ExampleApp::createDescriptorSetLayout() {
+bool ExampleApp::createDescriptorSetLayout()
+{
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -106,7 +113,8 @@ bool ExampleApp::createDescriptorSetLayout() {
     return true;
 }
 
-bool ExampleApp::createPipeline() {
+bool ExampleApp::createPipeline()
+{
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
         fw::Pipeline::getDefaultShaderStageInfos("shader_vert.spv", "shader_frag.spv");
 

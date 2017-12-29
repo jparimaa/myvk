@@ -3,9 +3,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace fw {
+namespace fw
+{
 
-class RenderPass {
+class RenderPass
+{
 public:
     RenderPass() = delete;
     static VkAttachmentDescription getDefaultColorAttachment();

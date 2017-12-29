@@ -6,9 +6,11 @@
 #include "SwapChain.h"
 #include "Application.h"
 
-namespace fw {
+namespace fw
+{
 
-class Framework {
+class Framework
+{
 public:
     friend class API;
     

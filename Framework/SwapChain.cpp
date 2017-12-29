@@ -6,11 +6,14 @@
 #include <iostream>
 #include <algorithm>
 
-namespace fw {
+namespace fw
+{
 
-namespace {
+namespace
+{
 
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+{
     if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED) {
         return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     }
@@ -24,7 +27,8 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>
     return availableFormats[0];
 }
 
-VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+{
     VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
     for (const auto& availablePresentMode : availablePresentModes) {
@@ -38,7 +42,8 @@ VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& avai
     return bestMode;
 }
 
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height)
+{
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     } else {
@@ -53,30 +58,33 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
     }
 }
 
-}  // namespace
+} // unnamed
 
-SwapChain::SwapChain() {}
-
-SwapChain::~SwapChain() {
+SwapChain::~SwapChain()
+{
     for (size_t i = 0; i < imageViews.size(); ++i) {
         vkDestroyImageView(Context::getLogicalDevice(), imageViews[i], nullptr);
     }
     vkDestroySwapchainKHR(Context::getLogicalDevice(), swapChain, nullptr);
 }
 
-bool SwapChain::initialize(uint32_t width, uint32_t height) {
+bool SwapChain::initialize(uint32_t width, uint32_t height)
+{
     return createSwapChain(width, height) && createImageViews();
 }
 
-VkFormat SwapChain::getImageFormat() const {
+VkFormat SwapChain::getImageFormat() const
+{
     return imageFormat;
 }
 
-VkExtent2D SwapChain::getExtent() const {
+VkExtent2D SwapChain::getExtent() const
+{
     return extent;
 }
 
-bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
+bool SwapChain::createSwapChain(uint32_t width, uint32_t height)
+{
     SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     imageFormat = surfaceFormat.format;
@@ -130,7 +138,8 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height) {
     return true;
 }
 
-bool SwapChain::createImageViews() {
+bool SwapChain::createImageViews()
+{
     imageViews.resize(images.size());
     for (size_t i = 0; i < images.size(); ++i) {
         VkImageViewCreateInfo createInfo = {};

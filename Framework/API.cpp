@@ -1,14 +1,17 @@
 #include "API.h"
 
-namespace fw {
+namespace fw
+{
 
 Framework* API::framework = nullptr;
 
-VkFormat API::getSwapChainImageFormat() {
+VkFormat API::getSwapChainImageFormat()
+{
     return framework->swapChain.getImageFormat();
 }
 
-VkExtent2D API::getSwapChainExtent() {
+VkExtent2D API::getSwapChainExtent()
+{
     return framework->swapChain.getExtent();
 }
 

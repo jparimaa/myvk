@@ -6,7 +6,8 @@
 #include <string_view>
 #include <vector>
 
-namespace fw {
+namespace fw
+{
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -19,7 +20,8 @@ const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NA
 
 void printError(std::string_view msg, const VkResult* result = nullptr);
 
-struct QueueFamilyIndices {
+struct QueueFamilyIndices
+{
     int graphicsFamily = -1;
     int presentFamily = -1;
     bool hasGraphicsAndPresentFamily() const;
@@ -27,7 +29,8 @@ struct QueueFamilyIndices {
 
 QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
-struct SwapChainSupport {
+struct SwapChainSupport
+{
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;

@@ -5,20 +5,24 @@
 #include <fstream>
 #include <ios>
 
-namespace fw {
+namespace fw
+{
 
-void printError(std::string_view msg, const VkResult* result) {
+void printError(std::string_view msg, const VkResult* result)
+{
     std::cerr << "ERROR: " << msg << "\n";
     if (result != nullptr) {
         std::cerr << "Result: " << *result << "\n";
     }
 }
 
-bool QueueFamilyIndices::hasGraphicsAndPresentFamily() const {
+bool QueueFamilyIndices::hasGraphicsAndPresentFamily() const
+{
     return graphicsFamily >= 0 && presentFamily >= 0;
 }
 
-QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+{
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -44,7 +48,8 @@ QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKH
     return indices;
 }
 
-SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+{
     SwapChainSupport details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
 
@@ -65,7 +70,8 @@ SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceK
     return details;
 }
 
-VkShaderModule createShaderModule(const std::string& filename) {
+VkShaderModule createShaderModule(const std::string& filename)
+{
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         printError("Failed to open file " + filename);

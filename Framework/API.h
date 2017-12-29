@@ -5,9 +5,11 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace fw {
+namespace fw
+{
 
-class API {
+class API
+{
 public:
     friend class Framework;
     

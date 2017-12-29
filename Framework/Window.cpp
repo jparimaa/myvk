@@ -2,17 +2,18 @@
 #include "Common.h"
 #include "Context.h"
 
-namespace fw {
+namespace fw
+{
 
-Window::Window() {}
-
-Window::~Window() {
+Window::~Window()
+{
     vkDestroySurfaceKHR(Context::getInstance(), surface, nullptr);
     glfwDestroyWindow(window);
     glfwTerminate();
 }
 
-bool Window::initialize() {
+bool Window::initialize()
+{
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
@@ -27,19 +28,23 @@ bool Window::initialize() {
     return true;
 }
 
-bool Window::shouldClose() const {
+bool Window::shouldClose() const
+{
     return glfwWindowShouldClose(window);
 }
 
-void Window::pollEvents() const {
+void Window::pollEvents() const
+{
     glfwPollEvents();
 }
 
-int Window::getWidth() const {
+int Window::getWidth() const
+{
     return width;
 }
 
-int Window::getHeight() const {
+int Window::getHeight() const
+{
     return height;
 }
 

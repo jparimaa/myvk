@@ -5,11 +5,14 @@
 #include <set>
 #include <iostream>
 
-namespace fw {
+namespace fw
+{
 
-namespace {
+namespace
+{
 
-bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
+bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
+{
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -24,7 +27,8 @@ bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
     return requiredExtensions.empty();
 }
 
-bool isDeviceSuitable(VkPhysicalDevice physicalDevice) {
+bool isDeviceSuitable(VkPhysicalDevice physicalDevice)
+{
     VkSurfaceKHR surface = Context::getSurface();
     QueueFamilyIndices indices = getQueueFamilies(physicalDevice, surface);
 
@@ -39,19 +43,20 @@ bool isDeviceSuitable(VkPhysicalDevice physicalDevice) {
     return false;
 }
 
-}  // namespace
+} // unnamed
 
-Device::Device() {}
-
-Device::~Device() {
+Device::~Device()
+{
     vkDestroyDevice(logicalDevice, nullptr);
 }
 
-bool Device::initialize() {
+bool Device::initialize()
+{
     return getPhysicalDevice() && createLogicalDevice();
 }
 
-bool Device::getPhysicalDevice() {
+bool Device::getPhysicalDevice()
+{
     uint32_t deviceCount = 0;
     VkInstance instance = Context::getInstance();
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -73,7 +78,8 @@ bool Device::getPhysicalDevice() {
     return false;
 }
 
-bool Device::createLogicalDevice() {
+bool Device::createLogicalDevice()
+{
     QueueFamilyIndices indices = getQueueFamilies(physicalDevice, Context::getSurface());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;

@@ -2,7 +2,8 @@
 
 #include "../Framework/Application.h"
 
-class ExampleApp : public fw::Application {
+class ExampleApp : public fw::Application
+{
 public:
     ExampleApp();
     virtual ~ExampleApp();

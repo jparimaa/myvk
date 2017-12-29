@@ -3,13 +3,16 @@
 
 #include <iostream>
 
-namespace fw {
+namespace fw
+{
 
-Framework::Framework() {
+Framework::Framework()
+{
     API::framework = this;
 }
 
-bool Framework::initialize() {
+bool Framework::initialize()
+{
     glfwInit();
     bool success = true;
     success = success && instance.initialize();
@@ -19,11 +22,13 @@ bool Framework::initialize() {
     return success;
 }
 
-void Framework::setApplication(Application* app) {
+void Framework::setApplication(Application* app)
+{
     this->app = app;
 }
 
-void Framework::execute() {
+void Framework::execute()
+{
     while (!window.shouldClose()) {
         window.pollEvents();
     }

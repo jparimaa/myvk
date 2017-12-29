@@ -2,11 +2,14 @@
 
 #include <glm/glm.hpp>
 
-namespace fw {
+namespace fw
+{
 
-class Model {
+class Model
+{
 public:
-    struct Vertex {
+    struct Vertex
+    {
         glm::vec3 position;
         glm::vec3 color;
         glm::vec2 texCoord;

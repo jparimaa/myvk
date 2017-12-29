@@ -3,11 +3,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace fw {
+namespace fw
+{
 
-class Window {
+class Window
+{
 public:
-    Window();
+    Window() {};
     ~Window();
     Window(const Window&) = delete;
     Window(Window&&) = delete;

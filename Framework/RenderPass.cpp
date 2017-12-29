@@ -2,9 +2,11 @@
 #include "API.h"
 #include "Constants.h"
 
-namespace fw {
+namespace fw
+{
 
-VkAttachmentDescription RenderPass::getDefaultColorAttachment() {
+VkAttachmentDescription RenderPass::getDefaultColorAttachment()
+{
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = API::getSwapChainImageFormat();
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -17,7 +19,8 @@ VkAttachmentDescription RenderPass::getDefaultColorAttachment() {
     return colorAttachment;
 }
 
-VkAttachmentDescription RenderPass::getDefaultDepthAttachment() {
+VkAttachmentDescription RenderPass::getDefaultDepthAttachment()
+{
     VkAttachmentDescription depthAttachment = {};
     depthAttachment.format = depthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;

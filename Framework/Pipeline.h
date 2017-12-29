@@ -6,9 +6,11 @@
 #include <vector>
 #include <string>
 
-namespace fw {
+namespace fw
+{
 
-class Pipeline {
+class Pipeline
+{
 public:
     Pipeline() = delete;
     static std::vector<VkPipelineShaderStageCreateInfo> getDefaultShaderStageInfos(

@@ -7,11 +7,14 @@
 #include <cstring>
 #include <iostream>
 
-namespace fw {
+namespace fw
+{
 
-namespace {
+namespace
+{
 
-bool isValidationLayerAvailable() {
+bool isValidationLayerAvailable()
+{
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
     std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -33,7 +36,8 @@ bool isValidationLayerAvailable() {
     return true;
 }
 
-std::vector<const char*> getRequiredExtensions() {
+std::vector<const char*> getRequiredExtensions()
+{
     std::vector<const char*> extensions;
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -50,24 +54,23 @@ std::vector<const char*> getRequiredExtensions() {
     return extensions;
 };
 
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT flags,
-                                                    VkDebugReportObjectTypeEXT objType,
-                                                    uint64_t obj,
-                                                    size_t location,
-                                                    int32_t code,
-                                                    const char* layerPrefix,
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT /*flags*/,
+                                                    VkDebugReportObjectTypeEXT /*objType*/,
+                                                    uint64_t /*obj*/,
+                                                    size_t /*location*/,
+                                                    int32_t /*code*/,
+                                                    const char* /*layerPrefix*/,
                                                     const char* msg,
-                                                    void* userData) {
+                                                    void* /*userData*/)
+{
     std::cerr << "Validation layer: " << msg << "\n";
     return VK_FALSE;
 }
 
 } // unnamed
 
-Instance::Instance() {}
-
-Instance::~Instance() {
+Instance::~Instance()
+{
     auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
     if (destroyDebugReportCallback != nullptr) {
         destroyDebugReportCallback(instance, callback, nullptr);
@@ -75,11 +78,13 @@ Instance::~Instance() {
     vkDestroyInstance(instance, nullptr);
 }
 
-bool Instance::initialize() {
+bool Instance::initialize()
+{
     return createInstance() && createDebugReportCallback();
 }
 
-bool Instance::createInstance() {
+bool Instance::createInstance()
+{
     if (enableValidationLayers && !isValidationLayerAvailable()) {
         printError("Validation layers requested but not available");
         return false;
@@ -116,14 +121,16 @@ bool Instance::createInstance() {
     return true;
 }
 
-bool Instance::createDebugReportCallback() {
+bool Instance::createDebugReportCallback()
+{
     if (!enableValidationLayers) {
         return true;
     }
     
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-    createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT |
+    createInfo.flags =
+        VK_DEBUG_REPORT_ERROR_BIT_EXT |
         VK_DEBUG_REPORT_WARNING_BIT_EXT |
         VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
     createInfo.pfnCallback = debugCallback;

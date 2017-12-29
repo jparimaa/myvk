@@ -3,11 +3,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-namespace fw {
+namespace fw
+{
 
-class Device {
+class Device
+{
 public:
-    Device();
+    Device() {};
     ~Device();
     Device(const Device&) = delete;
     Device(Device&&) = delete;
