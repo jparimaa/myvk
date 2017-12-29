@@ -116,18 +116,17 @@ bool ExampleApp::createPipeline() {
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getDefaultVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getDefaultAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState =
-        fw::Pipeline::getDefaultVertexInputInfo(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getDefaultVertexInputState(&vertexDescription, &attributeDescriptions);
     
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getDefaultInputAssemblyInfo();
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getDefaultInputAssemblyState();
 
     VkViewport viewport = fw::Pipeline::getDefaultViewport();
     VkRect2D scissor = fw::Pipeline::getDefaultScissorRect();
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getDefaultViewportState(&viewport, &scissor);
 
-    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getDefaultRasterizationInfo();
-    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getDefaultMultisampleInfo();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDefaultDepthStencilInfo();
+    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getDefaultRasterizationState();
+    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getDefaultMultisampleState();
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDefaultDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getDefaultColorBlendState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getDefaultColorBlendInfo(&colorBlendAttachmentState);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getDefaultPipelineLayoutInfo(&descriptorSetLayout);

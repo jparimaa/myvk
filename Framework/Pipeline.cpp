@@ -63,24 +63,24 @@ std::vector<VkVertexInputAttributeDescription> Pipeline::getDefaultAttributeDesc
     return attributeDescriptions;
 }
 
-VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputInfo(
+VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputState(
     const VkVertexInputBindingDescription* vertexDescription,
     const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions) {
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.pVertexBindingDescriptions = vertexDescription;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions->size());
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions->data();
-    return vertexInputInfo;
+    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputState.vertexBindingDescriptionCount = 1;
+    vertexInputState.pVertexBindingDescriptions = vertexDescription;
+    vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions->size());
+    vertexInputState.pVertexAttributeDescriptions = attributeDescriptions->data();
+    return vertexInputState;
 }
 
-VkPipelineInputAssemblyStateCreateInfo Pipeline::getDefaultInputAssemblyInfo() {
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo = {};
-    inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
-    return inputAssemblyInfo;
+VkPipelineInputAssemblyStateCreateInfo Pipeline::getDefaultInputAssemblyState() {
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
+    inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+    return inputAssemblyState;
 } 
 
 VkViewport Pipeline::getDefaultViewport() {
@@ -112,43 +112,43 @@ VkPipelineViewportStateCreateInfo Pipeline::getDefaultViewportState(const VkView
     return viewportState;
 }    
 
-VkPipelineRasterizationStateCreateInfo Pipeline::getDefaultRasterizationInfo() {
-    VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
-    rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizationInfo.depthClampEnable = VK_FALSE;
-    rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
-    rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizationInfo.lineWidth = 1.0f;
-    rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizationInfo.depthBiasEnable = VK_FALSE;
-    rasterizationInfo.depthBiasConstantFactor = 0.0f;
-    rasterizationInfo.depthBiasClamp = 0.0f;
-    rasterizationInfo.depthBiasSlopeFactor = 0.0f;
-    return rasterizationInfo;
+VkPipelineRasterizationStateCreateInfo Pipeline::getDefaultRasterizationState() {
+    VkPipelineRasterizationStateCreateInfo rasterizationState = {};
+    rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizationState.depthClampEnable = VK_FALSE;
+    rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+    rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizationState.lineWidth = 1.0f;
+    rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizationState.depthBiasEnable = VK_FALSE;
+    rasterizationState.depthBiasConstantFactor = 0.0f;
+    rasterizationState.depthBiasClamp = 0.0f;
+    rasterizationState.depthBiasSlopeFactor = 0.0f;
+    return rasterizationState;
 }
 
-VkPipelineMultisampleStateCreateInfo Pipeline::getDefaultMultisampleInfo() {
-    VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
-    multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleInfo.sampleShadingEnable = VK_FALSE;
-    multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampleInfo.minSampleShading = 1.0f;           // Optional
-    multisampleInfo.pSampleMask = nullptr;             // Optional
-    multisampleInfo.alphaToCoverageEnable = VK_FALSE;  // Optional
-    multisampleInfo.alphaToOneEnable = VK_FALSE;       // Optional
-    return multisampleInfo;
+VkPipelineMultisampleStateCreateInfo Pipeline::getDefaultMultisampleState() {
+    VkPipelineMultisampleStateCreateInfo multisampleState = {};
+    multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleState.sampleShadingEnable = VK_FALSE;
+    multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampleState.minSampleShading = 1.0f;           // Optional
+    multisampleState.pSampleMask = nullptr;             // Optional
+    multisampleState.alphaToCoverageEnable = VK_FALSE;  // Optional
+    multisampleState.alphaToOneEnable = VK_FALSE;       // Optional
+    return multisampleState;
 }
 
-VkPipelineDepthStencilStateCreateInfo Pipeline::getDefaultDepthStencilInfo() {
-    VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
-    depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilInfo.depthTestEnable = VK_TRUE;
-    depthStencilInfo.depthWriteEnable = VK_TRUE;
-    depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-    depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-    depthStencilInfo.stencilTestEnable = VK_FALSE;
-    return depthStencilInfo;
+VkPipelineDepthStencilStateCreateInfo Pipeline::getDefaultDepthStencilState() {
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilState.depthTestEnable = VK_TRUE;
+    depthStencilState.depthWriteEnable = VK_TRUE;
+    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencilState.depthBoundsTestEnable = VK_FALSE;
+    depthStencilState.stencilTestEnable = VK_FALSE;
+    return depthStencilState;
 }
     
 VkPipelineColorBlendAttachmentState Pipeline::getDefaultColorBlendState() {

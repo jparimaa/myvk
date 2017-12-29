@@ -16,16 +16,16 @@ public:
         const std::string& fragmentShaderFilename);
     static VkVertexInputBindingDescription getDefaultVertexDescription();
     static std::vector<VkVertexInputAttributeDescription> getDefaultAttributeDescriptions();
-    static VkPipelineVertexInputStateCreateInfo getDefaultVertexInputInfo(
+    static VkPipelineVertexInputStateCreateInfo getDefaultVertexInputState(
         const VkVertexInputBindingDescription* vertexDescription,
         const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions);
-    static VkPipelineInputAssemblyStateCreateInfo getDefaultInputAssemblyInfo();
+    static VkPipelineInputAssemblyStateCreateInfo getDefaultInputAssemblyState();
     static VkViewport getDefaultViewport();
     static VkRect2D getDefaultScissorRect();
     static VkPipelineViewportStateCreateInfo getDefaultViewportState(const VkViewport* viewport, const VkRect2D* scissor);
-    static VkPipelineRasterizationStateCreateInfo getDefaultRasterizationInfo();
-    static VkPipelineMultisampleStateCreateInfo getDefaultMultisampleInfo();
-    static VkPipelineDepthStencilStateCreateInfo getDefaultDepthStencilInfo();
+    static VkPipelineRasterizationStateCreateInfo getDefaultRasterizationState();
+    static VkPipelineMultisampleStateCreateInfo getDefaultMultisampleState();
+    static VkPipelineDepthStencilStateCreateInfo getDefaultDepthStencilState();
     static VkPipelineColorBlendAttachmentState getDefaultColorBlendState();
     static VkPipelineColorBlendStateCreateInfo getDefaultColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState);
     static VkPipelineLayoutCreateInfo getDefaultPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
