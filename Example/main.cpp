@@ -1,16 +1,9 @@
 #include "ExampleApp.h"
-#include "../Framework/Framework.h"
+#include "../Framework/Common.h"
 
-int main(/*int argc, char** argv*/)
+#include <iostream>
+
+int main(int /*argc*/, char** /*argv*/)
 {
-    fw::Framework fw;
-    if (fw.initialize()) {
-        ExampleApp app;
-        if (app.initialize()) {
-            fw.setApplication(&app);
-            fw.execute();
-        }
-    }
-
-    return 0;
+    return fw::runApplication<ExampleApp>();
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Framework.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -17,6 +19,23 @@ const bool enableValidationLayers = true;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+template <typename T>
+int runApplication()
+{
+    fw::Framework fw;
+    int status = 1;
+    if (fw.initialize()) {
+        T app;
+        if (app.initialize()) {
+            fw.setApplication(&app);
+            fw.execute();
+            status = 0;
+        }
+    }
+
+    return status;
+}
 
 void printError(std::string_view msg, const VkResult* result = nullptr);
 
