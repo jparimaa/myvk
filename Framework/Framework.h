@@ -15,6 +15,7 @@ public:
     friend class API;
     
     Framework();
+    ~Framework();
     Framework(const Framework&) = delete;
     Framework(Framework&&) = delete;
     Framework& operator=(const Framework&) = delete;
@@ -29,6 +30,7 @@ private:
     Window window;
     Device device;
     SwapChain swapChain;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
 
     Application* app = nullptr;
 };

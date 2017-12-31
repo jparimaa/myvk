@@ -20,12 +20,16 @@ public:
     static VkSurfaceKHR getSurface();
     static VkPhysicalDevice getPhysicalDevice();
     static VkDevice getLogicalDevice();
+    static VkQueue getGraphicsQueue();
+    static VkQueue getPresentQueue();
 
 private:
     static VkInstance instance;
     static VkSurfaceKHR surface;
     static VkPhysicalDevice physicalDevice;
     static VkDevice logicalDevice;
+    static VkQueue graphicsQueue;
+    static VkQueue presentQueue;
 };
 
 } // namespace fw

@@ -1,5 +1,7 @@
 #include "Framework.h"
 #include "API.h"
+#include "Context.h"
+#include "Command.h"
 
 #include <iostream>
 
@@ -11,6 +13,11 @@ Framework::Framework()
     API::framework = this;
 }
 
+Framework::~Framework()
+{
+    vkDestroyCommandPool(Context::getLogicalDevice(), commandPool, nullptr);
+}
+
 bool Framework::initialize()
 {
     glfwInit();
@@ -19,6 +26,7 @@ bool Framework::initialize()
     success = success && window.initialize();
     success = success && device.initialize();
     success = success && swapChain.initialize(window.getWidth(), window.getHeight());
+    success = success && Command::createDefaultCommandPool(&commandPool);
     return success;
 }
 

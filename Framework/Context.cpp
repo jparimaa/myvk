@@ -7,6 +7,8 @@ VkInstance Context::instance = VK_NULL_HANDLE;
 VkSurfaceKHR Context::surface = VK_NULL_HANDLE;
 VkPhysicalDevice Context::physicalDevice = VK_NULL_HANDLE;
 VkDevice Context::logicalDevice = VK_NULL_HANDLE;
+VkQueue Context::graphicsQueue = VK_NULL_HANDLE;
+VkQueue Context::presentQueue = VK_NULL_HANDLE;
 
 VkInstance Context::getInstance()
 {
@@ -26,6 +28,16 @@ VkPhysicalDevice Context::getPhysicalDevice()
 VkDevice Context::getLogicalDevice()
 {
     return logicalDevice;
+}
+
+VkQueue Context::getGraphicsQueue()
+{
+    return graphicsQueue;
+}
+
+VkQueue Context::getPresentQueue()
+{
+    return presentQueue;
 }
 
 } // namespace fw
