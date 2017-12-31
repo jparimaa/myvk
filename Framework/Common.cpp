@@ -99,4 +99,20 @@ VkShaderModule createShaderModule(const std::string& filename)
     return shaderModule;
 }
 
+bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& typeIndex)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(Context::getPhysicalDevice(), &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            typeIndex = i;
+            return true;
+        }
+    }
+    printError("Failed to find a suitable memory type");
+    return false;
+}
+
+
 } // namespace fw

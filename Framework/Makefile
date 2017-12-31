@@ -11,7 +11,9 @@ SOURCES = \
 	Device.cpp \
 	SwapChain.cpp \
 	RenderPass.cpp \
-	Pipeline.cpp
+	Pipeline.cpp \
+	Command.cpp \
+	Image.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

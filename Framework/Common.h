@@ -58,5 +58,7 @@ struct SwapChainSupport
 SwapChainSupport getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 VkShaderModule createShaderModule(const std::string& filename);
+
+bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& typeIndex);
     
 } // namespace fw

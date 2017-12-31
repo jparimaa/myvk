@@ -3,6 +3,7 @@
 #include "../Framework/Context.h"
 #include "../Framework/Common.h"
 #include "../Framework/Pipeline.h"
+#include "../Framework/Command.h"
 
 #include <iostream>
 #include <array>
@@ -13,6 +14,7 @@ ExampleApp::ExampleApp()
 
 ExampleApp::~ExampleApp()
 {
+    vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
@@ -26,6 +28,7 @@ bool ExampleApp::initialize()
     success = success && createRenderPass();
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
+    success = success && fw::Command::createDefaultCommandPool(&commandPool);
     return success;
 }
 

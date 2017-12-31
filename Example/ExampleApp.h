@@ -22,6 +22,7 @@ private:
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();
