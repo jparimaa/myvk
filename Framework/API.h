@@ -17,6 +17,8 @@ public:
 
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
+    static bool initializeSwapChain(VkRenderPass renderPass);
+    
     static VkCommandPool getCommandPool();
 
 private:

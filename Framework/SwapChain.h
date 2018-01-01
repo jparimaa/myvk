@@ -18,20 +18,30 @@ public:
     SwapChain& operator=(const SwapChain&) = delete;
     SwapChain& operator=(SwapChain&&) = delete;
 
-    bool initialize(uint32_t width, uint32_t height);
+    bool create(uint32_t width, uint32_t height);
+    bool initialize(VkRenderPass renderPass);
 
     VkFormat getImageFormat() const;
     VkExtent2D getExtent() const;
 
 private:
-    VkExtent2D extent;
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     VkFormat imageFormat;
+    VkExtent2D extent;
+    uint32_t imageCount = 0;
+    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+
     std::vector<VkImage> images;
     std::vector<VkImageView> imageViews;
+    std::vector<VkFramebuffer> framebuffers;
+
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+    VkImageView depthImageView = VK_NULL_HANDLE;
 
     bool createSwapChain(uint32_t width, uint32_t height);
     bool createImageViews();
+    bool createDepthImage();
+    bool createFramebuffers(VkRenderPass renderPass);
 };
 
 } // namespace fw

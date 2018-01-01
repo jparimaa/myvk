@@ -33,6 +33,8 @@ private:
     VkCommandPool commandPool = VK_NULL_HANDLE;
 
     Application* app = nullptr;
+
+    bool initializeSwapChain(VkRenderPass renderPass);
 };
 
 } // namespace fw

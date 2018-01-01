@@ -4,6 +4,7 @@
 #include "../Framework/Common.h"
 #include "../Framework/Pipeline.h"
 #include "../Framework/Command.h"
+#include "../Framework/API.h"
 
 #include <iostream>
 #include <array>
@@ -25,6 +26,7 @@ bool ExampleApp::initialize()
     logicalDevice = fw::Context::getLogicalDevice();
     bool success = true;
     success = success && createRenderPass();
+    success = success && fw::API::initializeSwapChain(renderPass);
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
     return success;
@@ -107,8 +109,8 @@ bool ExampleApp::createDescriptorSetLayout()
     layoutInfo.pBindings = bindings.data();
 
     if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r!= VK_SUCCESS) {
-        fw::printError("Failed to create descriptor set layout");
+        r != VK_SUCCESS) {
+        fw::printError("Failed to create descriptor set layout", &r);
         return false;
     }
     return true;
@@ -142,7 +144,7 @@ bool ExampleApp::createPipeline()
 
     if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
         r != VK_SUCCESS) {
-        fw::printError("Failed to create pipeline layout");
+        fw::printError("Failed to create pipeline layout", &r);
         return false;
     }
 
@@ -166,7 +168,7 @@ bool ExampleApp::createPipeline()
 
     if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
         r != VK_SUCCESS) {
-        fw::printError("Failed to create graphics pipeline");
+        fw::printError("Failed to create graphics pipeline", &r);
         return false;
     }
     

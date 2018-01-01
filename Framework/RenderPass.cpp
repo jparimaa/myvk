@@ -22,7 +22,7 @@ VkAttachmentDescription RenderPass::getDefaultColorAttachment()
 VkAttachmentDescription RenderPass::getDefaultDepthAttachment()
 {
     VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = depthFormat;
+    depthAttachment.format = Constants::depthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

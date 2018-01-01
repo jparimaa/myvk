@@ -123,6 +123,8 @@ bool Device::createLogicalDevice()
 
     Context::physicalDevice = physicalDevice;
     Context::logicalDevice = logicalDevice;
+    Context::graphicsQueue = graphicsQueue;
+    Context::presentQueue = presentQueue;
     
     return true;
 }

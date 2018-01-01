@@ -25,8 +25,8 @@ bool Framework::initialize()
     success = success && instance.initialize();
     success = success && window.initialize();
     success = success && device.initialize();
-    success = success && swapChain.initialize(window.getWidth(), window.getHeight());
-    success = success && Command::createDefaultCommandPool(&commandPool);
+    success = success && swapChain.create(window.getWidth(), window.getHeight());
+    success = success && Command::createGraphicsCommandPool(&commandPool);
     return success;
 }
 
@@ -40,6 +40,11 @@ void Framework::execute()
     while (!window.shouldClose()) {
         window.pollEvents();
     }
+}
+
+bool Framework::initializeSwapChain(VkRenderPass renderPass)
+{
+    return swapChain.initialize(renderPass);
 }
 
 } // namespace fw

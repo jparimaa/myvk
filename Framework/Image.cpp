@@ -6,13 +6,13 @@
 namespace fw
 {
 
-bool Image::createSimpleImageToMemory(uint32_t width,
-                                      uint32_t height,
-                                      VkFormat format,
-                                      VkImageTiling tiling,
-                                      VkImageUsageFlags usage,
-                                      VkImage* image,
-                                      VkDeviceMemory* imageMemory)
+bool Image::createImage(uint32_t width,
+                        uint32_t height,
+                        VkFormat format,
+                        VkImageTiling tiling,
+                        VkImageUsageFlags usage,
+                        VkImage* image,
+                        VkDeviceMemory* imageMemory)
 {
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -48,14 +48,14 @@ bool Image::createSimpleImageToMemory(uint32_t width,
 
     if (VkResult r = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, imageMemory);
         r != VK_SUCCESS) {
-        printError("Failed to allocate image memory");
+        printError("Failed to allocate image memory", &r);
     }
 
     vkBindImageMemory(logicalDevice, *image, *imageMemory, 0);
     return true;
 }
 
-bool Image::createSimpleImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
+bool Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -70,7 +70,7 @@ bool Image::createSimpleImageView(VkImage image, VkFormat format, VkImageAspectF
 
     if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &viewInfo, nullptr, imageView);
         r != VK_SUCCESS) {        
-        printError("Failed to create image view");
+        printError("Failed to create image view", &r);
         return false;
     }
     

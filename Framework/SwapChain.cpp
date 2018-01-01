@@ -1,10 +1,13 @@
 #include "SwapChain.h"
 #include "Common.h"
 #include "Context.h"
+#include "Constants.h"
+#include "Image.h"
 
 #include <set>
 #include <iostream>
 #include <algorithm>
+#include <array>
 
 namespace fw
 {
@@ -62,28 +65,20 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
 
 SwapChain::~SwapChain()
 {
-    for (size_t i = 0; i < imageViews.size(); ++i) {
-        vkDestroyImageView(Context::getLogicalDevice(), imageViews[i], nullptr);
+    VkDevice logicalDevice = Context::getLogicalDevice();
+    
+    vkDestroyImage(logicalDevice, depthImage, nullptr);
+    vkDestroyImageView(logicalDevice, depthImageView, nullptr);
+    vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
+    
+    for (size_t i = 0; i < imageViews.size(); ++i) {        
+        vkDestroyImageView(logicalDevice, imageViews[i], nullptr);
+        vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
     }
-    vkDestroySwapchainKHR(Context::getLogicalDevice(), swapChain, nullptr);
+    vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 }
 
-bool SwapChain::initialize(uint32_t width, uint32_t height)
-{
-    return createSwapChain(width, height) && createImageViews();
-}
-
-VkFormat SwapChain::getImageFormat() const
-{
-    return imageFormat;
-}
-
-VkExtent2D SwapChain::getExtent() const
-{
-    return extent;
-}
-
-bool SwapChain::createSwapChain(uint32_t width, uint32_t height)
+bool SwapChain::create(uint32_t width, uint32_t height)
 {
     SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -91,7 +86,7 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height)
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     extent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
 
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    imageCount = swapChainSupport.capabilities.minImageCount + 1;
     uint32_t maxImageCount = swapChainSupport.capabilities.maxImageCount;
     if (maxImageCount > 0 && imageCount > maxImageCount) {
         imageCount = maxImageCount;
@@ -131,15 +126,33 @@ bool SwapChain::createSwapChain(uint32_t width, uint32_t height)
         return false;
     }
     
-    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, nullptr);
-    images.resize(imageCount);
-    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, images.data());
-
     return true;
+}
+
+bool SwapChain::initialize(VkRenderPass renderPass)
+{
+    return
+        createImageViews() &&
+        createDepthImage() &&
+        createFramebuffers(renderPass);
+}
+
+VkFormat SwapChain::getImageFormat() const
+{
+    return imageFormat;
+}
+
+VkExtent2D SwapChain::getExtent() const
+{
+    return extent;
 }
 
 bool SwapChain::createImageViews()
 {
+    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, nullptr);
+    images.resize(imageCount);
+    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, images.data());
+
     imageViews.resize(images.size());
     for (size_t i = 0; i < images.size(); ++i) {
         VkImageViewCreateInfo createInfo = {};
@@ -158,7 +171,7 @@ bool SwapChain::createImageViews()
         createInfo.subresourceRange.layerCount = 1;
 
         if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &createInfo, nullptr, &imageViews[i]);
-            r!= VK_SUCCESS) {
+            r != VK_SUCCESS) {
             printError("ERROR: Failed to create an image view", &r);
             return false;
         }
@@ -166,4 +179,45 @@ bool SwapChain::createImageViews()
     return true;
 }
 
+bool SwapChain::createDepthImage()
+{
+    VkFormat format = Constants::depthFormat;
+    bool success = true;
+    success = success && Image::createImage(extent.width, extent.height, format,
+                                            VK_IMAGE_TILING_OPTIMAL,
+                                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                            &depthImage, &depthImageMemory);
+    success = success && Image::createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
+    success = success && Image::transitImageLayout(depthImage,
+                                                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    return success;
+}
+
+bool SwapChain::createFramebuffers(VkRenderPass renderPass)
+{
+    framebuffers.resize(imageViews.size());
+    for (size_t i = 0; i < imageViews.size(); ++i) {
+        std::array<VkImageView, 2> attachments = {
+            imageViews[i],
+            depthImageView
+        };
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.width = extent.width;
+        framebufferInfo.height = extent.height;
+        framebufferInfo.layers = 1;
+
+        if (VkResult r = vkCreateFramebuffer(Context::getLogicalDevice(), &framebufferInfo, nullptr, &framebuffers[i]);
+            r != VK_SUCCESS) {
+            printError("Failed to create framebuffer", &r);
+            return false;
+        }
+    }
+    return true;
+}
+    
 }  // namespace fw

@@ -6,7 +6,7 @@
 namespace fw
 {
 
-bool Command::createDefaultCommandPool(VkCommandPool* commandPool)
+bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
 {
     QueueFamilyIndices indices = getQueueFamilies(Context::getPhysicalDevice(), Context::getSurface());
 
