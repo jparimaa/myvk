@@ -13,7 +13,8 @@ SOURCES = \
 	RenderPass.cpp \
 	Pipeline.cpp \
 	Command.cpp \
-	Image.cpp
+	Image.cpp \
+	Buffer.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)
