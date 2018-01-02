@@ -1,6 +1,7 @@
 #include "Instance.h"
 #include "Common.h"
 #include "Context.h"
+#include "Constants.h"
 
 #include <vector>
 #include <cstdint>
@@ -20,7 +21,7 @@ bool isValidationLayerAvailable()
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    for (const char* layerName : validationLayers) {
+    for (const char* layerName : Constants::validationLayers) {
         bool layerFound = false;
         for (const auto& layerProperties : availableLayers) {
             if (strcmp(layerName, layerProperties.layerName) == 0) {
@@ -47,7 +48,7 @@ std::vector<const char*> getRequiredExtensions()
         extensions.push_back(glfwExtensions[i]);
     }
 
-    if (enableValidationLayers) {
+    if (Constants::enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
 
@@ -85,7 +86,7 @@ bool Instance::initialize()
 
 bool Instance::createInstance()
 {
-    if (enableValidationLayers && !isValidationLayerAvailable()) {
+    if (Constants::enableValidationLayers && !isValidationLayerAvailable()) {
         printError("Validation layers requested but not available");
         return false;
     }
@@ -104,9 +105,9 @@ bool Instance::createInstance()
     std::vector<const char*> extensions = getRequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
-    if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+    if (Constants::enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(Constants::validationLayers.size());
+        createInfo.ppEnabledLayerNames = Constants::validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
     }
@@ -123,7 +124,7 @@ bool Instance::createInstance()
 
 bool Instance::createDebugReportCallback()
 {
-    if (!enableValidationLayers) {
+    if (!Constants::enableValidationLayers) {
         return true;
     }
     

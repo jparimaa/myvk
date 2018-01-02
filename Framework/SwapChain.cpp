@@ -63,6 +63,28 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32
 
 } // unnamed
 
+SwapChain::Capabilities SwapChain::getCapabilities(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+{
+    Capabilities capabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities.surfaceCapabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+    if (formatCount != 0) {
+        capabilities.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, capabilities.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+    if (presentModeCount != 0) {
+        capabilities.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, capabilities.presentModes.data());
+    }
+
+    return capabilities;
+}
+
 SwapChain::~SwapChain()
 {
     VkDevice logicalDevice = Context::getLogicalDevice();
@@ -75,19 +97,19 @@ SwapChain::~SwapChain()
         vkDestroyImageView(logicalDevice, imageViews[i], nullptr);
         vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
     }
-    vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
+    vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr); // Destroys images
 }
 
 bool SwapChain::create(uint32_t width, uint32_t height)
 {
-    SwapChainSupport swapChainSupport = getSwapChainSupport(Context::getPhysicalDevice(), Context::getSurface());
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    Capabilities capabilities = getCapabilities(Context::getPhysicalDevice(), Context::getSurface());
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(capabilities.formats);
     imageFormat = surfaceFormat.format;
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    extent = chooseSwapExtent(swapChainSupport.capabilities, width, height);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(capabilities.presentModes);
+    extent = chooseSwapExtent(capabilities.surfaceCapabilities, width, height);
 
-    imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    uint32_t maxImageCount = swapChainSupport.capabilities.maxImageCount;
+    imageCount = capabilities.surfaceCapabilities.minImageCount + 1;
+    uint32_t maxImageCount = capabilities.surfaceCapabilities.maxImageCount;
     if (maxImageCount > 0 && imageCount > maxImageCount) {
         imageCount = maxImageCount;
     }
@@ -114,7 +136,7 @@ bool SwapChain::create(uint32_t width, uint32_t height)
         createInfo.pQueueFamilyIndices = nullptr;
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform = capabilities.surfaceCapabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;

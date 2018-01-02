@@ -11,6 +11,15 @@ namespace fw
 class SwapChain
 {
 public:
+    struct Capabilities
+    {
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
+    static Capabilities getCapabilities(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    
     SwapChain() {};
     ~SwapChain();
     SwapChain(const SwapChain&) = delete;

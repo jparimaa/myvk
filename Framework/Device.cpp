@@ -1,6 +1,8 @@
 #include "Device.h"
 #include "Common.h"
 #include "Context.h"
+#include "Constants.h"
+#include "SwapChain.h"
 
 #include <set>
 #include <iostream>
@@ -18,7 +20,7 @@ bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    std::set<std::string> requiredExtensions(Constants::deviceExtensions.begin(), Constants::deviceExtensions.end());
 
     for (const auto& extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
@@ -33,8 +35,8 @@ bool isDeviceSuitable(VkPhysicalDevice physicalDevice)
     QueueFamilyIndices indices = getQueueFamilies(physicalDevice, surface);
 
     if (hasDeviceExtensionSupport(physicalDevice)) {
-        SwapChainSupport swapChainSupport = getSwapChainSupport(physicalDevice, surface);
-        bool isSwapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+        SwapChain::Capabilities swapChainCapabilities = SwapChain::getCapabilities(physicalDevice, surface);
+        bool isSwapChainAdequate = !swapChainCapabilities.formats.empty() && !swapChainCapabilities.presentModes.empty();
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
         return indices.hasGraphicsAndPresentFamily() && isSwapChainAdequate && supportedFeatures.samplerAnisotropy;
@@ -103,11 +105,11 @@ bool Device::createLogicalDevice()
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-    if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(Constants::deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = Constants::deviceExtensions.data();
+    if (Constants::enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(Constants::validationLayers.size());
+        createInfo.ppEnabledLayerNames = Constants::validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;
     }
