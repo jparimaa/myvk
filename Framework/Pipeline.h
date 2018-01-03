@@ -13,24 +13,24 @@ class Pipeline
 {
 public:
     Pipeline() = delete;
-    static std::vector<VkPipelineShaderStageCreateInfo> getDefaultShaderStageInfos(
+    static std::vector<VkPipelineShaderStageCreateInfo> getShaderStageInfos(
         const std::string& vertexShaderFilename,
         const std::string& fragmentShaderFilename);
-    static VkVertexInputBindingDescription getDefaultVertexDescription();
-    static std::vector<VkVertexInputAttributeDescription> getDefaultAttributeDescriptions();
-    static VkPipelineVertexInputStateCreateInfo getDefaultVertexInputState(
+    static VkVertexInputBindingDescription getVertexDescription();
+    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+    static VkPipelineVertexInputStateCreateInfo getVertexInputState(
         const VkVertexInputBindingDescription* vertexDescription,
         const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions);
-    static VkPipelineInputAssemblyStateCreateInfo getDefaultInputAssemblyState();
-    static VkViewport getDefaultViewport();
-    static VkRect2D getDefaultScissorRect();
-    static VkPipelineViewportStateCreateInfo getDefaultViewportState(const VkViewport* viewport, const VkRect2D* scissor);
-    static VkPipelineRasterizationStateCreateInfo getDefaultRasterizationState();
-    static VkPipelineMultisampleStateCreateInfo getDefaultMultisampleState();
-    static VkPipelineDepthStencilStateCreateInfo getDefaultDepthStencilState();
-    static VkPipelineColorBlendAttachmentState getDefaultColorBlendState();
-    static VkPipelineColorBlendStateCreateInfo getDefaultColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState);
-    static VkPipelineLayoutCreateInfo getDefaultPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
+    static VkPipelineInputAssemblyStateCreateInfo getInputAssemblyState();
+    static VkViewport getViewport();
+    static VkRect2D getScissorRect();
+    static VkPipelineViewportStateCreateInfo getViewportState(const VkViewport* viewport, const VkRect2D* scissor);
+    static VkPipelineRasterizationStateCreateInfo getRasterizationState();
+    static VkPipelineMultisampleStateCreateInfo getMultisampleState();
+    static VkPipelineDepthStencilStateCreateInfo getDepthStencilState();
+    static VkPipelineColorBlendAttachmentState getColorBlendState();
+    static VkPipelineColorBlendStateCreateInfo getColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState);
+    static VkPipelineLayoutCreateInfo getPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
 };
 
 } // namespace fw

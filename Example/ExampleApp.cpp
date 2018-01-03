@@ -42,13 +42,13 @@ void ExampleApp::render()
 
 bool ExampleApp::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getDefaultColorAttachment();
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
 
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDefaultDepthAttachment();
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
     VkAttachmentReference depthAttachmentRef = {};
     depthAttachmentRef.attachment = 1;
@@ -119,28 +119,28 @@ bool ExampleApp::createDescriptorSetLayout()
 bool ExampleApp::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getDefaultShaderStageInfos("shader_vert.spv", "shader_frag.spv");
+        fw::Pipeline::getShaderStageInfos("shader_vert.spv", "shader_frag.spv");
 
     if (shaderStages.empty()) {
         return false;
     }
 
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getDefaultVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getDefaultAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getDefaultVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
     
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getDefaultInputAssemblyState();
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
-    VkViewport viewport = fw::Pipeline::getDefaultViewport();
-    VkRect2D scissor = fw::Pipeline::getDefaultScissorRect();
-    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getDefaultViewportState(&viewport, &scissor);
+    VkViewport viewport = fw::Pipeline::getViewport();
+    VkRect2D scissor = fw::Pipeline::getScissorRect();
+    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
-    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getDefaultRasterizationState();
-    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getDefaultMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDefaultDepthStencilState();
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getDefaultColorBlendState();
-    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getDefaultColorBlendInfo(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getDefaultPipelineLayoutInfo(&descriptorSetLayout);
+    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
+    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
+    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendState();
+    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
 
     if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
         r != VK_SUCCESS) {

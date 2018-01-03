@@ -8,10 +8,10 @@ namespace fw
 
 class RenderPass
 {
-public:
+public:    
     RenderPass() = delete;
-    static VkAttachmentDescription getDefaultColorAttachment();
-    static VkAttachmentDescription getDefaultDepthAttachment();
+    static VkAttachmentDescription getColorAttachment();
+    static VkAttachmentDescription getDepthAttachment();
 };
 
 } // namespace fw

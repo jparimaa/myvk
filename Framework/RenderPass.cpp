@@ -5,7 +5,7 @@
 namespace fw
 {
 
-VkAttachmentDescription RenderPass::getDefaultColorAttachment()
+VkAttachmentDescription RenderPass::getColorAttachment()
 {
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = API::getSwapChainImageFormat();
@@ -19,7 +19,7 @@ VkAttachmentDescription RenderPass::getDefaultColorAttachment()
     return colorAttachment;
 }
 
-VkAttachmentDescription RenderPass::getDefaultDepthAttachment()
+VkAttachmentDescription RenderPass::getDepthAttachment()
 {
     VkAttachmentDescription depthAttachment = {};
     depthAttachment.format = Constants::depthFormat;

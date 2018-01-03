@@ -6,7 +6,7 @@
 namespace fw
 {
 
-std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getDefaultShaderStageInfos(
+std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(
     const std::string& vertexShaderFilename,
     const std::string& fragmentShaderFilename)
 {
@@ -36,7 +36,7 @@ std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getDefaultShaderStageInfo
     return std::vector<VkPipelineShaderStageCreateInfo>{vertexShaderStageInfo, fragmentShaderStageInfo};
 }
 
-VkVertexInputBindingDescription Pipeline::getDefaultVertexDescription()
+VkVertexInputBindingDescription Pipeline::getVertexDescription()
 {
     VkVertexInputBindingDescription vertexDescription = {};
     vertexDescription.binding = 0;
@@ -45,7 +45,7 @@ VkVertexInputBindingDescription Pipeline::getDefaultVertexDescription()
     return vertexDescription;
 }
 
-std::vector<VkVertexInputAttributeDescription> Pipeline::getDefaultAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> Pipeline::getAttributeDescriptions()
 {
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
 
@@ -67,7 +67,7 @@ std::vector<VkVertexInputAttributeDescription> Pipeline::getDefaultAttributeDesc
     return attributeDescriptions;
 }
 
-VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputState(
+VkPipelineVertexInputStateCreateInfo Pipeline::getVertexInputState(
     const VkVertexInputBindingDescription* vertexDescription,
     const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions)
 {
@@ -80,7 +80,7 @@ VkPipelineVertexInputStateCreateInfo Pipeline::getDefaultVertexInputState(
     return vertexInputState;
 }
 
-VkPipelineInputAssemblyStateCreateInfo Pipeline::getDefaultInputAssemblyState()
+VkPipelineInputAssemblyStateCreateInfo Pipeline::getInputAssemblyState()
 {
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {};
     inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -89,7 +89,7 @@ VkPipelineInputAssemblyStateCreateInfo Pipeline::getDefaultInputAssemblyState()
     return inputAssemblyState;
 } 
 
-VkViewport Pipeline::getDefaultViewport()
+VkViewport Pipeline::getViewport()
 {
     VkViewport viewport = {};
     viewport.x = 0.0f;
@@ -102,7 +102,7 @@ VkViewport Pipeline::getDefaultViewport()
     return viewport;
 }
 
-VkRect2D Pipeline::getDefaultScissorRect()
+VkRect2D Pipeline::getScissorRect()
 {
     VkRect2D scissor = {};
     scissor.offset = {0, 0};
@@ -110,7 +110,7 @@ VkRect2D Pipeline::getDefaultScissorRect()
     return scissor;
 }
 
-VkPipelineViewportStateCreateInfo Pipeline::getDefaultViewportState(const VkViewport* viewport, const VkRect2D* scissor)
+VkPipelineViewportStateCreateInfo Pipeline::getViewportState(const VkViewport* viewport, const VkRect2D* scissor)
 {
     VkPipelineViewportStateCreateInfo viewportState = {};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -121,7 +121,7 @@ VkPipelineViewportStateCreateInfo Pipeline::getDefaultViewportState(const VkView
     return viewportState;
 }    
 
-VkPipelineRasterizationStateCreateInfo Pipeline::getDefaultRasterizationState()
+VkPipelineRasterizationStateCreateInfo Pipeline::getRasterizationState()
 {
     VkPipelineRasterizationStateCreateInfo rasterizationState = {};
     rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -138,7 +138,7 @@ VkPipelineRasterizationStateCreateInfo Pipeline::getDefaultRasterizationState()
     return rasterizationState;
 }
 
-VkPipelineMultisampleStateCreateInfo Pipeline::getDefaultMultisampleState()
+VkPipelineMultisampleStateCreateInfo Pipeline::getMultisampleState()
 {
     VkPipelineMultisampleStateCreateInfo multisampleState = {};
     multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -151,7 +151,7 @@ VkPipelineMultisampleStateCreateInfo Pipeline::getDefaultMultisampleState()
     return multisampleState;
 }
 
-VkPipelineDepthStencilStateCreateInfo Pipeline::getDefaultDepthStencilState()
+VkPipelineDepthStencilStateCreateInfo Pipeline::getDepthStencilState()
 {
     VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
     depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -163,7 +163,7 @@ VkPipelineDepthStencilStateCreateInfo Pipeline::getDefaultDepthStencilState()
     return depthStencilState;
 }
     
-VkPipelineColorBlendAttachmentState Pipeline::getDefaultColorBlendState()
+VkPipelineColorBlendAttachmentState Pipeline::getColorBlendState()
 {
     VkPipelineColorBlendAttachmentState colorBlendState = {};
     colorBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -177,7 +177,7 @@ VkPipelineColorBlendAttachmentState Pipeline::getDefaultColorBlendState()
     return colorBlendState;
 }
 
-VkPipelineColorBlendStateCreateInfo Pipeline::getDefaultColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState)
+VkPipelineColorBlendStateCreateInfo Pipeline::getColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState)
 {
     VkPipelineColorBlendStateCreateInfo colorBlendInfo = {};
     colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -192,7 +192,7 @@ VkPipelineColorBlendStateCreateInfo Pipeline::getDefaultColorBlendInfo(const VkP
     return colorBlendInfo;
 }
 
-VkPipelineLayoutCreateInfo Pipeline::getDefaultPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout)
+VkPipelineLayoutCreateInfo Pipeline::getPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
