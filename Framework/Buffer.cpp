@@ -6,6 +6,13 @@
 namespace fw
 {
 
+Buffer::Staging::~Staging()
+{
+    VkDevice logicalDevice = Context::getLogicalDevice();
+    vkDestroyBuffer(logicalDevice, buffer, nullptr);
+    vkFreeMemory(logicalDevice, memory, nullptr);
+}
+
 bool Buffer::create(VkDeviceSize size,
                     VkBufferUsageFlags usage,
                     VkMemoryPropertyFlags properties,
@@ -44,6 +51,11 @@ bool Buffer::create(VkDeviceSize size,
 
     vkBindBufferMemory(logicalDevice, *buffer, *bufferMemory, 0);
     return true;
+}
+
+bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, Staging& staging)
+{
+    return create(size, usage, properties, &staging.buffer, &staging.memory);
 }
 
 void Buffer::copy(VkBuffer src, VkBuffer dst, VkDeviceSize size)

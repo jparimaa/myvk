@@ -7,6 +7,7 @@
 
 #include <string_view>
 #include <vector>
+#include <functional>
 
 namespace fw
 {
@@ -42,5 +43,15 @@ QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKH
 VkShaderModule createShaderModule(const std::string& filename);
 
 bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& typeIndex);
+
+class Cleaner {
+public:
+    Cleaner() = delete;
+    explicit Cleaner(std::function<void()> callback) : clean(callback) {}
+    ~Cleaner() { clean(); }
+
+private:
+    std::function<void()> clean;
+};
     
 } // namespace fw

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Framework/Application.h"
+#include "../Framework/Texture.h"
 
 class ExampleApp : public fw::Application
 {
@@ -22,6 +23,8 @@ private:
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+
+    fw::Texture texture;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();

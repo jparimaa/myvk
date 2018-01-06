@@ -205,13 +205,12 @@ bool SwapChain::createDepthImage()
 {
     VkFormat format = Constants::depthFormat;
     bool success = true;
-    success = success && Image::createImage(extent.width, extent.height, format,
-                                            VK_IMAGE_TILING_OPTIMAL,
-                                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                            &depthImage, &depthImageMemory);
-    success = success && Image::createImageView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
-    success = success && Image::transitImageLayout(depthImage,
-                                                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    success = success && Image::create(extent.width, extent.height, format,
+                                       VK_IMAGE_TILING_OPTIMAL,
+                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                       &depthImage, &depthImageMemory);
+    success = success && Image::createView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
+    success = success && Image::transitLayout(depthImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     return success;
 }
 

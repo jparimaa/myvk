@@ -29,6 +29,7 @@ bool ExampleApp::initialize()
     success = success && fw::API::initializeSwapChain(renderPass);
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
+    texture.load("../Assets/checker.png");
     return success;
 }
 

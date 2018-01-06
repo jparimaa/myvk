@@ -14,7 +14,8 @@ SOURCES = \
 	Pipeline.cpp \
 	Command.cpp \
 	Image.cpp \
-	Buffer.cpp
+	Buffer.cpp \
+	Texture.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

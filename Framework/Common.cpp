@@ -92,5 +92,4 @@ bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint3
     return false;
 }
 
-
 } // namespace fw

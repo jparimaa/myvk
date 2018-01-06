@@ -6,13 +6,13 @@
 namespace fw
 {
 
-bool Image::createImage(uint32_t width,
-                        uint32_t height,
-                        VkFormat format,
-                        VkImageTiling tiling,
-                        VkImageUsageFlags usage,
-                        VkImage* image,
-                        VkDeviceMemory* imageMemory)
+bool Image::create(uint32_t width,
+                   uint32_t height,
+                   VkFormat format,
+                   VkImageTiling tiling,
+                   VkImageUsageFlags usage,
+                   VkImage* image,
+                   VkDeviceMemory* imageMemory)
 {
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -55,7 +55,7 @@ bool Image::createImage(uint32_t width,
     return true;
 }
 
-bool Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
+bool Image::createView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
 {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -77,7 +77,7 @@ bool Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags a
     return true;
 }
 
-bool Image::transitImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+bool Image::transitLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
 
