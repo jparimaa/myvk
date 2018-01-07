@@ -2,6 +2,8 @@
 
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
+#include "../Framework/Model.h"
+#include "../Framework/Buffer.h"
 
 class ExampleApp : public fw::Application
 {
@@ -25,6 +27,8 @@ private:
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
     fw::Texture texture;
+    fw::Buffer::AutoBuffer vertexBuffer;
+    fw::Buffer::AutoBuffer indexBuffer;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();

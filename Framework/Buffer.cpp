@@ -6,7 +6,7 @@
 namespace fw
 {
 
-Buffer::Staging::~Staging()
+Buffer::AutoBuffer::~AutoBuffer()
 {
     VkDevice logicalDevice = Context::getLogicalDevice();
     vkDestroyBuffer(logicalDevice, buffer, nullptr);
@@ -53,7 +53,7 @@ bool Buffer::create(VkDeviceSize size,
     return true;
 }
 
-bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, Staging& staging)
+bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, AutoBuffer& staging)
 {
     return create(size, usage, properties, &staging.buffer, &staging.memory);
 }

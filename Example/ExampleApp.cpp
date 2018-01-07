@@ -9,6 +9,23 @@
 #include <iostream>
 #include <array>
 
+namespace
+{
+
+const std::vector<fw::Model::Vertex> vertices = {
+    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
+
+const std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+
+} // unnamed
+
 ExampleApp::ExampleApp()
 {
 }
@@ -29,7 +46,9 @@ bool ExampleApp::initialize()
     success = success && fw::API::initializeSwapChain(renderPass);
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
-    texture.load("../Assets/checker.png");
+    success = success && texture.load("../Assets/checker.png");    
+    success = success && fw::Buffer::createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer);
+    success = success && fw::Buffer::createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBuffer);
     return success;
 }
 

@@ -11,6 +11,8 @@
 #include <stb_image.h>
 #pragma GCC diagnostic pop
 
+#include <cstring>
+
 namespace fw
 {
 
@@ -65,7 +67,7 @@ bool Texture::load(const std::string& filename)
     Cleaner cleaner([&pixels]() { stbi_image_free(pixels); });
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
-    Buffer::Staging staging;
+    Buffer::AutoBuffer staging;
     if (!Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                         staging)) {
@@ -78,7 +80,7 @@ bool Texture::load(const std::string& filename)
         printError("Failed to map memory for image");
         return false;
     }
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(logicalDevice, staging.memory);
 
     if (!Image::create(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
