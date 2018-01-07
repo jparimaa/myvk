@@ -47,8 +47,8 @@ bool ExampleApp::initialize()
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
     success = success && texture.load("../Assets/checker.png");    
-    success = success && fw::Buffer::createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer);
-    success = success && fw::Buffer::createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBuffer);
+    success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     return success;
 }
 

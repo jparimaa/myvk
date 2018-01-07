@@ -27,8 +27,8 @@ private:
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
     fw::Texture texture;
-    fw::Buffer::AutoBuffer vertexBuffer;
-    fw::Buffer::AutoBuffer indexBuffer;
+    fw::Buffer vertexBuffer;
+    fw::Buffer indexBuffer;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();

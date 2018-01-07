@@ -16,33 +16,6 @@
 namespace fw
 {
 
-namespace
-{
-
-void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
-{
-    VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
-
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-    Command::endSingleTimeCommands(commandBuffer);
-}
-
-} // unnamed
-
 Texture::Texture() :
     logicalDevice(Context::getLogicalDevice())
 {
@@ -67,21 +40,16 @@ bool Texture::load(const std::string& filename)
     Cleaner cleaner([&pixels]() { stbi_image_free(pixels); });
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
-    Buffer::AutoBuffer staging;
-    if (!Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        staging)) {
+    Buffer staging;
+    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    if (!staging.create(imageSize, usage, properties)) {
         return false;
     }
-    
-    void* data;
-    if (VkResult r = vkMapMemory(logicalDevice, staging.memory, 0, imageSize, 0, &data);
-        r != VK_SUCCESS) {
-        printError("Failed to map memory for image");
+
+    if (!staging.setData<stbi_uc>(imageSize, pixels)) {
         return false;
     }
-    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(logicalDevice, staging.memory);
 
     if (!Image::create(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
                        VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -93,7 +61,7 @@ bool Texture::load(const std::string& filename)
         return false;
     }
     
-    copyBufferToImage(staging.buffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    staging.copyToImage(textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
     if (!Image::transitLayout(textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
         return false;
