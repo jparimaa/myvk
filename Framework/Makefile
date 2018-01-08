@@ -15,7 +15,8 @@ SOURCES = \
 	Command.cpp \
 	Image.cpp \
 	Buffer.cpp \
-	Texture.cpp
+	Texture.cpp \
+	Sampler.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

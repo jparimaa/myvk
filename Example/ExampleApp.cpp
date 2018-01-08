@@ -46,7 +46,8 @@ bool ExampleApp::initialize()
     success = success && fw::API::initializeSwapChain(renderPass);
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
-    success = success && texture.load("../Assets/checker.png");    
+    success = success && texture.load("../Assets/checker.png");
+    success = success && sampler.create();
     success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     return success;

@@ -2,6 +2,7 @@
 
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
+#include "../Framework/Sampler.h"
 #include "../Framework/Model.h"
 #include "../Framework/Buffer.h"
 
@@ -27,6 +28,7 @@ private:
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
     fw::Texture texture;
+    fw::Sampler sampler;
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
     
