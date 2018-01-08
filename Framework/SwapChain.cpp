@@ -87,11 +87,7 @@ SwapChain::Capabilities SwapChain::getCapabilities(VkPhysicalDevice physicalDevi
 
 SwapChain::~SwapChain()
 {
-    VkDevice logicalDevice = Context::getLogicalDevice();
-    
-    vkDestroyImage(logicalDevice, depthImage, nullptr);
     vkDestroyImageView(logicalDevice, depthImageView, nullptr);
-    vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
     
     for (size_t i = 0; i < imageViews.size(); ++i) {        
         vkDestroyImageView(logicalDevice, imageViews[i], nullptr);
@@ -102,6 +98,8 @@ SwapChain::~SwapChain()
 
 bool SwapChain::create(uint32_t width, uint32_t height)
 {
+    logicalDevice = Context::getLogicalDevice();
+        
     Capabilities capabilities = getCapabilities(Context::getPhysicalDevice(), Context::getSurface());
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(capabilities.formats);
     imageFormat = surfaceFormat.format;
@@ -142,7 +140,7 @@ bool SwapChain::create(uint32_t width, uint32_t height)
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (VkResult r = vkCreateSwapchainKHR(Context::getLogicalDevice(), &createInfo, nullptr, &swapChain);
+    if (VkResult r = vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain);
         r != VK_SUCCESS) {
         printError("Failed to create swap chain", &r);
         return false;
@@ -171,9 +169,9 @@ VkExtent2D SwapChain::getExtent() const
 
 bool SwapChain::createImageViews()
 {
-    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
     images.resize(imageCount);
-    vkGetSwapchainImagesKHR(Context::getLogicalDevice(), swapChain, &imageCount, images.data());
+    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, images.data());
 
     imageViews.resize(images.size());
     for (size_t i = 0; i < images.size(); ++i) {
@@ -192,7 +190,7 @@ bool SwapChain::createImageViews()
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
 
-        if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &createInfo, nullptr, &imageViews[i]);
+        if (VkResult r = vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageViews[i]);
             r != VK_SUCCESS) {
             printError("ERROR: Failed to create an image view", &r);
             return false;
@@ -203,14 +201,13 @@ bool SwapChain::createImageViews()
 
 bool SwapChain::createDepthImage()
 {
-    VkFormat format = Constants::depthFormat;
     bool success = true;
-    success = success && Image::create(extent.width, extent.height, format,
-                                       VK_IMAGE_TILING_OPTIMAL,
-                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                       &depthImage, &depthImageMemory);
-    success = success && Image::createView(depthImage, format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
-    success = success && Image::transitLayout(depthImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    VkFormat format = Constants::depthFormat;
+    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+    VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    success = success && depthImage.create(extent.width, extent.height, format, tiling, imageUsage);
+    success = success && depthImage.createView(format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
+    success = success && depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     return success;
 }
 
@@ -232,7 +229,7 @@ bool SwapChain::createFramebuffers(VkRenderPass renderPass)
         framebufferInfo.height = extent.height;
         framebufferInfo.layers = 1;
 
-        if (VkResult r = vkCreateFramebuffer(Context::getLogicalDevice(), &framebufferInfo, nullptr, &framebuffers[i]);
+        if (VkResult r = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffers[i]);
             r != VK_SUCCESS) {
             printError("Failed to create framebuffer", &r);
             return false;

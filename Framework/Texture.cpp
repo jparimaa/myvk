@@ -24,8 +24,6 @@ Texture::Texture() :
 Texture::~Texture()
 {
     vkDestroyImageView(logicalDevice, textureImageView, nullptr);
-    vkDestroyImage(logicalDevice, textureImage, nullptr);
-    vkFreeMemory(logicalDevice, textureImageMemory, nullptr);
 }
 
 bool Texture::load(const std::string& filename)
@@ -41,9 +39,9 @@ bool Texture::load(const std::string& filename)
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
     Buffer staging;
-    VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    if (!staging.create(imageSize, usage, properties)) {
+    if (!staging.create(imageSize, bufferUsage, properties)) {
         return false;
     }
 
@@ -51,23 +49,24 @@ bool Texture::load(const std::string& filename)
         return false;
     }
 
-    if (!Image::create(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
-                       VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                       &textureImage, &textureImageMemory)) {
+    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+    VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (!image.create(texWidth, texHeight, format, tiling, imageUsage)) {
         return false;
     }
 
-    if (!Image::transitLayout(textureImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
+    if (!image.transitLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
         return false;
     }
     
-    staging.copyToImage(textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    staging.copyToImage(image.getHandle(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
-    if (!Image::transitLayout(textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+    if (!image.transitLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
         return false;
     }
     
-    if (!Image::createView(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &textureImageView)) {
+    if (!image.createView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &textureImageView)) {
         return false;
     }
     

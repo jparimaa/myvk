@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Image.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -34,6 +36,7 @@ public:
     VkExtent2D getExtent() const;
 
 private:
+    VkDevice logicalDevice = VK_NULL_HANDLE;
     VkFormat imageFormat;
     VkExtent2D extent;
     uint32_t imageCount = 0;
@@ -43,8 +46,7 @@ private:
     std::vector<VkImageView> imageViews;
     std::vector<VkFramebuffer> framebuffers;
 
-    VkImage depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+    Image depthImage;
     VkImageView depthImageView = VK_NULL_HANDLE;
 
     bool createSwapChain(uint32_t width, uint32_t height);

@@ -63,8 +63,6 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
 
 void Buffer::copyToImage(VkImage image, uint32_t width, uint32_t height) const
 {
-    VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
-
     VkBufferImageCopy region = {};
     region.bufferOffset = 0;
     region.bufferRowLength = 0;
@@ -77,6 +75,8 @@ void Buffer::copyToImage(VkImage image, uint32_t width, uint32_t height) const
 
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {width, height, 1};
+
+    VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 

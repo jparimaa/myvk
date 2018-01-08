@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Image.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -17,8 +19,7 @@ public:
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkImage textureImage = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+    Image image;    
     VkImageView textureImageView = VK_NULL_HANDLE;
 };
 
