@@ -17,10 +17,6 @@ void Buffer::copy(VkBuffer src, VkBuffer dst, VkDeviceSize size)
     Command::endSingleTimeCommands(commandBuffer);
 }
 
-Buffer::Buffer() : logicalDevice(Context::getLogicalDevice())
-{
-}
-
 Buffer::~Buffer()
 {
     vkDestroyBuffer(logicalDevice, buffer, nullptr);
@@ -29,6 +25,8 @@ Buffer::~Buffer()
 
 bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
+    logicalDevice = Context::getLogicalDevice();
+        
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;

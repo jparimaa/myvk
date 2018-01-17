@@ -69,7 +69,7 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (VkResult r = vkCreateImageView(Context::getLogicalDevice(), &viewInfo, nullptr, imageView);
+    if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, imageView);
         r != VK_SUCCESS) {        
         printError("Failed to create image view", &r);
         return false;

@@ -17,9 +17,14 @@ class Buffer
 public:
     static void copy(VkBuffer src, VkBuffer dst, VkDeviceSize size);
     
-    Buffer();
+    Buffer() {};
     ~Buffer();
-    bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+    Buffer(const Buffer&) = delete;
+    Buffer(Buffer&&) = delete;
+    Buffer& operator=(const Buffer&) = delete;
+    Buffer& operator=(Buffer&&) = delete;
+    
+    bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);    
     void copyToImage(VkImage image, uint32_t width, uint32_t height) const;
 
     template <typename T>

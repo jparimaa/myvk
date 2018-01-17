@@ -11,6 +11,11 @@ class Sampler
 public:
     Sampler();
     ~Sampler();
+    Sampler(const Sampler&) = delete;
+    Sampler(Sampler&&) = delete;
+    Sampler& operator=(const Sampler&) = delete;
+    Sampler& operator=(Sampler&&) = delete;
+    
     bool create();
 
 private:    

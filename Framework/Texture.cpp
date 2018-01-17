@@ -16,11 +16,6 @@
 namespace fw
 {
 
-Texture::Texture() :
-    logicalDevice(Context::getLogicalDevice())
-{
-}
-
 Texture::~Texture()
 {
     vkDestroyImageView(logicalDevice, textureImageView, nullptr);
@@ -28,6 +23,8 @@ Texture::~Texture()
 
 bool Texture::load(const std::string& filename)
 {
+    logicalDevice = Context::getLogicalDevice();
+        
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!pixels) {
