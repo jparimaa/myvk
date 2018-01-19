@@ -15,7 +15,7 @@ namespace fw
 class Buffer
 {
 public:
-    static void copy(VkBuffer src, VkBuffer dst, VkDeviceSize size);
+    static void copy(Buffer& src, Buffer& dst, VkDeviceSize size);
     
     Buffer() {};
     ~Buffer();
@@ -73,7 +73,7 @@ bool Buffer::createForDevice(const std::vector<T>& content, VkBufferUsageFlagBit
         return false;
     }
 
-    copy(staging.buffer, buffer, bufferSize);
+    copy(staging, *this, bufferSize);
     return true;
 }
 

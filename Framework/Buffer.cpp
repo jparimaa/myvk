@@ -4,7 +4,7 @@
 namespace fw
 {
 
-void Buffer::copy(VkBuffer src, VkBuffer dst, VkDeviceSize size)
+void Buffer::copy(Buffer& src, Buffer& dst, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
 
@@ -12,15 +12,23 @@ void Buffer::copy(VkBuffer src, VkBuffer dst, VkDeviceSize size)
     copyRegion.srcOffset = 0;  // Optional
     copyRegion.dstOffset = 0;  // Optional
     copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, src, dst, 1, &copyRegion);
+    vkCmdCopyBuffer(commandBuffer, src.buffer, dst.buffer, 1, &copyRegion);
 
     Command::endSingleTimeCommands(commandBuffer);
 }
 
 Buffer::~Buffer()
 {
-    vkDestroyBuffer(logicalDevice, buffer, nullptr);
-    vkFreeMemory(logicalDevice, memory, nullptr);
+    if (buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(logicalDevice, buffer, nullptr);
+    } else {
+        printWarning("Trying to destroy a null buffer");
+    }
+    if (memory != VK_NULL_HANDLE) {
+        vkFreeMemory(logicalDevice, memory, nullptr);
+    } else {
+        printWarning("Trying to destroy a null memory");
+    }
 }
 
 bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)

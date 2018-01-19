@@ -16,6 +16,11 @@ void printError(std::string_view msg, const VkResult* result)
     }
 }
 
+void printWarning(std::string_view msg)
+{
+    std::cerr << "WARNING: " << msg << "\n";
+}
+
 bool QueueFamilyIndices::hasGraphicsAndPresentFamily() const
 {
     return graphicsFamily >= 0 && presentFamily >= 0;

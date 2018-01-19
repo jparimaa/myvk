@@ -29,10 +29,12 @@ private:
 
     fw::Texture texture;
     fw::Sampler sampler;
+    fw::Buffer uniformBuffer;
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();
     bool createPipeline();
+    bool createBuffers();
 };

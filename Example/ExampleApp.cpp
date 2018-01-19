@@ -48,8 +48,7 @@ bool ExampleApp::initialize()
     success = success && createPipeline();
     success = success && texture.load("../Assets/checker.png");
     success = success && sampler.create();
-    success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    success = success && createBuffers();
     return success;
 }
 
@@ -198,4 +197,16 @@ bool ExampleApp::createPipeline()
     }
     
     return true;
+}
+
+bool ExampleApp::createBuffers()
+{
+    bool success = true;
+    std::size_t uboSize = sizeof(glm::mat4x4) * 3;
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    success = success && uniformBuffer.create(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+    return success;
 }
