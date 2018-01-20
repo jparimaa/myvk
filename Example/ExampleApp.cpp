@@ -6,8 +6,11 @@
 #include "../Framework/Command.h"
 #include "../Framework/API.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <iostream>
 #include <array>
+#include <chrono>
 
 namespace
 {
@@ -55,15 +58,22 @@ bool ExampleApp::initialize()
     success = success && createDescriptorPool();
     success = success && createDescriptorSet();
     success = success && createCommandBuffers();
+    extent = fw::API::getSwapChainExtent();
     return success;
 }
 
 void ExampleApp::update()
-{
-}
+{    
+    static auto startTime = std::chrono::high_resolution_clock::now();
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
+    MatrixUBO ubo = {};
+    ubo.world = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
 
-void ExampleApp::render()
-{
+    uniformBuffer.setData(sizeof(ubo), &ubo);
 }
 
 bool ExampleApp::createRenderPass()
@@ -285,8 +295,9 @@ bool ExampleApp::createDescriptorSet()
 }
 
 bool ExampleApp::createCommandBuffers()
-{
+{    
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
+    std::vector<VkCommandBuffer> commandBuffers;
     commandBuffers.resize(swapChainFramebuffers.size());
 
     VkCommandBufferAllocateInfo allocInfo = {};
@@ -307,7 +318,7 @@ bool ExampleApp::createCommandBuffers()
     beginInfo.pInheritanceInfo = nullptr;  // Optional
     
     std::array<VkClearValue, 2> clearValues = {};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo = {};
@@ -340,6 +351,7 @@ bool ExampleApp::createCommandBuffers()
             return false;
         }
     }
-    
+
+    fw::API::setCommandBuffers(commandBuffers);
     return true;
 }

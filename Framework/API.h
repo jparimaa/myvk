@@ -22,6 +22,8 @@ public:
     
     static VkCommandPool getCommandPool();
 
+    static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
+
 private:
     static Framework* framework;
 };

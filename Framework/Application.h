@@ -18,7 +18,6 @@ public:
 
     virtual bool initialize() = 0;
     virtual void update() = 0;
-    virtual void render() = 0;
 };
 
 } // namespace fw

@@ -30,6 +30,11 @@ VkCommandPool API::getCommandPool()
     return framework->commandPool;
 }
 
+void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
+{
+    framework->commandBuffers = commandBuffers;
+}
+
 } // namespace fw
 
 

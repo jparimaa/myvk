@@ -167,6 +167,11 @@ VkExtent2D SwapChain::getExtent() const
     return extent;
 }
 
+VkSwapchainKHR SwapChain::getSwapChain() const
+{
+    return swapChain;
+}
+
 const std::vector<VkFramebuffer>& SwapChain::getFramebuffers() const
 {
     return framebuffers;

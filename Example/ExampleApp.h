@@ -6,11 +6,20 @@
 #include "../Framework/Model.h"
 #include "../Framework/Buffer.h"
 
+#include <glm/glm.hpp>
+
 #include <vector>
 
 class ExampleApp : public fw::Application
 {
 public:
+    struct MatrixUBO
+    {
+        glm::mat4 world;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+    
     ExampleApp();
     virtual ~ExampleApp();
     ExampleApp(const ExampleApp&) = delete;
@@ -20,7 +29,6 @@ public:
 
     virtual bool initialize() final;
     virtual void update() final;
-    virtual void render() final;
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -38,7 +46,7 @@ private:
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
-    std::vector<VkCommandBuffer> commandBuffers;
+    VkExtent2D extent;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();

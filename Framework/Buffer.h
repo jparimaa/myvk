@@ -30,7 +30,7 @@ public:
     VkBuffer getBuffer() const;
 
     template <typename T>
-    bool setData(VkDeviceSize size, const T* data);
+    bool setData(VkDeviceSize size, const T* src);
     
     template <typename T>
     bool createForDevice(const std::vector<T>& content, VkBufferUsageFlagBits flag);
@@ -42,7 +42,7 @@ private:
 };
 
 template <typename T>
-bool Buffer::setData(VkDeviceSize size, const T* data)
+bool Buffer::setData(VkDeviceSize size, const T* src)
 {
     void* dst;
     if (VkResult r = vkMapMemory(logicalDevice, memory, 0, size, 0, &dst);
@@ -50,7 +50,7 @@ bool Buffer::setData(VkDeviceSize size, const T* data)
         printError("Failed to map memory for image");
         return false;
     }
-    std::memcpy(dst, data, static_cast<size_t>(size));
+    std::memcpy(dst, src, static_cast<size_t>(size));
     vkUnmapMemory(logicalDevice, memory);
     return true;
 }
