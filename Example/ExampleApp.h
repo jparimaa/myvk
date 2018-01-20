@@ -6,6 +6,8 @@
 #include "../Framework/Model.h"
 #include "../Framework/Buffer.h"
 
+#include <vector>
+
 class ExampleApp : public fw::Application
 {
 public:
@@ -35,6 +37,8 @@ private:
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
+    std::vector<VkCommandBuffer> commandBuffers;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();
@@ -42,4 +46,5 @@ private:
     bool createBuffers();
     bool createDescriptorPool();
     bool createDescriptorSet();
+    bool createCommandBuffers();
 };

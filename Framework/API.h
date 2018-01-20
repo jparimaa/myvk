@@ -15,9 +15,10 @@ public:
     
     API() = delete;
 
+    static bool initializeSwapChain(VkRenderPass renderPass);
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
-    static bool initializeSwapChain(VkRenderPass renderPass);
+    static const std::vector<VkFramebuffer>& getSwapChainFramebuffers();
     
     static VkCommandPool getCommandPool();
 

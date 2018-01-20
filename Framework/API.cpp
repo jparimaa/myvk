@@ -5,6 +5,11 @@ namespace fw
 
 Framework* API::framework = nullptr;
 
+bool API::initializeSwapChain(VkRenderPass renderPass)
+{
+    return framework->initializeSwapChain(renderPass);
+}
+
 VkFormat API::getSwapChainImageFormat()
 {
     return framework->swapChain.getImageFormat();
@@ -15,9 +20,9 @@ VkExtent2D API::getSwapChainExtent()
     return framework->swapChain.getExtent();
 }
 
-bool API::initializeSwapChain(VkRenderPass renderPass)
+const std::vector<VkFramebuffer>& API::getSwapChainFramebuffers()
 {
-    return framework->initializeSwapChain(renderPass);
+    return framework->swapChain.getFramebuffers();
 }
 
 VkCommandPool API::getCommandPool()

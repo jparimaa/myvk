@@ -167,6 +167,11 @@ VkExtent2D SwapChain::getExtent() const
     return extent;
 }
 
+const std::vector<VkFramebuffer>& SwapChain::getFramebuffers() const
+{
+    return framebuffers;
+}
+
 bool SwapChain::createImageViews()
 {
     vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
