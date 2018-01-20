@@ -18,7 +18,7 @@ namespace fw
 
 Texture::~Texture()
 {
-    vkDestroyImageView(logicalDevice, textureImageView, nullptr);
+    vkDestroyImageView(logicalDevice, imageView, nullptr);
 }
 
 bool Texture::load(const std::string& filename)
@@ -63,11 +63,16 @@ bool Texture::load(const std::string& filename)
         return false;
     }
     
-    if (!image.createView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &textureImageView)) {
+    if (!image.createView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
         return false;
     }
     
     return true;
+}
+
+VkImageView Texture::getImageView() const
+{
+    return imageView;
 }
 
 } // namespace fw

@@ -27,6 +27,8 @@ public:
     bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);    
     void copyToImage(VkImage image, uint32_t width, uint32_t height) const;
 
+    VkBuffer getBuffer() const;
+
     template <typename T>
     bool setData(VkDeviceSize size, const T* data);
     

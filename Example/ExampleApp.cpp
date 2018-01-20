@@ -24,6 +24,8 @@ const std::vector<fw::Model::Vertex> vertices = {
 
 const std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
+const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
+
 } // unnamed
 
 ExampleApp::ExampleApp()
@@ -32,6 +34,7 @@ ExampleApp::ExampleApp()
 
 ExampleApp::~ExampleApp()
 {
+    vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
@@ -49,6 +52,8 @@ bool ExampleApp::initialize()
     success = success && texture.load("../Assets/checker.png");
     success = success && sampler.create();
     success = success && createBuffers();
+    success = success && createDescriptorPool();
+    success = success && createDescriptorSet();
     return success;
 }
 
@@ -202,11 +207,78 @@ bool ExampleApp::createPipeline()
 bool ExampleApp::createBuffers()
 {
     bool success = true;
-    std::size_t uboSize = sizeof(glm::mat4x4) * 3;
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    success = success && uniformBuffer.create(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
     success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
     return success;
+}
+
+bool ExampleApp::createDescriptorPool()
+{
+    std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = 1;
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSizes[1].descriptorCount = 1;
+
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
+    poolInfo.maxSets = 1;
+
+    if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
+        r != VK_SUCCESS) {
+        fw::printError("Failed to create descriptor pool", &r);
+        return false;
+    }
+    return true;
+}
+
+bool ExampleApp::createDescriptorSet()
+{
+    VkDescriptorSetLayout layouts[] = {descriptorSetLayout};
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = layouts;
+
+    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
+        r != VK_SUCCESS) {
+        fw::printError("Failed to allocate descriptor set", &r);
+        return false;
+    }
+
+    VkDescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = uniformBuffer.getBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = transformMatricesSize;
+
+    VkDescriptorImageInfo imageInfo = {};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = texture.getImageView();
+    imageInfo.sampler = sampler.getSampler();
+
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = descriptorSet;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = descriptorSet;
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+    vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
+    return true;
 }

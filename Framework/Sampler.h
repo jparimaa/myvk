@@ -18,8 +18,10 @@ public:
     
     bool create();
 
+    VkSampler getSampler() const;
+
 private:    
-    VkSampler textureSampler = VK_NULL_HANDLE;
+    VkSampler sampler = VK_NULL_HANDLE;
 };
 
 } // namespace fw

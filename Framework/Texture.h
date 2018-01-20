@@ -22,10 +22,12 @@ public:
     
     bool load(const std::string& filename);
 
+    VkImageView getImageView() const;
+
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
     Image image;    
-    VkImageView textureImageView = VK_NULL_HANDLE;
+    VkImageView imageView = VK_NULL_HANDLE;
 };
 
 } // namespace fw

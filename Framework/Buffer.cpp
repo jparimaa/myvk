@@ -89,6 +89,11 @@ void Buffer::copyToImage(VkImage image, uint32_t width, uint32_t height) const
     Command::endSingleTimeCommands(commandBuffer);
 }
 
+VkBuffer Buffer::getBuffer() const
+{
+    return buffer;
+}
+
 } // namespace fw
 
 

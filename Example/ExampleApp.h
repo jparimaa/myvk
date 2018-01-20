@@ -33,8 +33,13 @@ private:
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
     
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    
     bool createRenderPass();
     bool createDescriptorSetLayout();
     bool createPipeline();
     bool createBuffers();
+    bool createDescriptorPool();
+    bool createDescriptorSet();
 };

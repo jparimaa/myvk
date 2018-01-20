@@ -11,7 +11,7 @@ Sampler::Sampler()
 
 Sampler::~Sampler()
 {
-    vkDestroySampler(Context::getLogicalDevice(), textureSampler, nullptr);
+    vkDestroySampler(Context::getLogicalDevice(), sampler, nullptr);
 }
 
 bool Sampler::create()
@@ -34,12 +34,17 @@ bool Sampler::create()
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
 
-    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &textureSampler);
+    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &sampler);
         r != VK_SUCCESS) {
-        printError("Failed to create texture sampler");
+        printError("Failed to create a sampler");
         return false;
     }
     return true;
+}
+
+VkSampler Sampler::getSampler() const
+{
+    return sampler;
 }
 
 } // namespace fw
