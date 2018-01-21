@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Framework.h"
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -11,23 +9,6 @@
 
 namespace fw
 {
-
-template <typename T>
-int runApplication()
-{
-    fw::Framework fw;
-    int status = 1;
-    if (fw.initialize()) {
-        T app;
-        if (app.initialize()) {
-            fw.setApplication(&app);
-            fw.execute();
-            status = 0;
-        }
-    }
-
-    return status;
-}
 
 void printError(std::string_view msg, const VkResult* result = nullptr);
 void printWarning(std::string_view msg);
