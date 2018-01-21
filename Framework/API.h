@@ -22,6 +22,9 @@ public:
     
     static VkCommandPool getCommandPool();
 
+    static float getTimeSinceStart();
+    static float getTimeDelta();
+
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
 
 private:

@@ -1,5 +1,5 @@
 framework:
-	make -C $(FRAMEWORK_PATH)
+	make -j4 -C $(FRAMEWORK_PATH)
 	@echo -n "\nFRAMEWORK BUILD FINISHED\n\n"
 
 %.o: %.cpp 

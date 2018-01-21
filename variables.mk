@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -std=c++1z -MMD -Wall -Wextra -ggdb
+CFLAGS = -std=c++1z -MMD -MT $@ -Wall -Wextra -ggdb
 
 VULKAN_SDK_PATH = ../../../Tools/VulkanSDK/1.0.61.1/x86_64
 GLSLANG_VALIDATOR = $(VULKAN_SDK_PATH)/bin/glslangValidator

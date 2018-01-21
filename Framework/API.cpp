@@ -30,6 +30,16 @@ VkCommandPool API::getCommandPool()
     return framework->commandPool;
 }
 
+float API::getTimeSinceStart()
+{
+    return framework->time.getSinceStart();
+}
+
+float API::getTimeDelta()
+{
+    return framework->time.getDelta();
+}
+
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
     framework->commandBuffers = commandBuffers;

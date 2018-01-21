@@ -47,6 +47,7 @@ void Framework::execute()
 {
     while (!window.shouldClose()) {
         window.pollEvents();
+        time.update();
         app->update();
         if (!commandBuffers.empty()) {
             if (!render()) {
@@ -56,6 +57,7 @@ void Framework::execute()
             printWarning("Empty command buffer");
         }
     }
+    vkDeviceWaitIdle(logicalDevice);
 }
 
 bool Framework::initializeSwapChain(VkRenderPass renderPass)
@@ -82,6 +84,8 @@ bool Framework::createSemaphores()
 
 bool Framework::render()
 {
+    vkQueueWaitIdle(presentQueue);  // Optional sync for validation layers
+    
     uint32_t imageIndex;
     uint64_t timeout = std::numeric_limits<uint64_t>::max();
     
@@ -127,8 +131,7 @@ bool Framework::render()
         printError("Failed to present swap chain image", &r);
         return false;
     }
-
-    vkQueueWaitIdle(presentQueue);  // Optional sync for validation layers
+    
     return true;
 }
 
