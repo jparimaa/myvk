@@ -7,16 +7,27 @@
 namespace fw
 {
 
+void Transformation::setPosition(const glm::vec3& pos)
+{
+    position = pos;
+    updateWorldMatrix();
+}
+
 void Transformation::move(const glm::vec3& translation)
 {
 	position += translation;
-    updateModelMatrix();
+    updateWorldMatrix();
 }
 
 void Transformation::rotate(const glm::vec3& axis, float amount)
 {
 	rotation += axis * amount;
-    updateModelMatrix();
+    updateWorldMatrix();
+}
+
+glm::vec3 Transformation::getPosition() const
+{
+    return position;
 }
 
 glm::vec3 Transformation::getForward() const
@@ -43,14 +54,14 @@ glm::vec3 Transformation::getLeft() const
 	return glm::vec3(v.x, v.y, v.z);
 }
 
-const glm::mat4x4& Transformation::getModelMatrix() const
+const glm::mat4x4& Transformation::getWorldMatrix() const
 {
-	return modelMatrix;
+	return worldMatrix;
 }
 
-void Transformation::updateModelMatrix()
+void Transformation::updateWorldMatrix()
 {
-	modelMatrix =
+	worldMatrix =
 		glm::translate(position) *
 		glm::yawPitchRoll(rotation.y, rotation.x, rotation.z) *
 		glm::scale(scale);

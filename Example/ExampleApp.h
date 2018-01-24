@@ -5,6 +5,8 @@
 #include "../Framework/Sampler.h"
 #include "../Framework/Model.h"
 #include "../Framework/Buffer.h"
+#include "../Framework/Transformation.h"
+#include "../Framework/Camera.h"
 
 #include <glm/glm.hpp>
 
@@ -39,6 +41,9 @@ private:
 
     fw::Texture texture;
     fw::Sampler sampler;
+    fw::Camera camera;
+    fw::Transformation trans;
+    MatrixUBO ubo;
     fw::Buffer uniformBuffer;
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;

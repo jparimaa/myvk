@@ -15,12 +15,12 @@ namespace
 {
 
 const std::vector<fw::Model::Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{-0.5f, 0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, 0.0f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-0.5f, 0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
     {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
     {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
 
@@ -57,18 +57,20 @@ bool ExampleApp::initialize()
     success = success && createDescriptorPool();
     success = success && createDescriptorSet();
     success = success && createCommandBuffers();
+    
     extent = fw::API::getSwapChainExtent();
+    camera.setPosition(glm::vec3(0.0f, 2.0f, 2.0f));
+    camera.rotate(glm::vec3(1.0f, 0.0f, 0.0f), -glm::radians(45.0f));
+    ubo.view = camera.getViewMatrix();
+    ubo.proj = camera.getProjectionMatrix();
+    
     return success;
 }
 
 void ExampleApp::update()
 {
-    MatrixUBO ubo = {};
-    ubo.world = glm::rotate(glm::mat4(1.0f), fw::API::getTimeSinceStart() * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), extent.width / (float)extent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
-
+    trans.rotate(glm::vec3(0.0f, 1.0f, 0.0f), fw::API::getTimeDelta() * glm::radians(45.0f));
+    ubo.world = trans.getWorldMatrix();
     uniformBuffer.setData(sizeof(ubo), &ubo);
 }
 

@@ -18,7 +18,8 @@ SOURCES = \
 	Texture.cpp \
 	Sampler.cpp \
 	Transformation.cpp \
-	Time.cpp
+	Time.cpp \
+	Camera.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)
