@@ -14,18 +14,6 @@
 namespace
 {
 
-const std::vector<fw::Model::Vertex> vertices = {
-    {{-0.5f, 0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.0f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}};
-
-const std::vector<uint32_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-
 const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
 
 } // unnamed
@@ -45,6 +33,12 @@ ExampleApp::~ExampleApp()
 
 bool ExampleApp::initialize()
 {
+    fw::Model model;
+    if (!model.loadModel("../Assets/monkey.3ds")) {
+        return false;
+    }
+    mesh = model.getMeshes()[0];
+    
     logicalDevice = fw::Context::getLogicalDevice();
     bool success = true;
     success = success && createRenderPass();
@@ -218,8 +212,9 @@ bool ExampleApp::createBuffers()
     bool success = true;
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
-    success = success && vertexBuffer.createForDevice<fw::Model::Vertex>(vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    success = success && indexBuffer.createForDevice<uint32_t>(indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+    success = success && vertexBuffer.createForDevice<fw::Model::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    success = success && indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     return success;
 }
 
@@ -340,7 +335,7 @@ bool ExampleApp::createCommandBuffers()
         vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffers[i], mesh.indices.size(), 1, 0, 0, 0);
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if (VkResult r = vkEndCommandBuffer(commandBuffers[i]);

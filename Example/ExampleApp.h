@@ -7,6 +7,7 @@
 #include "../Framework/Buffer.h"
 #include "../Framework/Transformation.h"
 #include "../Framework/Camera.h"
+#include "../Framework/Model.h"
 
 #include <glm/glm.hpp>
 
@@ -42,6 +43,7 @@ private:
     fw::Texture texture;
     fw::Sampler sampler;
     fw::Camera camera;
+    fw::Model::Mesh mesh;
     fw::Transformation trans;
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;

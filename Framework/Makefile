@@ -19,7 +19,8 @@ SOURCES = \
 	Sampler.cpp \
 	Transformation.cpp \
 	Time.cpp \
-	Camera.cpp
+	Camera.cpp \
+	Model.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

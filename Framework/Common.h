@@ -12,6 +12,7 @@ namespace fw
 
 void printError(std::string_view msg, const VkResult* result = nullptr);
 void printWarning(std::string_view msg);
+void printLog(std::string_view msg);
 
 struct QueueFamilyIndices
 {

@@ -21,6 +21,11 @@ void printWarning(std::string_view msg)
     std::cerr << "WARNING: " << msg << "\n";
 }
 
+void printLog(std::string_view msg)
+{
+    std::cout << "LOG: " << msg << "\n";
+}
+
 bool QueueFamilyIndices::hasGraphicsAndPresentFamily() const
 {
     return graphicsFamily >= 0 && presentFamily >= 0;
