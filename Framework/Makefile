@@ -20,7 +20,8 @@ SOURCES = \
 	Transformation.cpp \
 	Time.cpp \
 	Camera.cpp \
-	Model.cpp
+	Model.cpp \
+	Mesh.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

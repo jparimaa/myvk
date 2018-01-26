@@ -5,6 +5,7 @@
 #include "../Framework/Pipeline.h"
 #include "../Framework/Command.h"
 #include "../Framework/API.h"
+#include "../Framework/Model.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -213,7 +214,7 @@ bool ExampleApp::createBuffers()
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
-    success = success && vertexBuffer.createForDevice<fw::Model::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    success = success && vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     success = success && indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     return success;
 }

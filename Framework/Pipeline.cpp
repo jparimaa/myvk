@@ -1,6 +1,6 @@
 #include "Pipeline.h"
 #include "Common.h"
-#include "Model.h"
+#include "Mesh.h"
 #include "API.h"
 
 namespace fw
@@ -40,7 +40,7 @@ VkVertexInputBindingDescription Pipeline::getVertexDescription()
 {
     VkVertexInputBindingDescription vertexDescription = {};
     vertexDescription.binding = 0;
-    vertexDescription.stride = sizeof(Model::Mesh::Vertex);
+    vertexDescription.stride = sizeof(Mesh::Vertex);
     vertexDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     return vertexDescription;
 }
@@ -52,22 +52,22 @@ std::vector<VkVertexInputAttributeDescription> Pipeline::getAttributeDescription
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
     attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Model::Mesh::Vertex, position);
+    attributeDescriptions[0].offset = offsetof(Mesh::Vertex, position);
 
     attributeDescriptions[1].binding = 0;
     attributeDescriptions[1].location = 1;
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Model::Mesh::Vertex, normal);
+    attributeDescriptions[1].offset = offsetof(Mesh::Vertex, normal);
 
     attributeDescriptions[2].binding = 0;
     attributeDescriptions[2].location = 2;
     attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof(Model::Mesh::Vertex, tangent);
+    attributeDescriptions[2].offset = offsetof(Mesh::Vertex, tangent);
     
     attributeDescriptions[3].binding = 0;
     attributeDescriptions[3].location = 3;
     attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[3].offset = offsetof(Model::Mesh::Vertex, uv);
+    attributeDescriptions[3].offset = offsetof(Mesh::Vertex, uv);
 
     return attributeDescriptions;
 }

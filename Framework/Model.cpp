@@ -11,20 +11,6 @@
 namespace fw
 {
 
-Model::Mesh::Vertices Model::Mesh::getVertices() const
-{
-    Vertices vertices;
-    for (unsigned int i = 0; i < positions.size(); ++i) {
-        Vertex v;
-        v.position = positions[i];
-        v.normal = normals[i];
-        v.tangent = tangents[i];
-        v.uv = uvs[i];
-        vertices.push_back(std::move(v));
-    }
-    return vertices;
-}
-
 bool Model::loadModel(const std::string& file)
 {
 	Assimp::Importer importer;
@@ -47,7 +33,6 @@ bool Model::loadModel(const std::string& file)
                                                    aMesh->mVertices[vertexIndex].y,
                                                    aMesh->mVertices[vertexIndex].z));
 
-                
 				mesh.normals.push_back(glm::vec3(aMesh->mNormals[vertexIndex].x,
                                                  aMesh->mNormals[vertexIndex].y,
                                                  aMesh->mNormals[vertexIndex].z));
