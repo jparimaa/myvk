@@ -55,6 +55,16 @@ bool API::isKeyReleased(int key)
     return framework->input.isKeyReleased(key);
 }
 
+float API::getMouseDeltaX()
+{
+    return framework->input.getDeltaX();
+}
+
+float API::getMouseDeltaY()
+{
+    return framework->input.getDeltaY();
+}
+
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
     framework->commandBuffers = commandBuffers;

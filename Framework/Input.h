@@ -21,10 +21,18 @@ public:
     bool isKeyPressed(int key) const;
     bool isKeyDown(int key) const;
     bool isKeyReleased(int key) const;
+    float getDeltaX() const;
+    float getDeltaY() const;
 
+    void update();
     void clearKeyStatus();
     
 private:
+    GLFWwindow* window = nullptr;
+    double x = 0.0;
+    double y = 0.0;
+    double deltaX = 0.0;
+    double deltaY = 0.0;
     std::unordered_map<int, bool> pressed;
     std::unordered_map<int, bool> down;
     std::unordered_map<int, bool> released;

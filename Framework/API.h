@@ -28,6 +28,8 @@ public:
     static bool isKeyPressed(int key);
     static bool isKeyDown(int key);
     static bool isKeyReleased(int key);
+    static float getMouseDeltaX();
+    static float getMouseDeltaY();
 
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
 

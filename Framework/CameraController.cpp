@@ -1,8 +1,7 @@
 #include "CameraController.h"
 #include "Common.h"
+#include "Constants.h"
 #include "API.h"
-
-#include <iostream>
 
 namespace fw
 {
@@ -55,6 +54,18 @@ void CameraController::update()
 		camera->setPosition(resetPosition);
 		camera->setRotation(resetRotation);
 	}
+    
+	camera->rotate(Constants::up, API::getMouseDeltaX() * sensitivity);
+	camera->rotate(Constants::left, -API::getMouseDeltaY() * sensitivity);
+
+    glm::vec3 r = t.getRotation();
+	if (r.x > Constants::rotationLimit) {
+		r.x = Constants::rotationLimit;
+	}
+	if (r.x < -Constants::rotationLimit) {
+		r.x = -Constants::rotationLimit;
+    }
+    camera->setRotation(r);
 }
 
 } // fw

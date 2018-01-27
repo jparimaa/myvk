@@ -36,6 +36,11 @@ glm::vec3 Transformation::getPosition() const
     return position;
 }
 
+glm::vec3 Transformation::getRotation() const
+{
+    return rotation;
+}
+
 glm::vec3 Transformation::getForward() const
 {
 	glm::vec4 v =

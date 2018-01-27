@@ -51,6 +51,7 @@ void Framework::execute()
     while (!window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE)) {
         input.clearKeyStatus();
         window.pollEvents();
+        input.update();
         time.update();
         app->update();
         if (!commandBuffers.empty()) {

@@ -24,7 +24,7 @@ public:
 private:
 	Camera* camera = nullptr;
 	float movementSpeed = 5.0f;
-	float sensitivity = 1.0f;
+	float sensitivity = 0.003f;
 	glm::vec3 resetPosition;
 	glm::vec3 resetRotation;
 	int resetKey = -1;

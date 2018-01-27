@@ -23,4 +23,6 @@ const glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 const glm::vec3 left = glm::vec3(-1.0f, 0.0f, 0.0f);
 
+const float rotationLimit = glm::radians(87.0f);
+
 } // namespace fw

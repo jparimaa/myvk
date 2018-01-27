@@ -14,11 +14,12 @@ bool isKeyTrueInMap(const std::unordered_map<int, bool>& container, int key)
 namespace fw
 {
 
-bool Input::initialize(GLFWwindow* window)
-{
-    if (!window) {
+bool Input::initialize(GLFWwindow* w)
+{    
+    if (!w) {
         return false;
     }
+    window = w;
     
     auto keyCallback = [](GLFWwindow* w, int key, int scancode, int action, int mods) {
         static_cast<Input*>(glfwGetWindowUserPointer(w))->handleKey(w, key, scancode, action, mods);
@@ -27,6 +28,7 @@ bool Input::initialize(GLFWwindow* window)
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, keyCallback);
+    glfwGetCursorPos(window, &x, &y);
     return true;
 }
 
@@ -45,6 +47,32 @@ bool Input::isKeyReleased(int key) const
     return isKeyTrueInMap(released, key);
 }
 
+float Input::getDeltaX() const
+{
+    return static_cast<float>(deltaX);
+}
+
+float Input::getDeltaY() const
+{
+    return static_cast<float>(deltaY);
+}
+
+void Input::update()
+{
+    double newX, newY;
+    glfwGetCursorPos(window, &newX, &newY);
+    deltaX = x - newX;
+    deltaY = y - newY;
+    x = newX;
+    y = newY;
+}
+
+void Input::clearKeyStatus()
+{
+    pressed.clear();
+    released.clear();
+}
+
 void Input::handleKey(GLFWwindow* /*window*/, int key, int /*scancode*/, int action, int /*mods*/)
 {
     if (action == GLFW_PRESS) {
@@ -58,12 +86,6 @@ void Input::handleKey(GLFWwindow* /*window*/, int key, int /*scancode*/, int act
     if (action == GLFW_REPEAT) {
         down[key] = true;
     }
-}
-
-void Input::clearKeyStatus()
-{
-    pressed.clear();
-    released.clear();
 }
 
 } // namespace fw

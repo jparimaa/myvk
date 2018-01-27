@@ -56,6 +56,7 @@ bool ExampleApp::initialize()
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
+    cameraController.setResetMode(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(), GLFW_KEY_R);
     camera.setPosition(glm::vec3(0.0f, 2.0f, 2.0f));
     camera.rotate(glm::vec3(1.0f, 0.0f, 0.0f), -glm::radians(45.0f));
  
