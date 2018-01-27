@@ -11,6 +11,7 @@ class Transformation
 {
 public:
     void setPosition(const glm::vec3& pos);
+    void setRotation(const glm::vec3& rot);
 	void move(const glm::vec3& translation);
 	void rotate(const glm::vec3& axis, float amount);
 

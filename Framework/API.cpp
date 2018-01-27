@@ -40,6 +40,21 @@ float API::getTimeDelta()
     return framework->time.getDelta();
 }
 
+bool API::isKeyPressed(int key)
+{
+    return framework->input.isKeyPressed(key);
+}
+
+bool API::isKeyDown(int key)
+{
+    return framework->input.isKeyDown(key);
+}
+
+bool API::isKeyReleased(int key)
+{
+    return framework->input.isKeyReleased(key);
+}
+
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
     framework->commandBuffers = commandBuffers;

@@ -25,6 +25,10 @@ public:
     static float getTimeSinceStart();
     static float getTimeDelta();
 
+    static bool isKeyPressed(int key);
+    static bool isKeyDown(int key);
+    static bool isKeyReleased(int key);
+
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
 
 private:

@@ -7,6 +7,7 @@
 #include "../Framework/API.h"
 #include "../Framework/Model.h"
 
+#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
@@ -54,9 +55,10 @@ bool ExampleApp::initialize()
     success = success && createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
+    cameraController.setCamera(&camera);
     camera.setPosition(glm::vec3(0.0f, 2.0f, 2.0f));
     camera.rotate(glm::vec3(1.0f, 0.0f, 0.0f), -glm::radians(45.0f));
-    ubo.view = camera.getViewMatrix();
+ 
     ubo.proj = camera.getProjectionMatrix();
     
     return success;
@@ -66,6 +68,10 @@ void ExampleApp::update()
 {
     trans.rotate(glm::vec3(0.0f, 1.0f, 0.0f), fw::API::getTimeDelta() * glm::radians(45.0f));
     ubo.world = trans.getWorldMatrix();
+    
+    cameraController.update();
+    ubo.view = camera.getViewMatrix();
+    
     uniformBuffer.setData(sizeof(ubo), &ubo);
 }
 

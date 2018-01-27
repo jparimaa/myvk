@@ -13,8 +13,11 @@ public:
     Camera();
     
     void setPosition(const glm::vec3& pos);
+    void setRotation(const glm::vec3& rot);
 	void move(const glm::vec3& translation);
 	void rotate(const glm::vec3& axis, float amount);
+
+    const Transformation& getTransformation() const;
 
     const glm::mat4x4& getViewMatrix() const;
     const glm::mat4x4& getProjectionMatrix() const;

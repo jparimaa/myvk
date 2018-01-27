@@ -23,6 +23,8 @@ public:
     int getWidth() const;
     int getHeight() const;
 
+    GLFWwindow* getWindow();
+
 private:
     int width = 1600;
     int height = 1200;

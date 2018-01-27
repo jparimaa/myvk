@@ -18,6 +18,12 @@ void Camera::setPosition(const glm::vec3& pos)
     updateViewMatrix();
 }
 
+void Camera::setRotation(const glm::vec3& rot)
+{
+    transformation.setRotation(rot);
+    updateViewMatrix();
+}
+
 void Camera::move(const glm::vec3& translation)
 {
     transformation.move(translation);
@@ -28,6 +34,11 @@ void Camera::rotate(const glm::vec3& axis, float amount)
 {
     transformation.rotate(axis, amount);
     updateViewMatrix();
+}
+
+const Transformation& Camera::getTransformation() const
+{
+    return transformation;
 }
 
 const glm::mat4x4& Camera::getViewMatrix() const

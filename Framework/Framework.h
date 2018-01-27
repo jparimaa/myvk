@@ -5,6 +5,7 @@
 #include "Device.h"
 #include "SwapChain.h"
 #include "Time.h"
+#include "Input.h"
 #include "Application.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -35,6 +36,7 @@ private:
     Device device;    
     SwapChain swapChain;
     Time time;
+    Input input;
     
     VkCommandPool commandPool = VK_NULL_HANDLE;
     VkSemaphore imageAvailable = VK_NULL_HANDLE;

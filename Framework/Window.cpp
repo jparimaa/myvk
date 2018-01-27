@@ -18,6 +18,8 @@ bool Window::initialize()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     window = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
 
+    glfwSetWindowPos(window, 1200, 200);
+
     if (VkResult r = glfwCreateWindowSurface(Context::getInstance(), window, nullptr, &surface);
         r != VK_SUCCESS) {
         printError("Failed to create window surface", &r);
@@ -46,6 +48,11 @@ int Window::getWidth() const
 int Window::getHeight() const
 {
     return height;
+}
+
+GLFWwindow* Window::getWindow()
+{
+    return window;
 }
 
 } // namespace fw

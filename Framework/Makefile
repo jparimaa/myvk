@@ -21,7 +21,9 @@ SOURCES = \
 	Time.cpp \
 	Camera.cpp \
 	Model.cpp \
-	Mesh.cpp
+	Mesh.cpp \
+	Input.cpp \
+	CameraController.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)

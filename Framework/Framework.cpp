@@ -31,10 +31,13 @@ bool Framework::initialize()
     success = success && swapChain.create(window.getWidth(), window.getHeight());
     success = success && Command::createGraphicsCommandPool(&commandPool);
     success = success && createSemaphores();
+    success = success && input.initialize(window.getWindow());
+        
     logicalDevice = Context::getLogicalDevice();
     graphicsQueue = Context::getGraphicsQueue();
     presentQueue = Context::getPresentQueue();
     swapChainHandle = swapChain.getSwapChain();
+    
     return success;
 }
 
@@ -45,7 +48,8 @@ void Framework::setApplication(Application* app)
 
 void Framework::execute()
 {
-    while (!window.shouldClose()) {
+    while (!window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE)) {
+        input.clearKeyStatus();
         window.pollEvents();
         time.update();
         app->update();
@@ -55,7 +59,7 @@ void Framework::execute()
             }
         } else {
             printWarning("Empty command buffer");
-        }
+        }        
     }
     vkDeviceWaitIdle(logicalDevice);
 }

@@ -13,6 +13,12 @@ void Transformation::setPosition(const glm::vec3& pos)
     updateWorldMatrix();
 }
 
+void Transformation::setRotation(const glm::vec3& rot)
+{
+    rotation = rot;
+    updateWorldMatrix();
+}
+
 void Transformation::move(const glm::vec3& translation)
 {
 	position += translation;
