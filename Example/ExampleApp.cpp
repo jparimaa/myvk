@@ -6,6 +6,7 @@
 #include "../Framework/Command.h"
 #include "../Framework/API.h"
 #include "../Framework/Model.h"
+#include "../Framework/Mesh.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,12 +36,6 @@ ExampleApp::~ExampleApp()
 
 bool ExampleApp::initialize()
 {
-    fw::Model model;
-    if (!model.loadModel("../Assets/monkey.3ds")) {
-        return false;
-    }
-    mesh = model.getMeshes()[0];
-    
     logicalDevice = fw::Context::getLogicalDevice();
     bool success = true;
     success = success && createRenderPass();
@@ -56,7 +51,7 @@ bool ExampleApp::initialize()
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
-    cameraController.setResetMode(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(), GLFW_KEY_R);
+    cameraController.setResetMode(glm::vec3(0.0f, 10.0f, 40.0f), glm::vec3(), GLFW_KEY_R);
     camera.setPosition(glm::vec3(0.0f, 2.0f, 2.0f));
     camera.rotate(glm::vec3(1.0f, 0.0f, 0.0f), -glm::radians(45.0f));
  
@@ -221,8 +216,24 @@ bool ExampleApp::createBuffers()
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
-    success = success && vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    success = success && indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    fw::Model model;
+    if (!model.loadModel("../Assets/attack_droid.obj")) {
+        return false;
+    }
+
+    fw::Model::Meshes meshes = model.getMeshes();
+    unsigned int numMeshes = meshes.size();
+    vertexBuffers.resize(numMeshes);
+    indexBuffers.resize(numMeshes);
+    numIndices.resize(numMeshes);
+    
+    for (unsigned int i = 0; i < numMeshes; ++i) {
+        const fw::Mesh& mesh = meshes[i];
+        success = success && vertexBuffers[i].createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        success = success && indexBuffers[i].createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        numIndices[i] = mesh.indices.size();
+    }   
+
     return success;
 }
 
@@ -330,23 +341,29 @@ bool ExampleApp::createCommandBuffers()
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    VkBuffer vertexBuffers[] = {vertexBuffer.getBuffer()};
     VkDeviceSize offsets[] = {0};
     
     for (size_t i = 0; i < commandBuffers.size(); ++i) {
-        vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+        VkCommandBuffer cb = commandBuffers[i];
+        
+        vkBeginCommandBuffer(cb, &beginInfo);
 
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-        vkCmdDrawIndexed(commandBuffers[i], mesh.indices.size(), 1, 0, 0, 0);
-        vkCmdEndRenderPass(commandBuffers[i]);
+        vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        if (VkResult r = vkEndCommandBuffer(commandBuffers[i]);
+        for (unsigned int j = 0; j < indexBuffers.size(); ++j) {
+            VkBuffer vb = vertexBuffers[j].getBuffer();
+            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+            vkCmdBindIndexBuffer(cb, indexBuffers[j].getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+            vkCmdDrawIndexed(cb, numIndices[j], 1, 0, 0, 0);
+        }
+        
+        vkCmdEndRenderPass(cb);
+
+        if (VkResult r = vkEndCommandBuffer(cb);
             r != VK_SUCCESS) {
             fw::printError("Failed to record command buffer", &r);
             return false;

@@ -8,7 +8,6 @@
 #include "../Framework/Transformation.h"
 #include "../Framework/Camera.h"
 #include "../Framework/CameraController.h"
-#include "../Framework/Mesh.h"
 
 #include <glm/glm.hpp>
 
@@ -45,12 +44,12 @@ private:
     fw::Sampler sampler;
     fw::Camera camera;
     fw::CameraController cameraController;
-    fw::Mesh mesh;
     fw::Transformation trans;
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;
-    fw::Buffer vertexBuffer;
-    fw::Buffer indexBuffer;
+    std::vector<fw::Buffer> vertexBuffers;
+    std::vector<fw::Buffer> indexBuffers;
+    std::vector<uint32_t> numIndices;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
