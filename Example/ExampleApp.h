@@ -28,6 +28,8 @@ public:
         fw::Buffer vertexBuffer;
         fw::Buffer indexBuffer;
         uint32_t numIndices;
+        fw::Texture texture;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
     
     ExampleApp();
@@ -47,7 +49,6 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
-    fw::Texture texture;
     fw::Sampler sampler;
     fw::Camera camera;
     fw::CameraController cameraController;
@@ -57,15 +58,16 @@ private:
     std::vector<RenderObject> renderObjects;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> descriptorSets;
 
     VkExtent2D extent;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();
     bool createPipeline();
-    bool createBuffers();
     bool createDescriptorPool();
-    bool createDescriptorSet();
+    bool createRenderObjects();
+    bool createDescriptorSets(uint32_t setCount);
+    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();
 };

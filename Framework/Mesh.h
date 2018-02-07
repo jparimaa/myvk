@@ -12,7 +12,7 @@ namespace fw
 
 class Mesh
 {
-public:
+public:    
     struct Vertex
     {
         glm::vec3 position;
@@ -33,6 +33,7 @@ public:
     
 	Mesh() {};
     Vertices getVertices() const;
+    std::string getFirstTextureOfType(aiTextureType type) const;
 };
 
 } // namespace fw

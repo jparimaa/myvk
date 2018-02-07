@@ -11,10 +11,6 @@ class Image
 public:
     Image() {};
     ~Image();
-    Image(const Image&) = delete;
-    Image(Image&&) = delete;
-    Image& operator=(const Image&) = delete;
-    Image& operator=(Image&&) = delete;
     
     bool create(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage);
     bool createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView);

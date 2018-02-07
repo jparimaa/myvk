@@ -15,10 +15,6 @@ class Texture
 public:
     Texture() {};
     ~Texture();
-    Texture(const Texture&) = delete;
-    Texture(Texture&&) = delete;
-    Texture& operator=(const Texture&) = delete;
-    Texture& operator=(Texture&&) = delete;
     
     bool load(const std::string& filename);
 

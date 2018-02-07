@@ -18,6 +18,7 @@ namespace
 {
 
 const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::string assetsFolder = "../Assets/";
 
 } // unnamed
 
@@ -42,11 +43,9 @@ bool ExampleApp::initialize()
     success = success && fw::API::initializeSwapChain(renderPass);
     success = success && createDescriptorSetLayout();
     success = success && createPipeline();
-    success = success && texture.load("../Assets/checker.png");
     success = success && sampler.create();
-    success = success && createBuffers();
     success = success && createDescriptorPool();
-    success = success && createDescriptorSet();
+    success = success && createRenderObjects();
     success = success && createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
@@ -210,45 +209,19 @@ bool ExampleApp::createPipeline()
     return true;
 }
 
-bool ExampleApp::createBuffers()
-{
-    bool success = true;
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
-
-    fw::Model model;
-    if (!model.loadModel("../Assets/attack_droid.obj")) {
-        return false;
-    }
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    unsigned int numMeshes = meshes.size();
-    renderObjects.resize(numMeshes);
-    
-    for (unsigned int i = 0; i < numMeshes; ++i) {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = renderObjects[i];
-        success = success && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        success = success && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        ro.numIndices = mesh.indices.size();
-    }   
-
-    return success;
-}
-
 bool ExampleApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 1;
+    poolSizes[0].descriptorCount = 2;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 1;
+    poolSizes[1].descriptorCount = 2;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 1;
+    poolInfo.maxSets = 2;
 
     if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
         r != VK_SUCCESS) {
@@ -258,21 +231,62 @@ bool ExampleApp::createDescriptorPool()
     return true;
 }
 
-bool ExampleApp::createDescriptorSet()
+bool ExampleApp::createRenderObjects()
 {
-    VkDescriptorSetLayout layouts[] = {descriptorSetLayout};
+    bool success = true;
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+
+    fw::Model model;
+    if (!model.loadModel(assetsFolder + "attack_droid.obj")) {
+        return false;
+    }
+
+    fw::Model::Meshes meshes = model.getMeshes();
+    uint32_t numMeshes = fw::ui32size(meshes);
+    
+    if (!createDescriptorSets(numMeshes)) {
+        return false;
+    }
+    
+    renderObjects.resize(numMeshes);
+    
+    for (unsigned int i = 0; i < numMeshes; ++i) {
+        const fw::Mesh& mesh = meshes[i];
+        RenderObject& ro = renderObjects[i];
+        success = success && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        success = success && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        ro.numIndices = mesh.indices.size();
+        std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
+        ro.texture.load(textureFile);
+        updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
+        ro.descriptorSet = descriptorSets[i];
+    }
+
+    return success;
+}
+
+bool ExampleApp::createDescriptorSets(uint32_t setCount)
+{
+    descriptorSets.resize(setCount);
+    
+    std::vector<VkDescriptorSetLayout> layouts(setCount, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = layouts;
+    allocInfo.descriptorSetCount = setCount;
+    allocInfo.pSetLayouts = layouts.data();
 
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
+    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data());
         r != VK_SUCCESS) {
         fw::printError("Failed to allocate descriptor set", &r);
         return false;
     }
+    return true;
+}
 
+void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
+{
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
@@ -280,7 +294,7 @@ bool ExampleApp::createDescriptorSet()
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = texture.getImageView();
+    imageInfo.imageView = imageView;
     imageInfo.sampler = sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
@@ -292,7 +306,7 @@ bool ExampleApp::createDescriptorSet()
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
-
+    
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSet;
     descriptorWrites[1].dstBinding = 1;
@@ -300,9 +314,8 @@ bool ExampleApp::createDescriptorSet()
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 
-    return true;
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);    
 }
 
 bool ExampleApp::createCommandBuffers()
@@ -356,7 +369,7 @@ bool ExampleApp::createCommandBuffers()
             VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
         

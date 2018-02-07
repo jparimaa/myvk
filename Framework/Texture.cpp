@@ -28,7 +28,7 @@ bool Texture::load(const std::string& filename)
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!pixels) {
-        printError("Failed to load texture image");
+        printError("Failed to load texture image: " + filename);
         return false;
     }
 

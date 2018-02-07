@@ -66,7 +66,7 @@ bool Model::loadModel(const std::string& file)
 					unsigned int numTextures = aMaterial->GetTextureCount(type);
 					for (unsigned int texIndex = 0; texIndex < numTextures; ++texIndex) {
 						aiString path;
-						aMaterial->GetTexture(type, 0, &path);
+						aMaterial->GetTexture(type, texIndex, &path);
 						mesh.materials[type].push_back(std::string(path.C_Str()));
 					}
 				}
