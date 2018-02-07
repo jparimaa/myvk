@@ -102,13 +102,13 @@ bool Device::createLogicalDevice()
 
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+    createInfo.queueCreateInfoCount = fw::ui32size(queueCreateInfos);
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(Constants::deviceExtensions.size());
+    createInfo.enabledExtensionCount = fw::ui32size(Constants::deviceExtensions);
     createInfo.ppEnabledExtensionNames = Constants::deviceExtensions.data();
     if (Constants::enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(Constants::validationLayers.size());
+        createInfo.enabledLayerCount = fw::ui32size(Constants::validationLayers);
         createInfo.ppEnabledLayerNames = Constants::validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;

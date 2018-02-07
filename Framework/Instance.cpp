@@ -103,10 +103,10 @@ bool Instance::createInstance()
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     std::vector<const char*> extensions = getRequiredExtensions();
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.enabledExtensionCount = fw::ui32size(extensions);
     createInfo.ppEnabledExtensionNames = extensions.data();
     if (Constants::enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(Constants::validationLayers.size());
+        createInfo.enabledLayerCount = fw::ui32size(Constants::validationLayers);
         createInfo.ppEnabledLayerNames = Constants::validationLayers.data();
     } else {
         createInfo.enabledLayerCount = 0;

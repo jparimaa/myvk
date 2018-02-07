@@ -102,7 +102,7 @@ bool ExampleApp::createRenderPass()
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.attachmentCount = fw::ui32size(attachments);
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
@@ -136,7 +136,7 @@ bool ExampleApp::createDescriptorSetLayout()
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
     if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
@@ -181,7 +181,7 @@ bool ExampleApp::createPipeline()
 
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+    pipelineInfo.stageCount = fw::ui32size(shaderStages);
     pipelineInfo.pStages = shaderStages.data();
     pipelineInfo.pVertexInputState = &vertexInputState;
     pipelineInfo.pInputAssemblyState = &inputAssemblyState;
@@ -223,15 +223,14 @@ bool ExampleApp::createBuffers()
 
     fw::Model::Meshes meshes = model.getMeshes();
     unsigned int numMeshes = meshes.size();
-    vertexBuffers.resize(numMeshes);
-    indexBuffers.resize(numMeshes);
-    numIndices.resize(numMeshes);
+    renderObjects.resize(numMeshes);
     
     for (unsigned int i = 0; i < numMeshes; ++i) {
         const fw::Mesh& mesh = meshes[i];
-        success = success && vertexBuffers[i].createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        success = success && indexBuffers[i].createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        numIndices[i] = mesh.indices.size();
+        RenderObject& ro = renderObjects[i];
+        success = success && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+        success = success && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        ro.numIndices = mesh.indices.size();
     }   
 
     return success;
@@ -247,7 +246,7 @@ bool ExampleApp::createDescriptorPool()
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 1;
 
@@ -301,7 +300,7 @@ bool ExampleApp::createDescriptorSet()
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
-    vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 
     return true;
 }
@@ -316,7 +315,7 @@ bool ExampleApp::createCommandBuffers()
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = fw::API::getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
+    allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
 
     if (VkResult r = vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data());
         r != VK_SUCCESS) {
@@ -338,7 +337,7 @@ bool ExampleApp::createCommandBuffers()
     renderPassInfo.renderPass = renderPass;    
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
 
     VkDeviceSize offsets[] = {0};
@@ -353,12 +352,12 @@ bool ExampleApp::createCommandBuffers()
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        for (unsigned int j = 0; j < indexBuffers.size(); ++j) {
-            VkBuffer vb = vertexBuffers[j].getBuffer();
+        for (const RenderObject& ro : renderObjects) {
+            VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, indexBuffers[j].getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
             vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, numIndices[j], 1, 0, 0, 0);
+            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
         
         vkCmdEndRenderPass(cb);

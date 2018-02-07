@@ -80,7 +80,7 @@ VkPipelineVertexInputStateCreateInfo Pipeline::getVertexInputState(
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputState.vertexBindingDescriptionCount = 1;
     vertexInputState.pVertexBindingDescriptions = vertexDescription;
-    vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions->size());
+    vertexInputState.vertexAttributeDescriptionCount = fw::ui32size(*attributeDescriptions);
     vertexInputState.pVertexAttributeDescriptions = attributeDescriptions->data();
     return vertexInputState;
 }

@@ -22,6 +22,13 @@ public:
         glm::mat4 view;
         glm::mat4 proj;
     };
+
+    struct RenderObject
+    {
+        fw::Buffer vertexBuffer;
+        fw::Buffer indexBuffer;
+        uint32_t numIndices;
+    };
     
     ExampleApp();
     virtual ~ExampleApp();
@@ -47,9 +54,7 @@ private:
     fw::Transformation trans;
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;
-    std::vector<fw::Buffer> vertexBuffers;
-    std::vector<fw::Buffer> indexBuffers;
-    std::vector<uint32_t> numIndices;
+    std::vector<RenderObject> renderObjects;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;

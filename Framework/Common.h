@@ -36,5 +36,11 @@ public:
 private:
     std::function<void()> clean;
 };
+
+template <typename T>
+uint32_t ui32size(const T& container)
+{
+    return static_cast<uint32_t>(container.size());
+}
     
 } // namespace fw
