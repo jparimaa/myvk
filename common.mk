@@ -3,7 +3,7 @@ framework:
 	@echo -n "\nFRAMEWORK BUILD FINISHED\n\n"
 
 %.o: %.cpp 
-	$(CC) -c $(CFLAGS) $(INCLUDES) $<
+	$(CC) -c $(CFLAGS) $(INCLUDES) $< -o $@
 
 %_vert.spv: $(SHADER_DIR)%.vert
 	$(GLSLANG_VALIDATOR) -V $< -o $@
@@ -14,7 +14,7 @@ framework:
 .PHONY: clean
 
 clean:
-	rm -f *.o *.d *.spv $(OUTPUT) core out *.txt vgcore*
+	rm -f *.o imgui/*.o *.d imgui/*.d *.spv $(OUTPUT) core out *.txt vgcore*
 
 run: $(OUTPUT)
 	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)

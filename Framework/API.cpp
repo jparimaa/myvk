@@ -10,6 +10,11 @@ bool API::initializeSwapChain(VkRenderPass renderPass)
     return framework->initializeSwapChain(renderPass);
 }
 
+bool API::initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool)
+{
+    return framework->initializeGUI(renderPass, descriptorPool);
+}
+
 VkFormat API::getSwapChainImageFormat()
 {
     return framework->swapChain.getImageFormat();
@@ -68,6 +73,11 @@ float API::getMouseDeltaY()
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
     framework->commandBuffers = commandBuffers;
+}
+
+void API::renderGUI(VkCommandBuffer commandBuffer)
+{
+    framework->renderGUI(commandBuffer);
 }
 
 } // namespace fw

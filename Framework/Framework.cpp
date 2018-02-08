@@ -32,7 +32,7 @@ bool Framework::initialize()
     success = success && Command::createGraphicsCommandPool(&commandPool);
     success = success && createSemaphores();
     success = success && input.initialize(window.getWindow());
-        
+
     logicalDevice = Context::getLogicalDevice();
     graphicsQueue = Context::getGraphicsQueue();
     presentQueue = Context::getPresentQueue();
@@ -68,6 +68,16 @@ void Framework::execute()
 bool Framework::initializeSwapChain(VkRenderPass renderPass)
 {
     return swapChain.initialize(renderPass);
+}
+
+bool Framework::initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool)
+{
+    return gui.initialize(renderPass, descriptorPool, window.getWindow());
+}
+
+void Framework::renderGUI(VkCommandBuffer commandBuffer)
+{
+    gui.render(commandBuffer);
 }
 
 bool Framework::createSemaphores()

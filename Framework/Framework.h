@@ -6,6 +6,7 @@
 #include "SwapChain.h"
 #include "Time.h"
 #include "Input.h"
+#include "GUI.h"
 #include "Application.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -37,6 +38,7 @@ private:
     SwapChain swapChain;
     Time time;
     Input input;
+    GUI gui;
     
     VkCommandPool commandPool = VK_NULL_HANDLE;
     VkSemaphore imageAvailable = VK_NULL_HANDLE;
@@ -51,6 +53,8 @@ private:
     std::vector<VkCommandBuffer> commandBuffers;
 
     bool initializeSwapChain(VkRenderPass renderPass);
+    bool initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool);
+    void renderGUI(VkCommandBuffer commandBuffer);
     bool createSemaphores();
     bool render();
 };

@@ -46,6 +46,7 @@ bool ExampleApp::initialize()
     success = success && sampler.create();
     success = success && createDescriptorPool();
     success = success && createRenderObjects();
+    success = success && fw::API::initializeGUI(renderPass, descriptorPool);
     success = success && createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
@@ -215,13 +216,13 @@ bool ExampleApp::createDescriptorPool()
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = 2;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 2;
+    poolSizes[1].descriptorCount = 3;
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 2;
+    poolInfo.maxSets = 3;
 
     if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
         r != VK_SUCCESS) {
@@ -372,6 +373,8 @@ bool ExampleApp::createCommandBuffers()
             vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
+
+        fw::API::renderGUI(cb);
         
         vkCmdEndRenderPass(cb);
 

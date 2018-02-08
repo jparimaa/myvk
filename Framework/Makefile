@@ -23,7 +23,12 @@ SOURCES = \
 	Model.cpp \
 	Mesh.cpp \
 	Input.cpp \
-	CameraController.cpp
+	GUI.cpp \
+	CameraController.cpp \
+	imgui/imgui.cpp \
+	imgui/imgui_draw.cpp \
+	imgui/imgui_demo.cpp \
+	imgui/imgui_impl_glfw_vulkan.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(OUTPUT)
