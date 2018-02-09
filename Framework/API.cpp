@@ -7,12 +7,7 @@ Framework* API::framework = nullptr;
 
 bool API::initializeSwapChain(VkRenderPass renderPass)
 {
-    return framework->initializeSwapChain(renderPass);
-}
-
-bool API::initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool)
-{
-    return framework->initializeGUI(renderPass, descriptorPool);
+    return framework->swapChain.initialize(renderPass);
 }
 
 VkFormat API::getSwapChainImageFormat()
@@ -75,9 +70,9 @@ void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
     framework->commandBuffers = commandBuffers;
 }
 
-void API::renderGUI(VkCommandBuffer commandBuffer)
+GLFWwindow* API::getGLFWwindow()
 {
-    framework->renderGUI(commandBuffer);
+    framework->window.getWindow();
 }
 
 } // namespace fw

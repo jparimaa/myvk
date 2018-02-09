@@ -1,5 +1,8 @@
 #pragma once
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw_vulkan.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -16,8 +19,9 @@ public:
     GUI& operator=(const GUI&) = delete;
     GUI& operator=(GUI&&) = delete;
 
-    bool initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool, GLFWwindow* window);
-    void render(VkCommandBuffer commandBuffer);
+    bool initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool) const;
+    void beginPass() const;
+    void endPass(VkCommandBuffer commandBuffer) const;
 
 private:
 };

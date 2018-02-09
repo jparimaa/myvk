@@ -2,9 +2,7 @@
 #include "Context.h"
 #include "Common.h"
 #include "Command.h"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw_vulkan.h"
+#include "API.h"
 
 #include <iostream>
 
@@ -29,9 +27,12 @@ GUI::~GUI()
     ImGui::DestroyContext();
 }
 
-bool GUI::initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool, GLFWwindow* window)
+bool GUI::initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool) const
 {
-    ImGui::CreateContext();    
+    ImGui::CreateContext();
+    
+    bool success = true;
+    
     ImGui_ImplGlfwVulkan_Init_Data init_data = {};
     init_data.allocator = nullptr;
     init_data.gpu = Context::getPhysicalDevice();
@@ -40,21 +41,25 @@ bool GUI::initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool, G
     init_data.pipeline_cache = VK_NULL_HANDLE;
     init_data.descriptor_pool = descriptorPool;
     init_data.check_vk_result = imguiVkResult;
-    bool success = true;
-    success = success && ImGui_ImplGlfwVulkan_Init(window, true, &init_data);
+    // Set true and implement callback functions if you want to handle GUI input
+    bool installCallbacks = false;
+    success = success && ImGui_ImplGlfwVulkan_Init(API::getGLFWwindow(), installCallbacks, &init_data);    
 
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();    
     success = success && ImGui_ImplGlfwVulkan_CreateFontsTexture(commandBuffer);
     Command::endSingleTimeCommands(commandBuffer);
     ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
-    
+
     return success;
 }
 
-void GUI::render(VkCommandBuffer commandBuffer)
+void GUI::beginPass() const
 {
     ImGui_ImplGlfwVulkan_NewFrame();
-    ImGui::Text("Hello, world!");
+}
+
+void GUI::endPass(VkCommandBuffer commandBuffer) const
+{
     ImGui_ImplGlfwVulkan_Render(commandBuffer);
 }
 

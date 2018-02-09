@@ -65,21 +65,6 @@ void Framework::execute()
     vkDeviceWaitIdle(logicalDevice);
 }
 
-bool Framework::initializeSwapChain(VkRenderPass renderPass)
-{
-    return swapChain.initialize(renderPass);
-}
-
-bool Framework::initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool)
-{
-    return gui.initialize(renderPass, descriptorPool, window.getWindow());
-}
-
-void Framework::renderGUI(VkCommandBuffer commandBuffer)
-{
-    gui.render(commandBuffer);
-}
-
 bool Framework::createSemaphores()
 {
     VkSemaphoreCreateInfo semaphoreInfo = {};

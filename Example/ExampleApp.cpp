@@ -46,7 +46,7 @@ bool ExampleApp::initialize()
     success = success && sampler.create();
     success = success && createDescriptorPool();
     success = success && createRenderObjects();
-    success = success && fw::API::initializeGUI(renderPass, descriptorPool);
+    success = success && gui.initialize(renderPass, descriptorPool);
     success = success && createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
@@ -374,7 +374,7 @@ bool ExampleApp::createCommandBuffers()
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 
-        fw::API::renderGUI(cb);
+        createGUI(cb);
         
         vkCmdEndRenderPass(cb);
 
@@ -387,4 +387,11 @@ bool ExampleApp::createCommandBuffers()
 
     fw::API::setCommandBuffers(commandBuffers);
     return true;
+}
+
+void ExampleApp::createGUI(VkCommandBuffer commandBuffer)
+{
+    gui.beginPass();
+    ImGui::Text("Hello, world!");
+    gui.endPass(commandBuffer);
 }

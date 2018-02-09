@@ -16,7 +16,6 @@ public:
     API() = delete;
 
     static bool initializeSwapChain(VkRenderPass renderPass);
-    static bool initializeGUI(VkRenderPass renderPass, VkDescriptorPool descriptorPool);
     
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
@@ -34,7 +33,8 @@ public:
     static float getMouseDeltaY();
 
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
-    static void renderGUI(VkCommandBuffer commandBuffer);
+
+    static GLFWwindow* getGLFWwindow();
 
 private:
     static Framework* framework;

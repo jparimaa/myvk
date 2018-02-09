@@ -8,6 +8,7 @@
 #include "../Framework/Transformation.h"
 #include "../Framework/Camera.h"
 #include "../Framework/CameraController.h"
+#include "../Framework/GUI.h"
 
 #include <glm/glm.hpp>
 
@@ -56,6 +57,7 @@ private:
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;
     std::vector<RenderObject> renderObjects;
+    fw::GUI gui;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> descriptorSets;
@@ -70,4 +72,5 @@ private:
     bool createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();
+    void createGUI(VkCommandBuffer commandBuffer);
 };
