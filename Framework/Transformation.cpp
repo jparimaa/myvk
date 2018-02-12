@@ -13,6 +13,12 @@ void Transformation::setPosition(const glm::vec3& pos)
     updateWorldMatrix();
 }
 
+void Transformation::setPosition(float x, float y, float z)
+{
+    position = glm::vec3(x, y, z);
+    updateWorldMatrix();
+}
+
 void Transformation::setRotation(const glm::vec3& rot)
 {
     rotation = rot;
@@ -25,9 +31,21 @@ void Transformation::move(const glm::vec3& translation)
     updateWorldMatrix();
 }
 
+void Transformation::move(float x, float y, float z)
+{
+	position += glm::vec3(x, y, z);
+    updateWorldMatrix();
+}
+
 void Transformation::rotate(const glm::vec3& axis, float amount)
 {
 	rotation += axis * amount;
+    updateWorldMatrix();
+}
+
+void Transformation::rotateUp(float amount)
+{
+	rotation += Constants::up * amount;
     updateWorldMatrix();
 }
 

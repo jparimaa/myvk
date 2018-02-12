@@ -51,9 +51,9 @@ bool ExampleApp::initialize()
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
-    cameraController.setResetMode(glm::vec3(0.0f, 10.0f, 40.0f), glm::vec3(), GLFW_KEY_R);
-    camera.setPosition(glm::vec3(0.0f, 2.0f, 2.0f));
-    camera.rotate(glm::vec3(1.0f, 0.0f, 0.0f), -glm::radians(45.0f));
+    glm::vec3 initPos(0.0f, 10.0f, 40.0f);
+    cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
+    camera.setPosition(initPos);
  
     ubo.proj = camera.getProjectionMatrix();
     
@@ -62,7 +62,7 @@ bool ExampleApp::initialize()
 
 void ExampleApp::update()
 {
-    trans.rotate(glm::vec3(0.0f, 1.0f, 0.0f), fw::API::getTimeDelta() * glm::radians(45.0f));
+    trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     ubo.world = trans.getWorldMatrix();
     
     cameraController.update();
