@@ -1,6 +1,5 @@
 framework:
-	make -j4 -C $(FRAMEWORK_PATH)
-	@echo -n "\nFRAMEWORK BUILD FINISHED\n\n"
+	$(MAKE) -C $(FRAMEWORK_PATH)
 
 %.o: %.cpp 
 	$(CC) -c $(CFLAGS) $(INCLUDES) $< -o $@
@@ -16,5 +15,5 @@ framework:
 clean:
 	rm -f *.o imgui/*.o *.d imgui/*.d *.spv $(OUTPUT) core out *.txt vgcore* *~
 
-run: $(OUTPUT)
+run:
 	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)

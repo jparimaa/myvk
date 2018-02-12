@@ -72,7 +72,7 @@ void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 
 GLFWwindow* API::getGLFWwindow()
 {
-    framework->window.getWindow();
+    return framework->window.getWindow();
 }
 
 } // namespace fw
