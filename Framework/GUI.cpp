@@ -5,8 +5,6 @@
 #include "RenderPass.h"
 #include "API.h"
 
-#include <iostream>
-
 namespace fw
 {
 
@@ -52,13 +50,12 @@ bool GUI::initialize(VkDescriptorPool descriptorPool)
     initData.pipeline_cache = VK_NULL_HANDLE;
     initData.descriptor_pool = descriptorPool;
     initData.check_vk_result = imguiVkResult;
-    // Set true and implement callback functions if you want to handle GUI input
     bool installCallbacks = false;
     success = success && ImGui_ImplGlfwVulkan_Init(API::getGLFWwindow(), installCallbacks, &initData);    
 
-    VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();    
-    success = success && ImGui_ImplGlfwVulkan_CreateFontsTexture(commandBuffer);
-    Command::endSingleTimeCommands(commandBuffer);
+    VkCommandBuffer singleTimeCommandBuffer = Command::beginSingleTimeCommands();    
+    success = success && ImGui_ImplGlfwVulkan_CreateFontsTexture(singleTimeCommandBuffer);
+    Command::endSingleTimeCommands(singleTimeCommandBuffer);
     ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 
     initialized = true;

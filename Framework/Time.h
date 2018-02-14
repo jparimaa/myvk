@@ -7,7 +7,6 @@ class Time
 {
 public:
     Time() {};
-    ~Time() {};
     Time(const Time&) = delete;
     Time(Time&&) = delete;
     Time& operator=(const Time&) = delete;
@@ -18,8 +17,8 @@ public:
     float getDelta() const;
 
 private:
-    float sinceStart = 0.0;
-    float delta = 0.0;
+    float sinceStart = 0.0f;
+    float delta = 0.0f;
 };
 
 } // namespace fw

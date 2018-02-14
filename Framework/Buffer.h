@@ -43,7 +43,7 @@ bool Buffer::setData(VkDeviceSize size, const T* src)
     void* dst;
     if (VkResult r = vkMapMemory(logicalDevice, memory, 0, size, 0, &dst);
         r != VK_SUCCESS) {
-        printError("Failed to map memory for image");
+        printError("Failed to map memory");
         return false;
     }
     std::memcpy(dst, src, static_cast<size_t>(size));

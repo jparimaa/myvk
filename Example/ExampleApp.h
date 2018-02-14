@@ -3,7 +3,6 @@
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
 #include "../Framework/Sampler.h"
-#include "../Framework/Model.h"
 #include "../Framework/Buffer.h"
 #include "../Framework/Transformation.h"
 #include "../Framework/Camera.h"

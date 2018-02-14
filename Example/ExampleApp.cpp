@@ -159,6 +159,12 @@ bool ExampleApp::createPipeline()
         return false;
     }
 
+    fw::Cleaner cleaner([&shaderStages, this]() {
+            for (const auto& info : shaderStages) {
+                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+            }
+        });
+
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
@@ -204,12 +210,8 @@ bool ExampleApp::createPipeline()
         r != VK_SUCCESS) {
         fw::printError("Failed to create graphics pipeline", &r);
         return false;
-    }
-    
-    for (const auto& info : shaderStages) {
-        vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-    }
-    
+    }   
+   
     return true;
 }
 
@@ -258,9 +260,12 @@ bool ExampleApp::createRenderObjects()
     for (unsigned int i = 0; i < numMeshes; ++i) {
         const fw::Mesh& mesh = meshes[i];
         RenderObject& ro = renderObjects[i];
+        
         success = success && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         success = success && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        
         ro.numIndices = mesh.indices.size();
+        
         std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile);
         updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
@@ -325,8 +330,7 @@ void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
 bool ExampleApp::createCommandBuffers()
 {    
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers;
-    commandBuffers.resize(swapChainFramebuffers.size());
+    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

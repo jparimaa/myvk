@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Window.h"
 #include "Instance.h"
+#include "Window.h"
 #include "Device.h"
 #include "SwapChain.h"
 #include "Time.h"

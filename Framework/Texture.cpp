@@ -2,8 +2,6 @@
 #include "Common.h"
 #include "Buffer.h"
 #include "Context.h"
-#include "Image.h"
-#include "Command.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #pragma GCC diagnostic push 
@@ -32,7 +30,9 @@ bool Texture::load(const std::string& filename)
         return false;
     }
 
-    Cleaner cleaner([&pixels]() { stbi_image_free(pixels); });
+    Cleaner cleaner([&pixels]() {
+            stbi_image_free(pixels);
+        });
     
     VkDeviceSize imageSize = texWidth * texHeight * 4;
     Buffer staging;

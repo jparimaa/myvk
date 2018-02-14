@@ -27,7 +27,7 @@ Buffer::~Buffer()
     if (memory != VK_NULL_HANDLE) {
         vkFreeMemory(logicalDevice, memory, nullptr);
     } else {
-        printWarning("Trying to destroy a null memory");
+        printWarning("Trying to free a null memory");
     }
 }
 
