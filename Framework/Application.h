@@ -15,6 +15,7 @@ public:
 
     virtual bool initialize() = 0;
     virtual void update() = 0;
+    virtual void onGUI() = 0;
 };
 
 } // namespace fw

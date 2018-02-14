@@ -32,7 +32,7 @@ bool Framework::initialize()
     success = success && Command::createGraphicsCommandPool(&commandPool);
     success = success && createSemaphores();
     success = success && input.initialize(window.getWindow());
-
+    
     logicalDevice = Context::getLogicalDevice();
     graphicsQueue = Context::getGraphicsQueue();
     presentQueue = Context::getPresentQueue();
@@ -54,7 +54,11 @@ void Framework::execute()
         input.update();
         time.update();
         app->update();
-        if (!commandBuffers.empty()) {
+        if (gui.isInitialized()) {
+            gui.beginPass();
+            app->onGUI();
+        }
+        if (!commandBuffers.empty()) {            
             if (!render()) {
                 break;
             }
@@ -95,6 +99,12 @@ bool Framework::render()
         return false;
     }
 
+    std::vector<VkCommandBuffer> renderCommandBuffers{commandBuffers[imageIndex]};
+    if (gui.isInitialized()) {
+        gui.render(API::getSwapChainFramebuffers().at(imageIndex));
+        renderCommandBuffers.push_back(gui.getCommandBuffer());
+    }
+
     VkSemaphore waitSemaphores[] = {imageAvailable};
     VkSemaphore signalSemaphores[] = {renderFinished};
     
@@ -105,8 +115,8 @@ bool Framework::render()
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+    submitInfo.commandBufferCount = ui32size(renderCommandBuffers);
+    submitInfo.pCommandBuffers = renderCommandBuffers.data();
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 

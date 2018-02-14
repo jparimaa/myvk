@@ -8,7 +8,6 @@
 #include "../Framework/Transformation.h"
 #include "../Framework/Camera.h"
 #include "../Framework/CameraController.h"
-#include "../Framework/GUI.h"
 
 #include <glm/glm.hpp>
 
@@ -33,7 +32,7 @@ public:
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
     
-    ExampleApp();
+    ExampleApp() {};
     virtual ~ExampleApp();
     ExampleApp(const ExampleApp&) = delete;
     ExampleApp(ExampleApp&&) = delete;
@@ -42,6 +41,7 @@ public:
 
     virtual bool initialize() final;
     virtual void update() final;
+    virtual void onGUI() final;
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -57,7 +57,6 @@ private:
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;
     std::vector<RenderObject> renderObjects;
-    fw::GUI gui;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> descriptorSets;
@@ -72,5 +71,4 @@ private:
     bool createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();
-    void createGUI(VkCommandBuffer commandBuffer);
 };

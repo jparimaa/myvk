@@ -13,7 +13,7 @@ bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = indices.graphicsFamily;
-    poolInfo.flags = 0;  // Optional
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (VkResult r = vkCreateCommandPool(Context::getLogicalDevice(), &poolInfo, nullptr, commandPool);
         r != VK_SUCCESS) {

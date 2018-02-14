@@ -19,11 +19,23 @@ public:
     GUI& operator=(const GUI&) = delete;
     GUI& operator=(GUI&&) = delete;
 
-    bool initialize(VkRenderPass renderPass, VkDescriptorPool descriptorPool) const;
+    bool initialize(VkDescriptorPool descriptorPool);
     void beginPass() const;
-    void endPass(VkCommandBuffer commandBuffer) const;
+    bool render(VkFramebuffer framebuffer) const;
+    VkCommandBuffer getCommandBuffer() const;
+
+    bool isInitialized() const;
 
 private:
+    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkCommandBufferBeginInfo info = {};
+    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+
+    bool initialized = false;
+
+    bool createCommandBuffer();
+    bool createRenderPass();
 };
 
 } // namespace fw

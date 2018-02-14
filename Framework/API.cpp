@@ -10,6 +10,11 @@ bool API::initializeSwapChain(VkRenderPass renderPass)
     return framework->swapChain.initialize(renderPass);
 }
 
+bool API::initializeGUI(VkDescriptorPool descriptorPool)
+{
+    return framework->gui.initialize(descriptorPool);
+}
+
 VkFormat API::getSwapChainImageFormat()
 {
     return framework->swapChain.getImageFormat();

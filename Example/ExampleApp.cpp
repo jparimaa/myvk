@@ -22,10 +22,6 @@ const std::string assetsFolder = "../Assets/";
 
 } // unnamed
 
-ExampleApp::ExampleApp()
-{
-}
-
 ExampleApp::~ExampleApp()
 {
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
@@ -46,7 +42,7 @@ bool ExampleApp::initialize()
     success = success && sampler.create();
     success = success && createDescriptorPool();
     success = success && createRenderObjects();
-    success = success && gui.initialize(renderPass, descriptorPool);
+    success = success && fw::API::initializeGUI(descriptorPool);
     success = success && createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
@@ -69,6 +65,13 @@ void ExampleApp::update()
     ubo.view = camera.getViewMatrix();
     
     uniformBuffer.setData(sizeof(ubo), &ubo);
+}
+
+void ExampleApp::onGUI()
+{
+    glm::vec3 p = camera.getTransformation().getPosition();
+    ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
+    ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }
 
 bool ExampleApp::createRenderPass()
@@ -374,8 +377,6 @@ bool ExampleApp::createCommandBuffers()
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 
-        createGUI(cb);
-        
         vkCmdEndRenderPass(cb);
 
         if (VkResult r = vkEndCommandBuffer(cb);
@@ -387,11 +388,4 @@ bool ExampleApp::createCommandBuffers()
 
     fw::API::setCommandBuffers(commandBuffers);
     return true;
-}
-
-void ExampleApp::createGUI(VkCommandBuffer commandBuffer)
-{
-    gui.beginPass();
-    ImGui::Text("Hello, world!");
-    gui.endPass(commandBuffer);
 }
