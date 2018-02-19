@@ -211,13 +211,13 @@ bool SwapChain::createImageViews()
 
 bool SwapChain::createDepthImage()
 {
-    bool success = true;
     VkFormat format = Constants::depthFormat;
     VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    success = success && depthImage.create(extent.width, extent.height, format, tiling, imageUsage);
-    success = success && depthImage.createView(format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView);
-    success = success && depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    bool success =
+        depthImage.create(extent.width, extent.height, format, tiling, imageUsage) &&
+        depthImage.createView(format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView) &&
+        depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     return success;
 }
 

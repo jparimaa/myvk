@@ -36,9 +36,7 @@ bool GUI::initialize(VkDescriptorPool descriptorPool)
     info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    bool success = true;
-    success = success && createCommandBuffer();
-    success = success && createRenderPass();    
+    bool success = createCommandBuffer() && createRenderPass();    
     
     ImGui::CreateContext();
     

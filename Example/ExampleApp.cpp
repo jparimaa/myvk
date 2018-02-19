@@ -34,16 +34,16 @@ ExampleApp::~ExampleApp()
 bool ExampleApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
-    bool success = true;
-    success = success && createRenderPass();
-    success = success && fw::API::initializeSwapChain(renderPass);
-    success = success && createDescriptorSetLayout();
-    success = success && createPipeline();
-    success = success && sampler.create();
-    success = success && createDescriptorPool();
-    success = success && createRenderObjects();
-    success = success && fw::API::initializeGUI(descriptorPool);
-    success = success && createCommandBuffers();
+    bool success =
+        createRenderPass() &&
+        fw::API::initializeSwapChain(renderPass) &&
+        createDescriptorSetLayout() &&
+        createPipeline() &&
+        sampler.create() &&
+        createDescriptorPool() &&
+        createRenderObjects() &&
+        fw::API::initializeGUI(descriptorPool) &&
+        createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
@@ -239,9 +239,8 @@ bool ExampleApp::createDescriptorPool()
 
 bool ExampleApp::createRenderObjects()
 {
-    bool success = true;
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    success = success && uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    bool success = uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
     fw::Model model;
     if (!model.loadModel(assetsFolder + "attack_droid.obj")) {
@@ -261,8 +260,9 @@ bool ExampleApp::createRenderObjects()
         const fw::Mesh& mesh = meshes[i];
         RenderObject& ro = renderObjects[i];
         
-        success = success && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-        success = success && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        success = success &&
+            ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
+            ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         
         ro.numIndices = mesh.indices.size();
         

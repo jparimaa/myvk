@@ -24,14 +24,14 @@ Framework::~Framework()
 bool Framework::initialize()
 {
     glfwInit();
-    bool success = true;
-    success = success && instance.initialize();
-    success = success && window.initialize();
-    success = success && device.initialize();
-    success = success && swapChain.create(window.getWidth(), window.getHeight());
-    success = success && Command::createGraphicsCommandPool(&commandPool);
-    success = success && createSemaphores();
-    success = success && input.initialize(window.getWindow());
+    bool success =
+        instance.initialize() &&
+        window.initialize() &&
+        device.initialize() &&
+        swapChain.create(window.getWidth(), window.getHeight()) &&
+        Command::createGraphicsCommandPool(&commandPool) &&
+        createSemaphores() &&
+        input.initialize(window.getWindow());
     
     logicalDevice = Context::getLogicalDevice();
     graphicsQueue = Context::getGraphicsQueue();
