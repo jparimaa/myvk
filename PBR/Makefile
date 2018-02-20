@@ -11,9 +11,9 @@ OBJECTS = $(SOURCES:.cpp=.o)
 
 SHADER_DIR = shaders/
 VERTEX_SHADERS = \
-	shader.vert
+	skybox.vert
 FRAGMENT_SHADERS = \
-	shader.frag
+	skybox.frag
 FRAG_SPIRS = $(FRAGMENT_SHADERS:.frag=_frag.spv)
 VERT_SPIRS = $(VERTEX_SHADERS:.vert=_vert.spv)
 

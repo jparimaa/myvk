@@ -17,7 +17,7 @@
 namespace
 {
 
-const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::size_t transformMatricesSize = sizeof(PBRApp::TransformMatrices);
 const std::string assetsFolder = "../Assets/";
 
 } // unnamed
@@ -25,7 +25,7 @@ const std::string assetsFolder = "../Assets/";
 PBRApp::~PBRApp()
 {
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
-    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+    vkDestroyPipeline(logicalDevice, skyboxPipeline, nullptr);
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
@@ -38,33 +38,31 @@ bool PBRApp::initialize()
         createRenderPass() &&
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
-        createPipeline() &&
+        createSkyboxPipeline() &&
         sampler.create() &&
         createDescriptorPool() &&
-        createRenderObjects() &&
+        createSkybox() &&
         fw::API::initializeGUI(descriptorPool) &&
         createCommandBuffers();
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
-    glm::vec3 initPos(0.0f, 10.0f, 40.0f);
+    glm::vec3 initPos(0.0f, 0.0f, 0.0f);
     cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     camera.setPosition(initPos);
- 
-    ubo.proj = camera.getProjectionMatrix();
-    
+
     return success;
 }
 
 void PBRApp::update()
 {
-    trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    ubo.world = trans.getWorldMatrix();
-    
     cameraController.update();
-    ubo.view = camera.getViewMatrix();
-    
-    uniformBuffer.setData(sizeof(ubo), &ubo);
+    TransformMatrices matrices;
+    skybox.transformation.setPosition(camera.getTransformation().getPosition());
+    matrices.world = skybox.transformation.getWorldMatrix();
+    matrices.view = camera.getViewMatrix();
+    matrices.proj = camera.getProjectionMatrix();
+    skybox.transformationBuffer.setData(sizeof(matrices), &matrices);
 }
 
 void PBRApp::onGUI()
@@ -150,10 +148,10 @@ bool PBRApp::createDescriptorSetLayout()
     return true;
 }
 
-bool PBRApp::createPipeline()
+bool PBRApp::createSkyboxPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("shader_vert.spv", "shader_frag.spv");
+        fw::Pipeline::getShaderStageInfos("skybox_vert.spv", "skybox_frag.spv");
 
     if (shaderStages.empty()) {
         return false;
@@ -176,8 +174,10 @@ bool PBRApp::createPipeline()
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
+    rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
+    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
@@ -206,7 +206,7 @@ bool PBRApp::createPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
+    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &skyboxPipeline);
         r != VK_SUCCESS) {
         fw::printError("Failed to create graphics pipeline", &r);
         return false;
@@ -237,79 +237,62 @@ bool PBRApp::createDescriptorPool()
     return true;
 }
 
-bool PBRApp::createRenderObjects()
+bool PBRApp::createSkybox()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    bool success = uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
-
     fw::Model model;
-    if (!model.loadModel(assetsFolder + "attack_droid.obj")) {
+    if (!model.loadModel(assetsFolder + "cube.3ds")) {
         return false;
     }
 
     fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
-    
-    if (!createDescriptorSets(numMeshes)) {
+    if (meshes.size() != 1) {
+        fw::printError("Expected that skybox has only one mesh");
         return false;
     }
-    
-    renderObjects.resize(numMeshes);
-    
-    for (unsigned int i = 0; i < numMeshes; ++i) {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = renderObjects[i];
-        
-        success = success &&
-            ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
-            ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        
-        ro.numIndices = mesh.indices.size();
-        
-        std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile);
-        updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = descriptorSets[i];
-    }
 
-    return success;
-}
+    const fw::Mesh& mesh = meshes[0];
+        
+    bool success =
+        skybox.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
+        skybox.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        
+    skybox.numIndices = mesh.indices.size();
 
-bool PBRApp::createDescriptorSets(uint32_t setCount)
-{
-    descriptorSets.resize(setCount);
-    
-    std::vector<VkDescriptorSetLayout> layouts(setCount, descriptorSetLayout);
+    // Allocate skybox descriptors
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = setCount;
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data());
+    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &skybox.descriptorSet);
         r != VK_SUCCESS) {
         fw::printError("Failed to allocate descriptor set", &r);
         return false;
     }
-    return true;
-}
 
-void PBRApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
-{
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    success = success &&
+        skybox.transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+
+    std::string textureFile = assetsFolder + "checker.png";
+    skybox.texture.load(textureFile);
+
+    // Update skybox descriptors
     VkDescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = uniformBuffer.getBuffer();
+    bufferInfo.buffer = skybox.transformationBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = transformMatricesSize;
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
+    imageInfo.imageView = skybox.texture.getImageView();
     imageInfo.sampler = sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
+    descriptorWrites[0].dstSet = skybox.descriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -317,14 +300,16 @@ void PBRApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imag
     descriptorWrites[0].pBufferInfo = &bufferInfo;
     
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
+    descriptorWrites[1].dstSet = skybox.descriptorSet;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
 
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);    
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    
+    return success;
 }
 
 bool PBRApp::createCommandBuffers()
@@ -371,15 +356,13 @@ bool PBRApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
         
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline);
 
-        for (const RenderObject& ro : renderObjects) {
-            VkBuffer vb = ro.vertexBuffer.getBuffer();
-            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-        }
+        VkBuffer vb = skybox.vertexBuffer.getBuffer();
+        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(cb, skybox.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &skybox.descriptorSet, 0, nullptr);
+        vkCmdDrawIndexed(cb, skybox.numIndices, 1, 0, 0, 0);
 
         vkCmdEndRenderPass(cb);
 

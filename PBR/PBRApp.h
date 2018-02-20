@@ -15,7 +15,7 @@
 class PBRApp : public fw::Application
 {
 public:
-    struct MatrixUBO
+    struct TransformMatrices
     {
         glm::mat4 world;
         glm::mat4 view;
@@ -24,11 +24,13 @@ public:
 
     struct RenderObject
     {
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        fw::Transformation transformation;
+        fw::Buffer transformationBuffer;
         fw::Buffer vertexBuffer;
         fw::Buffer indexBuffer;
         uint32_t numIndices;
         fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
     
     PBRApp() {};
@@ -47,26 +49,22 @@ private:
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+    VkPipeline skyboxPipeline = VK_NULL_HANDLE;
 
     fw::Sampler sampler;
     fw::Camera camera;
     fw::CameraController cameraController;
-    fw::Transformation trans;
-    MatrixUBO ubo;
-    fw::Buffer uniformBuffer;
-    std::vector<RenderObject> renderObjects;
+        
+    RenderObject skybox;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> descriptorSets;
-
     VkExtent2D extent;
     
     bool createRenderPass();
     bool createDescriptorSetLayout();
-    bool createPipeline();
+    bool createSkyboxPipeline();
     bool createDescriptorPool();
-    bool createRenderObjects();
+    bool createSkybox();
     bool createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();

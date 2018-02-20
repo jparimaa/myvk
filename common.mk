@@ -16,4 +16,4 @@ clean:
 	rm -f *.o imgui/*.o *.d imgui/*.d *.spv $(OUTPUT) core out *.txt vgcore* *~
 
 run:
-	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib:$(ASSIMP_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d $(OUTPUT)
