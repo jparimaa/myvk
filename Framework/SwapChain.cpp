@@ -212,10 +212,9 @@ bool SwapChain::createImageViews()
 bool SwapChain::createDepthImage()
 {
     VkFormat format = Constants::depthFormat;
-    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     bool success =
-        depthImage.create(extent.width, extent.height, format, tiling, imageUsage) &&
+        depthImage.create(extent.width, extent.height, format, 0, imageUsage, 1) &&
         depthImage.createView(format, VK_IMAGE_ASPECT_DEPTH_BIT, &depthImageView) &&
         depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     return success;
@@ -241,7 +240,7 @@ bool SwapChain::createFramebuffers(VkRenderPass renderPass)
 
         if (VkResult r = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffers[i]);
             r != VK_SUCCESS) {
-            printError("Failed to create framebuffer", &r);
+            printError("Failed to create a swapchain framebuffer", &r);
             return false;
         }
     }

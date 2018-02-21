@@ -1,5 +1,7 @@
 #pragma once
 
+#include "EquirectangularHDR.h"
+
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
 #include "../Framework/Sampler.h"
@@ -9,6 +11,9 @@
 #include "../Framework/CameraController.h"
 
 #include <glm/glm.hpp>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
 #include <vector>
 
@@ -56,6 +61,8 @@ private:
     fw::CameraController cameraController;
         
     RenderObject skybox;
+
+    EquirectangularHDR hdr;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkExtent2D extent;

@@ -16,7 +16,7 @@ public:
     Sampler& operator=(const Sampler&) = delete;
     Sampler& operator=(Sampler&&) = delete;
     
-    bool create();
+    bool create(VkCompareOp compareOp);
 
     VkSampler getSampler() const;
 

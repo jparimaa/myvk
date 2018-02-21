@@ -6,7 +6,8 @@ BUILD_DIR = build/
 OUTPUT = $(BUILD_DIR)$(EXECUTABLE)
 SOURCES = \
 	main.cpp \
-	PBRApp.cpp
+	PBRApp.cpp \
+	EquirectangularHDR.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SHADER_DIR = shaders/

@@ -17,6 +17,7 @@ public:
     ~Texture();
     
     bool load(const std::string& filename);
+    bool loadHDR(const std::string& filename);
 
     VkImageView getImageView() const;
 
@@ -24,6 +25,8 @@ private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
     Image image;    
     VkImageView imageView = VK_NULL_HANDLE;
+
+    bool load(const std::string& filename, VkFormat format, int desiredChannels);
 };
 
 } // namespace fw

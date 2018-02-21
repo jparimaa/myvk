@@ -12,7 +12,7 @@ Image::~Image()
     vkFreeMemory(logicalDevice, memory, nullptr);
 }
 
-bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage)
+bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage, uint32_t arrayLayers)
 {
     logicalDevice = Context::getLogicalDevice();
         
@@ -23,13 +23,14 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageTili
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = arrayLayers;
     imageInfo.format = format;
-    imageInfo.tiling = tiling;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.flags = flags;
 
     if (VkResult r = vkCreateImage(logicalDevice, &imageInfo, nullptr, &image);
         r != VK_SUCCESS) {

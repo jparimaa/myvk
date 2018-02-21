@@ -39,11 +39,12 @@ bool PBRApp::initialize()
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
         createSkyboxPipeline() &&
-        sampler.create() &&
+        sampler.create(VK_COMPARE_OP_ALWAYS) &&
         createDescriptorPool() &&
         createSkybox() &&
         fw::API::initializeGUI(descriptorPool) &&
-        createCommandBuffers();
+        createCommandBuffers() &&
+        hdr.initialize(assetsFolder + "Factory_Catwalk_2k.hdr");
     
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
@@ -289,25 +290,25 @@ bool PBRApp::createSkybox()
     imageInfo.imageView = skybox.texture.getImageView();
     imageInfo.sampler = sampler.getSampler();
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+    std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {};
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = skybox.descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeDescriptorSets[0].dstSet = skybox.descriptorSet;
+    writeDescriptorSets[0].dstBinding = 0;
+    writeDescriptorSets[0].dstArrayElement = 0;
+    writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writeDescriptorSets[0].descriptorCount = 1;
+    writeDescriptorSets[0].pBufferInfo = &bufferInfo;
     
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = skybox.descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeDescriptorSets[1].dstSet = skybox.descriptorSet;
+    writeDescriptorSets[1].dstBinding = 1;
+    writeDescriptorSets[1].dstArrayElement = 0;
+    writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writeDescriptorSets[1].descriptorCount = 1;
+    writeDescriptorSets[1].pImageInfo = &imageInfo;
 
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(writeDescriptorSets), writeDescriptorSets.data(), 0, nullptr);
     
     return success;
 }

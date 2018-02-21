@@ -21,10 +21,25 @@ Texture::~Texture()
 
 bool Texture::load(const std::string& filename)
 {
+    return load(filename, VK_FORMAT_R8G8B8A8_UNORM, STBI_rgb_alpha);
+}
+
+bool Texture::loadHDR(const std::string& filename)
+{
+    return load(filename, VK_FORMAT_R16G16B16A16_SFLOAT, 0);
+}
+
+VkImageView Texture::getImageView() const
+{
+    return imageView;
+}
+
+bool Texture::load(const std::string& filename, VkFormat format, int desiredChannels)
+{
     logicalDevice = Context::getLogicalDevice();
         
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, desiredChannels);
     if (!pixels) {
         printError("Failed to load texture image: " + filename);
         return false;
@@ -46,10 +61,8 @@ bool Texture::load(const std::string& filename)
         return false;
     }
 
-    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
-    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (!image.create(texWidth, texHeight, format, tiling, imageUsage)) {
+    if (!image.create(texWidth, texHeight, format, 0, imageUsage, 1)) {
         return false;
     }
 
@@ -63,16 +76,11 @@ bool Texture::load(const std::string& filename)
         return false;
     }
     
-    if (!image.createView(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
+    if (!image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
         return false;
     }
     
     return true;
-}
-
-VkImageView Texture::getImageView() const
-{
-    return imageView;
 }
 
 } // namespace fw
