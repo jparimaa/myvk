@@ -45,7 +45,7 @@ bool PBRApp::initialize()
         fw::API::initializeGUI(descriptorPool) &&
         createCommandBuffers() &&
         hdr.initialize(assetsFolder + "Factory_Catwalk_2k.hdr");
-    
+
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
     glm::vec3 initPos(0.0f, 0.0f, 0.0f);

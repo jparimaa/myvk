@@ -3,6 +3,7 @@
 #include "../Framework/Texture.h"
 #include "../Framework/Sampler.h"
 #include "../Framework/Image.h"
+#include "../Framework/Buffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -35,6 +36,10 @@ private:
     VkFormat format = VK_FORMAT_R16G16B16A16_SFLOAT;
     int32_t size = 512;
 
+    fw::Buffer vertexBuffer;
+    fw::Buffer indexBuffer;
+    uint32_t numIndices;
+
     fw::Texture texture;
     fw::Sampler sampler;
     
@@ -48,8 +53,15 @@ private:
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
-    bool createImage();
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline pipeline = VK_NULL_HANDLE;
+
+    bool loadModel();
+    bool createTargetImage();
     bool createRenderPass();
     bool createOffscreenFramebuffer();
     bool createDescriptors();
+    bool createPipeline();
+    void render();
+    void draw(uint32_t face, VkCommandBuffer cmd);
 };
