@@ -30,6 +30,7 @@ public:
     EquirectangularHDR& operator=(EquirectangularHDR&&) = delete;
 
     bool initialize(const std::string& filename);
+    VkImageView getImageView() const;
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;

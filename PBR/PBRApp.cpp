@@ -35,6 +35,7 @@ bool PBRApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
     bool success =
+        hdr.initialize(assetsFolder + "Factory_Catwalk_2k.hdr") &&
         createRenderPass() &&
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
@@ -43,8 +44,7 @@ bool PBRApp::initialize()
         createDescriptorPool() &&
         createSkybox() &&
         fw::API::initializeGUI(descriptorPool) &&
-        createCommandBuffers() &&
-        hdr.initialize(assetsFolder + "Factory_Catwalk_2k.hdr");
+        createCommandBuffers();
 
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
@@ -287,7 +287,7 @@ bool PBRApp::createSkybox()
 
     VkDescriptorImageInfo imageInfo = {};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = skybox.texture.getImageView();
+    imageInfo.imageView = hdr.getImageView();
     imageInfo.sampler = sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {};
