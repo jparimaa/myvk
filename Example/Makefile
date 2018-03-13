@@ -17,9 +17,11 @@ FRAGMENT_SHADERS = \
 FRAG_SPIRS = $(FRAGMENT_SHADERS:.frag=_frag.spv)
 VERT_SPIRS = $(VERTEX_SHADERS:.vert=_vert.spv)
 
-all: $(OUTPUT) 
+all:
+	+$(MAKE) -C $(FRAMEWORK_PATH)
+	+$(MAKE) $(OUTPUT)
 
-$(OUTPUT): framework $(VERT_SPIRS) $(FRAG_SPIRS) $(OBJECTS)
+$(OUTPUT): $(VERT_SPIRS) $(FRAG_SPIRS) $(OBJECTS)
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(OBJECTS) -o $(OUTPUT) $(LIBS)
 

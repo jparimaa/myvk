@@ -39,7 +39,7 @@ bool ExampleApp::initialize()
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
         createPipeline() &&
-        sampler.create() &&
+        sampler.create(VK_COMPARE_OP_ALWAYS) &&
         createDescriptorPool() &&
         createRenderObjects() &&
         fw::API::initializeGUI(descriptorPool) &&
