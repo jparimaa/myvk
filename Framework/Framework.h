@@ -28,7 +28,7 @@ public:
     Framework& operator=(Framework&&) = delete;
 
     bool initialize();
-    void setApplication(Application* app);
+    void setApplication(Application* application);
     void execute();
 
 private:

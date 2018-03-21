@@ -1,6 +1,3 @@
-framework:
-	$(MAKE) -C $(FRAMEWORK_PATH)
-
 %.o: %.cpp 
 	$(CC) -c $(CFLAGS) $(INCLUDES) $< -o $@
 

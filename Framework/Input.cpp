@@ -21,8 +21,8 @@ bool Input::initialize(GLFWwindow* w)
     }
     window = w;
     
-    auto keyCallback = [](GLFWwindow* w, int key, int scancode, int action, int mods) {
-        static_cast<Input*>(glfwGetWindowUserPointer(w))->handleKey(w, key, scancode, action, mods);
+    auto keyCallback = [](GLFWwindow* win, int key, int scancode, int action, int mods) {
+        static_cast<Input*>(glfwGetWindowUserPointer(win))->handleKey(win, key, scancode, action, mods);
     };
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

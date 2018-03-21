@@ -6,6 +6,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #pragma GCC diagnostic push 
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wduplicated-branches"
+#pragma GCC diagnostic ignored "-Wuseless-cast"
 #include <stb_image.h>
 #pragma GCC diagnostic pop
 

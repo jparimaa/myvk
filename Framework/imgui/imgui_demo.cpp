@@ -54,6 +54,7 @@
 #if (__GNUC__ >= 6)
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"       // warning: this 'if' clause does not guard this statement      // GCC 6.0+ only. See #883 on GitHub.
 #endif
+#pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
 
 // Play it nice with Windows users. Notepad in 2017 still doesn't display text data with Unix-style \n.

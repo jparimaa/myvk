@@ -1,7 +1,10 @@
 #pragma once
 
+#pragma GCC diagnostic push 
+#pragma GCC diagnostic ignored "-Wuseless-cast"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_vulkan.h"
+#pragma GCC diagnostic pop
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>

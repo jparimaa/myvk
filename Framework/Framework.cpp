@@ -41,9 +41,9 @@ bool Framework::initialize()
     return success;
 }
 
-void Framework::setApplication(Application* app)
+void Framework::setApplication(Application* application)
 {
-    this->app = app;
+    app = application;
 }
 
 void Framework::execute()
