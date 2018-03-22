@@ -7,6 +7,7 @@
 #include "../Framework/Macros.h"
 #include "../Framework/Pipeline.h"
 #include "../Framework/Model.h"
+#include "../Framework/Constants.h"
 
 #include <glm/glm.hpp>
 #define GLM_FORCE_RADIANS
@@ -16,12 +17,12 @@ namespace
 {
 
 glm::mat4 viewMatrices[] = {
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, 1.0f,  0.0f)),
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f,  0.0f), glm::vec3(0.0f, 1.0f,  0.0f)),
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f, 0.0f,  1.0f)),
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, 1.0f,  0.0f)),
-    glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, 1.0f,  0.0f))
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::right,    fw::Constants::up),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::left,     fw::Constants::up),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::down,     fw::Constants::forward),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::up,     fw::Constants::backward),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::forward,  fw::Constants::up),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::backward, fw::Constants::up)
 };
 
 const std::string assetsFolder = "../Assets/";
@@ -485,7 +486,7 @@ void EquirectangularHDR::render()
 
 void EquirectangularHDR::draw(uint32_t face, VkCommandBuffer cmd)
 {
-    glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
+    glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];    
     vkCmdPushConstants(cmd, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mvp);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
