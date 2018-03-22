@@ -89,7 +89,7 @@ bool EquirectangularHDR::loadModel()
     const fw::Mesh& mesh = meshes[0];
         
     bool success =
-        vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
+        vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         
     numIndices = mesh.indices.size();
@@ -332,7 +332,11 @@ bool EquirectangularHDR::createPipeline()
 
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     
-    VkVertexInputBindingDescription vertexBinding = fw::Pipeline::getVertexDescription();
+    VkVertexInputBindingDescription vertexBinding = {};
+    vertexBinding.binding = 0;
+    vertexBinding.stride = sizeof(glm::vec3);
+    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    
     VkVertexInputAttributeDescription vertexAttribute = {};
     vertexAttribute.binding = 0;
     vertexAttribute.location = 0;

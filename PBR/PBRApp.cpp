@@ -169,9 +169,23 @@ bool PBRApp::createSkyboxPipeline()
             }
         });
 
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkVertexInputBindingDescription vertexBinding = {};
+    vertexBinding.binding = 0;
+    vertexBinding.stride = sizeof(glm::vec3);
+    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    
+    VkVertexInputAttributeDescription vertexAttribute = {};
+    vertexAttribute.binding = 0;
+    vertexAttribute.location = 0;
+    vertexAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+    vertexAttribute.offset = 0;
+
+    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputState.vertexBindingDescriptionCount = 1;
+    vertexInputState.pVertexBindingDescriptions = &vertexBinding;
+    vertexInputState.vertexAttributeDescriptionCount = 1;
+    vertexInputState.pVertexAttributeDescriptions = &vertexAttribute;
     
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -259,7 +273,7 @@ bool PBRApp::createSkybox()
     const fw::Mesh& mesh = meshes[0];
         
     bool success =
-        skybox.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
+        skybox.vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         skybox.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
         
     skybox.numIndices = mesh.indices.size();
