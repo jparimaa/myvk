@@ -8,7 +8,7 @@
 #include "../Framework/Model.h"
 #include "../Framework/Mesh.h"
 
-#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
