@@ -72,7 +72,7 @@ VkShaderModule createShaderModule(const std::string& filename)
     file.read(buffer.data(), fileSize);
     file.close();
            
-    VkShaderModuleCreateInfo createInfo = {};
+    VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = buffer.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(buffer.data());

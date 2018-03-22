@@ -40,7 +40,7 @@ bool GUI::initialize(VkDescriptorPool descriptorPool)
     
     ImGui::CreateContext();
     
-    ImGui_ImplGlfwVulkan_Init_Data initData = {};
+    ImGui_ImplGlfwVulkan_Init_Data initData{};
     initData.allocator = nullptr;
     initData.gpu = Context::getPhysicalDevice();
     initData.device = logicalDevice;
@@ -70,7 +70,7 @@ bool GUI::render(VkFramebuffer framebuffer) const
 {
     vkBeginCommandBuffer(commandBuffer, &info);
         
-    VkRenderPassBeginInfo renderPassInfo = {};
+    VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderPass;
     renderPassInfo.framebuffer = framebuffer;
@@ -102,7 +102,7 @@ bool GUI::isInitialized() const
 
 bool GUI::createCommandBuffer()
 {
-    VkCommandBufferAllocateInfo allocInfo = {};
+    VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = fw::API::getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -122,7 +122,7 @@ bool GUI::createRenderPass()
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
-    VkAttachmentReference colorAttachmentRef = {};
+    VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -130,11 +130,11 @@ bool GUI::createRenderPass()
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
-    VkAttachmentReference depthAttachmentRef = {};
+    VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDependency dependency = {};
+    VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -142,14 +142,14 @@ bool GUI::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkSubpassDescription subpass = {};
+    VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo = {};
+    VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
     renderPassInfo.pAttachments = attachments.data();

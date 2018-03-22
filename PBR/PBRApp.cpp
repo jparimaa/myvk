@@ -82,17 +82,17 @@ bool PBRApp::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
 
-    VkAttachmentReference colorAttachmentRef = {};
+    VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
-    VkAttachmentReference depthAttachmentRef = {};
+    VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDependency dependency = {};
+    VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -100,14 +100,14 @@ bool PBRApp::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkSubpassDescription subpass = {};
+    VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo = {};
+    VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
     renderPassInfo.pAttachments = attachments.data();
@@ -126,14 +126,14 @@ bool PBRApp::createRenderPass()
 
 bool PBRApp::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -141,7 +141,7 @@ bool PBRApp::createDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
 
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
@@ -169,18 +169,18 @@ bool PBRApp::createSkyboxPipeline()
             }
         });
 
-    VkVertexInputBindingDescription vertexBinding = {};
+    VkVertexInputBindingDescription vertexBinding{};
     vertexBinding.binding = 0;
     vertexBinding.stride = sizeof(glm::vec3);
     vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     
-    VkVertexInputAttributeDescription vertexAttribute = {};
+    VkVertexInputAttributeDescription vertexAttribute{};
     vertexAttribute.binding = 0;
     vertexAttribute.location = 0;
     vertexAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
     vertexAttribute.offset = 0;
 
-    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+    VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputState.vertexBindingDescriptionCount = 1;
     vertexInputState.pVertexBindingDescriptions = &vertexBinding;
@@ -208,7 +208,7 @@ bool PBRApp::createSkyboxPipeline()
         return false;
     }
 
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = fw::ui32size(shaderStages);
     pipelineInfo.pStages = shaderStages.data();
@@ -237,13 +237,13 @@ bool PBRApp::createSkyboxPipeline()
 
 bool PBRApp::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = 2;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = 3;
 
-    VkDescriptorPoolCreateInfo poolInfo = {};
+    VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
@@ -279,7 +279,7 @@ bool PBRApp::createSkybox()
     skybox.numIndices = mesh.indices.size();
 
     // Allocate skybox descriptors
-    VkDescriptorSetAllocateInfo allocInfo = {};
+    VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
     allocInfo.descriptorSetCount = 1;
@@ -299,17 +299,17 @@ bool PBRApp::createSkybox()
     skybox.texture.load(textureFile);
 
     // Update skybox descriptors
-    VkDescriptorBufferInfo bufferInfo = {};
+    VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = skybox.transformationBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = transformMatricesSize;
 
-    VkDescriptorImageInfo imageInfo = {};
+    VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = hdr.getImageView();
     imageInfo.sampler = sampler.getSampler();
 
-    std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {};
+    std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
 
     writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeDescriptorSets[0].dstSet = skybox.descriptorSet;
@@ -337,7 +337,7 @@ bool PBRApp::createCommandBuffers()
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
 
-    VkCommandBufferAllocateInfo allocInfo = {};
+    VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = fw::API::getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -349,16 +349,16 @@ bool PBRApp::createCommandBuffers()
         return false;
     }
 
-    VkCommandBufferBeginInfo beginInfo = {};
+    VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr;  // Optional
     
-    std::array<VkClearValue, 2> clearValues = {};
+    std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
-    VkRenderPassBeginInfo renderPassInfo = {};
+    VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderPass;    
     renderPassInfo.renderArea.offset = {0, 0};

@@ -30,7 +30,7 @@ public:
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkCommandBufferBeginInfo info = {};
+    VkCommandBufferBeginInfo info{};
     VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
 

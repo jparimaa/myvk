@@ -16,7 +16,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
 {
     logicalDevice = Context::getLogicalDevice();
         
-    VkImageCreateInfo imageInfo = {};
+    VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.extent.width = width;
@@ -41,7 +41,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo = {};
+    VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     if (!findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocInfo.memoryTypeIndex)) {
@@ -59,7 +59,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
 
 bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
 {
-    VkImageViewCreateInfo viewInfo = {};
+    VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -80,7 +80,7 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
 
 bool Image::transitLayout(VkImageLayout newLayout)
 {
-    VkImageMemoryBarrier barrier = {};
+    VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = layout;
     barrier.newLayout = newLayout;

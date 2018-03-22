@@ -8,7 +8,7 @@ void Buffer::copy(Buffer& src, Buffer& dst, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
 
-    VkBufferCopy copyRegion = {};
+    VkBufferCopy copyRegion{};
     copyRegion.srcOffset = 0;  // Optional
     copyRegion.dstOffset = 0;  // Optional
     copyRegion.size = size;
@@ -35,7 +35,7 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
 {
     logicalDevice = Context::getLogicalDevice();
         
-    VkBufferCreateInfo bufferInfo = {};
+    VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
@@ -50,7 +50,7 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo = {};
+    VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     if (!findMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex)) {
@@ -69,7 +69,7 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
 
 void Buffer::copyToImage(VkImage image, uint32_t width, uint32_t height) const
 {
-    VkBufferImageCopy region = {};
+    VkBufferImageCopy region{};
     region.bufferOffset = 0;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;

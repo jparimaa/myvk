@@ -71,7 +71,7 @@ void Framework::execute()
 
 bool Framework::createSemaphores()
 {
-    VkSemaphoreCreateInfo semaphoreInfo = {};
+    VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     auto createSemaphore = [semaphoreInfo](VkSemaphore& semaphore) {
@@ -110,7 +110,7 @@ bool Framework::render()
     
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     
-    VkSubmitInfo submitInfo = {};
+    VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -126,7 +126,7 @@ bool Framework::render()
         return false;
     }
 
-    VkPresentInfoKHR presentInfo = {};
+    VkPresentInfoKHR presentInfo{};
     VkSwapchainKHR swapChains[] = {swapChainHandle};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;

@@ -10,7 +10,7 @@ bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
 {
     QueueFamilyIndices indices = getQueueFamilies(Context::getPhysicalDevice(), Context::getSurface());
 
-    VkCommandPoolCreateInfo poolInfo = {};
+    VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = indices.graphicsFamily;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -25,7 +25,7 @@ bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
 
 VkCommandBuffer Command::beginSingleTimeCommands()
 {
-    VkCommandBufferAllocateInfo allocInfo = {};
+    VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandPool = API::getCommandPool();
@@ -34,7 +34,7 @@ VkCommandBuffer Command::beginSingleTimeCommands()
     VkCommandBuffer commandBuffer;
     vkAllocateCommandBuffers(Context::getLogicalDevice(), &allocInfo, &commandBuffer);
 
-    VkCommandBufferBeginInfo beginInfo = {};
+    VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
@@ -47,7 +47,7 @@ void Command::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
     vkEndCommandBuffer(commandBuffer);
 
-    VkSubmitInfo submitInfo = {};
+    VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
