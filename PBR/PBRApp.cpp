@@ -306,7 +306,7 @@ bool PBRApp::createSkybox()
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = hdr.getImageView();
+    imageInfo.imageView = hdr.getPlainImageView();
     imageInfo.sampler = sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};

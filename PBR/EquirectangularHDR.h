@@ -15,10 +15,11 @@ public:
     struct Offscreen {        
         fw::Image image;
         VkImageView imageView;
-        VkDeviceMemory memory;
         VkFramebuffer framebuffer;
+        uint32_t framebufferSize;
 
         ~Offscreen();
+        bool createFramebuffer(VkRenderPass renderPass, uint32_t size, uint32_t layerCount, uint32_t levelCount);
     };
     
     EquirectangularHDR() {};
@@ -29,12 +30,10 @@ public:
     EquirectangularHDR& operator=(EquirectangularHDR&&) = delete;
 
     bool initialize(const std::string& filename);
-    VkImageView getImageView() const;
+    VkImageView getPlainImageView() const;
 
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkFormat format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    int32_t size = 512;
 
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
@@ -43,12 +42,16 @@ private:
     fw::Texture texture;
     fw::Sampler sampler;
     
-    fw::Image image;
-    VkImageView imageView = VK_NULL_HANDLE;
+    fw::Image plainImage;
+    VkImageView plainImageView = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
-    
-    Offscreen offscreen;
 
+    fw::Image irradianceImage;
+    VkImageView irradianceImageView = VK_NULL_HANDLE;
+
+    fw::Image prefilterImage;
+    VkImageView prefilterImageView = VK_NULL_HANDLE;
+    
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
@@ -57,11 +60,12 @@ private:
     VkPipeline pipeline = VK_NULL_HANDLE;
 
     bool loadModel();
-    bool createTargetImage();
+    bool createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView);
     bool createRenderPass();
-    bool createOffscreenFramebuffer();
-    bool createDescriptors();
-    bool createPipeline();
-    void render();
+    bool createDescriptors();  
+    bool createPipeline(uint32_t size, const std::string& vertexShader, const std::string& fragmentShader);
+    void updateDescriptors(VkImageView imageView);
+    void render(Offscreen& offscreen);
     void draw(uint32_t face, VkCommandBuffer cmd);
+    void destroyPipeline();
 };
