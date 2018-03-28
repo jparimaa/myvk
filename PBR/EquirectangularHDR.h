@@ -12,16 +12,6 @@
 class EquirectangularHDR
 {
 public:
-    struct Offscreen {        
-        fw::Image image;
-        VkImageView imageView;
-        VkFramebuffer framebuffer;
-        uint32_t framebufferSize;
-
-        ~Offscreen();
-        bool createFramebuffer(VkRenderPass renderPass, uint32_t size, uint32_t layerCount, uint32_t levelCount);
-    };
-    
     EquirectangularHDR() {};
     ~EquirectangularHDR();
     EquirectangularHDR(const EquirectangularHDR&) = delete;
@@ -31,8 +21,48 @@ public:
 
     bool initialize(const std::string& filename);
     VkImageView getPlainImageView() const;
+    VkImageView getIrradianceImageView() const;
 
 private:
+    struct Offscreen
+    {
+        fw::Image image;
+        VkImageView imageView;
+        VkFramebuffer framebuffer;
+        uint32_t framebufferSize;
+
+        ~Offscreen();
+        bool createFramebuffer(VkRenderPass renderPass, uint32_t size, uint32_t layerCount, uint32_t levelCount);
+    };
+
+    struct Pipeline
+    {
+        struct PipelineParameters
+        {
+            VkDescriptorSetLayout descriptorSetLayout;
+            uint32_t viewportSize;
+            VkPushConstantRange pushConstantRange;
+            std::string vertexShader;
+            std::string fragmentShader;
+            VkRenderPass renderPass;
+        };
+        
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkDevice logicalDevice;
+        PipelineParameters parameters;
+        
+        ~Pipeline();
+        bool createPipeline(const PipelineParameters& params);
+    };
+
+    enum class Target
+    {
+        plain = 0,
+        irradiance = 1,
+        prefilter = 2
+    };
+
     VkDevice logicalDevice = VK_NULL_HANDLE;
 
     fw::Buffer vertexBuffer;
@@ -56,16 +86,11 @@ private:
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline pipeline = VK_NULL_HANDLE;
-
     bool loadModel();
     bool createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView);
     bool createRenderPass();
     bool createDescriptors();  
-    bool createPipeline(uint32_t size, const std::string& vertexShader, const std::string& fragmentShader);
+
     void updateDescriptors(VkImageView imageView);
-    void render(Offscreen& offscreen);
-    void draw(uint32_t face, VkCommandBuffer cmd);
-    void destroyPipeline();
+    void render(Offscreen& offscreen, Pipeline& pipeline, Target target);
 };
