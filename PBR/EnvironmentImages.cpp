@@ -1,4 +1,4 @@
-#include "EquirectangularHDR.h"
+#include "EnvironmentImages.h"
 
 #include "../Framework/Context.h"
 #include "../Framework/Common.h"
@@ -56,74 +56,7 @@ const std::string assetsFolder = "../Assets/";
 
 } // unnamed
 
-EquirectangularHDR::Offscreen::~Offscreen()
-{
-    VkDevice logicalDevice = fw::Context::getLogicalDevice();
-    vkDestroyImageView(logicalDevice, imageView, nullptr);
-    vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
-}
-
-bool EquirectangularHDR::Offscreen::createFramebuffer(VkRenderPass renderPass, uint32_t size, uint32_t layerCount, uint32_t levelCount)
-{
-    VkDevice logicalDevice = fw::Context::getLogicalDevice();
-    
-    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    image.create(size, size, format, 0, usage, 1);
-
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.flags = 0;
-    viewInfo.subresourceRange = {};
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = levelCount;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = layerCount;
-    viewInfo.image = image.getHandle();
-    if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
-        r != VK_SUCCESS) {        
-        fw::printError("Failed to create image view for HDR equirectangular offscreen", &r);
-        return false;
-    }
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = renderPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = &imageView;
-    framebufferInfo.width = size;
-    framebufferInfo.height = size;
-    framebufferInfo.layers = 1;
-    if (VkResult r = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create an offscreen framebuffer", &r);
-        return false;
-    }
-
-    VkCommandBuffer commandBuffer = fw::Command::beginSingleTimeCommands();
-    
-    VkImageMemoryBarrier imageMemoryBarrier{};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.image = image.getHandle();
-    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    imageMemoryBarrier.srcAccessMask = 0;
-    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-    fw::Command::endSingleTimeCommands(commandBuffer);
-    framebufferSize = size;
-
-    return true;
-}
-
-EquirectangularHDR::~EquirectangularHDR()
+EnvironmentImages::~EnvironmentImages()
 {
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
@@ -133,101 +66,7 @@ EquirectangularHDR::~EquirectangularHDR()
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
-EquirectangularHDR::Pipeline::~Pipeline()
-{
-    vkDestroyPipeline(logicalDevice, pipeline, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-}
-
-bool EquirectangularHDR::Pipeline::createPipeline(const PipelineParameters& params)
-{
-    logicalDevice = fw::Context::getLogicalDevice();
-    parameters = params;
-    
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &params.descriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &params.pushConstantRange;
-    VK_CHECK(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
-    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
-    rasterizationState.cullMode = VK_CULL_MODE_NONE;
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendState();
-    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
-
-    VkPipelineDepthStencilStateCreateInfo depthStencilState{};
-    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencilState.depthTestEnable = VK_FALSE;
-    depthStencilState.depthWriteEnable = VK_FALSE;
-    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-    depthStencilState.front = depthStencilState.back;
-    depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
-
-    VkViewport viewport = fw::Pipeline::getViewport();
-    viewport.width = params.viewportSize;
-    viewport.height = params.viewportSize;
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = {params.viewportSize, params.viewportSize};
-    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
-
-    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    
-    VkVertexInputBindingDescription vertexBinding{};
-    vertexBinding.binding = 0;
-    vertexBinding.stride = sizeof(glm::vec3);
-    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    
-    VkVertexInputAttributeDescription vertexAttribute{};
-    vertexAttribute.binding = 0;
-    vertexAttribute.location = 0;
-    vertexAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-    vertexAttribute.offset = 0;
-
-    VkPipelineVertexInputStateCreateInfo vertexInputState{};
-    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputState.vertexBindingDescriptionCount = 1;
-    vertexInputState.pVertexBindingDescriptions = &vertexBinding;
-    vertexInputState.vertexAttributeDescriptionCount = 1;
-    vertexInputState.pVertexAttributeDescriptions = &vertexAttribute;
-
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos(params.vertexShader, params.fragmentShader);
-
-    if (shaderStages.empty()) {
-        return false;
-    }
-
-    fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-            }
-        });
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = params.renderPass;
-    pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-    pipelineInfo.pVertexInputState = &vertexInputState;
-    pipelineInfo.pRasterizationState = &rasterizationState;
-    pipelineInfo.pColorBlendState = &colorBlendState;
-    pipelineInfo.pMultisampleState = &multisampleState;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pDepthStencilState = &depthStencilState;
-    pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.stageCount = fw::ui32size(shaderStages);
-    pipelineInfo.pStages = shaderStages.data();
-
-    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
-
-    return true;
-}
-
-bool EquirectangularHDR::initialize(const std::string& filename)
+bool EnvironmentImages::initialize(const std::string& filename)
 {
     logicalDevice = fw::Context::getLogicalDevice();
 
@@ -245,71 +84,66 @@ bool EquirectangularHDR::initialize(const std::string& filename)
         return false;
     }
 
+    Offscreen::renderPass = renderPass;
+    Offscreen::format = format;
+    PipelineHelper::descriptorSetLayout = descriptorSetLayout;
+    PipelineHelper::renderPass = renderPass;
+
     irradiancePushConstants.deltaPhi = (2.0f * float(M_PI)) / 180.0f;
     irradiancePushConstants.deltaTheta = (0.5f * float(M_PI)) / 64.0f;
     prefilterPushConstants.numSamples = 32u;
 
     {
         Offscreen offscreen;
-        success = offscreen.createFramebuffer(renderPass, defaultSize, 1, 1);
+        success = success && offscreen.createFramebuffer(defaultSize, 1, 1);
         
-        Pipeline pipeline;
-        Pipeline::PipelineParameters pipelineParams{
-            descriptorSetLayout,
+        PipelineHelper pipelineHelper;        
+        success = success && pipelineHelper.createPipeline(
             defaultSize,
             {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(plainPushConstants)},
             "equirectangular_hdr_vert.spv",
-            "equirectangular_hdr_frag.spv",
-            renderPass
-        };
-        
-        success = pipeline.createPipeline(pipelineParams);
+            "equirectangular_hdr_frag.spv");
 
         if (!success) {
             return false;
         }
 
         updateDescriptors(texture.getImageView());
-        render(offscreen, pipeline, Target::plain);
+        render(offscreen, pipelineHelper, Target::plain);
     }
 
     {
         Offscreen offscreen;
-        success = offscreen.createFramebuffer(renderPass, irradianceSize, 1, 1);
+        success = success && offscreen.createFramebuffer(irradianceSize, 1, 1);
 
-        Pipeline pipeline;
-        Pipeline::PipelineParameters pipelineParams{
-            descriptorSetLayout,
+        PipelineHelper pipelineHelper;
+        success = success && pipelineHelper.createPipeline(
             irradianceSize,
             {VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(irradiancePushConstants)},
             "irradiance_vert.spv",
-            "irradiance_frag.spv",
-            renderPass
-        };
-        
-        success = pipeline.createPipeline(pipelineParams);
+            "irradiance_frag.spv");
 
         if (!success) {
             return false;
         }
 
         updateDescriptors(plainImageView);
-        render(offscreen, pipeline, Target::irradiance);
+        render(offscreen, pipelineHelper, Target::irradiance);
     }
     return true;
 }
 
-VkImageView EquirectangularHDR::getPlainImageView() const
+VkImageView EnvironmentImages::getPlainImageView() const
 {
     return plainImageView;
 }
 
-VkImageView EquirectangularHDR::getIrradianceImageView() const
+VkImageView EnvironmentImages::getIrradianceImageView() const
 {
     return irradianceImageView;
 }
 
-bool EquirectangularHDR::loadModel()
+bool EnvironmentImages::loadModel()
 {
     fw::Model model;
     if (!model.loadModel(assetsFolder + "cube.3ds")) {
@@ -332,7 +166,7 @@ bool EquirectangularHDR::loadModel()
     return success;
 }
 
-bool EquirectangularHDR::createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView)
+bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView)
 {
     VkImageCreateFlags flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -357,7 +191,7 @@ bool EquirectangularHDR::createCubeImage(uint32_t size, uint32_t mipLevels, fw::
     return true;
 }
 
-bool EquirectangularHDR::createRenderPass()
+bool EnvironmentImages::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
     colorAttachment.format = format;
@@ -406,7 +240,7 @@ bool EquirectangularHDR::createRenderPass()
     return true;
 }
 
-bool EquirectangularHDR::createDescriptors()
+bool EnvironmentImages::createDescriptors()
 {
     // Pool
     VkDescriptorPoolSize poolSize{};
@@ -458,7 +292,7 @@ bool EquirectangularHDR::createDescriptors()
     return true;
 }
 
-void EquirectangularHDR::updateDescriptors(VkImageView imageView)
+void EnvironmentImages::updateDescriptors(VkImageView imageView)
 {
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -475,7 +309,7 @@ void EquirectangularHDR::updateDescriptors(VkImageView imageView)
     vkUpdateDescriptorSets(logicalDevice, 1, &writeDescriptorSet, 0, nullptr);
 }
 
-void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target target)
+void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHelper, Target target)
 {
     fw::Image& targetImage =
         target == Target::plain ? plainImage :
@@ -488,9 +322,9 @@ void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target
     VkRenderPassBeginInfo renderPassBeginInfo{};
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass = renderPass;
-    renderPassBeginInfo.framebuffer = offscreen.framebuffer;
-    renderPassBeginInfo.renderArea.extent.width = offscreen.framebufferSize;
-    renderPassBeginInfo.renderArea.extent.height = offscreen.framebufferSize;
+    renderPassBeginInfo.framebuffer = offscreen.getFramebuffer();
+    renderPassBeginInfo.renderArea.extent.width = offscreen.getSize();
+    renderPassBeginInfo.renderArea.extent.height = offscreen.getSize();
     renderPassBeginInfo.clearValueCount = 1;
     renderPassBeginInfo.pClearValues = &clearValues;
 
@@ -521,9 +355,9 @@ void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target
         // Draw one layer to offscreen framebuffer
         vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkPipelineLayout layout = pipeline.pipelineLayout;
-        VkShaderStageFlags stage = pipeline.parameters.pushConstantRange.stageFlags;
-        uint32_t size = pipeline.parameters.pushConstantRange.size;
+        VkPipelineLayout layout = pipelineHelper.getPipelineLayout();
+        VkShaderStageFlags stage = pipelineHelper.getPushConstantRange().stageFlags;
+        uint32_t size = pipelineHelper.getPushConstantRange().size;
 
         void* data;
         glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
@@ -544,8 +378,8 @@ void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target
         }
 
         vkCmdPushConstants(cmd, layout, stage, 0, size, data);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipeline);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineHelper.getPipeline());
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineHelper.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
         VkBuffer vb = vertexBuffer.getBuffer();
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(cmd, 0, 1, &vb, offsets);
@@ -563,7 +397,7 @@ void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target
         
             VkImageMemoryBarrier imageMemoryBarrier{};
             imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageMemoryBarrier.image = offscreen.image.getHandle();
+            imageMemoryBarrier.image = offscreen.getImageHandle();
             imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -585,13 +419,13 @@ void EquirectangularHDR::render(Offscreen& offscreen, Pipeline& pipeline, Target
         copyRegion.dstSubresource.mipLevel = 0;
         copyRegion.dstSubresource.layerCount = 1;
         copyRegion.dstOffset = { 0, 0, 0 };
-        copyRegion.extent.width = offscreen.framebufferSize;
-        copyRegion.extent.height = offscreen.framebufferSize;
+        copyRegion.extent.width = offscreen.getSize();
+        copyRegion.extent.height = offscreen.getSize();
         copyRegion.extent.depth = 1;
 
         VkImageLayout srcLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         VkImageLayout dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        vkCmdCopyImage(cmd, offscreen.image.getHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
+        vkCmdCopyImage(cmd, offscreen.getImageHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
     }
 /*
     {

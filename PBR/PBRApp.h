@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EquirectangularHDR.h"
+#include "EnvironmentImages.h"
 
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
@@ -58,9 +58,9 @@ private:
     fw::Camera camera;
     fw::CameraController cameraController;
         
-    RenderObject skybox;
+    RenderObject skybox{};
 
-    EquirectangularHDR hdr;
+    EnvironmentImages environmentImages;
     
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkExtent2D extent;

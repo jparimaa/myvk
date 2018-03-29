@@ -35,7 +35,7 @@ bool PBRApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
     bool success =
-        hdr.initialize(assetsFolder + "Factory_Catwalk_2k.hdr") &&
+        environmentImages.initialize(assetsFolder + "Factory_Catwalk_2k.hdr") &&
         createRenderPass() &&
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
@@ -306,7 +306,7 @@ bool PBRApp::createSkybox()
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = hdr.getPlainImageView();
+    imageInfo.imageView = environmentImages.getPlainImageView();
     imageInfo.sampler = sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
