@@ -12,7 +12,7 @@ public:
 
     Offscreen() {};
     ~Offscreen();
-    bool createFramebuffer(uint32_t size, uint32_t layerCount, uint32_t levelCount);
+    bool createFramebuffer(uint32_t size);
 
     uint32_t getSize() const;
     VkImage getImageHandle() const;

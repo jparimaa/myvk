@@ -9,45 +9,21 @@
 #include "../Framework/Model.h"
 #include "../Framework/Constants.h"
 
-#include <glm/glm.hpp>
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace
 {
 
-struct PlainPushConstants
-{
-    glm::mat4 mvp;
-};
-
-struct IrradiancePushConstants
-{
-    glm::mat4 mvp;
-    float deltaPhi;
-    float deltaTheta;        
-};
-
-struct PrefilterPushConstants
-{
-    glm::mat4 mvp;
-    float roughness;
-    uint32_t numSamples = 32u;
-};
-
 const VkFormat format = VK_FORMAT_R16G16B16A16_SFLOAT;
 const int32_t defaultSize = 512;
 const int32_t irradianceSize = 64;
-const uint32_t mipLevelCount = 9;
-PlainPushConstants plainPushConstants;
-IrradiancePushConstants irradiancePushConstants;
-PrefilterPushConstants prefilterPushConstants;
 
-glm::mat4 viewMatrices[] = {
+const glm::mat4 viewMatrices[] = {
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::right,    fw::Constants::up),
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::left,     fw::Constants::up),
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::down,     fw::Constants::forward),
-    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::up,     fw::Constants::backward),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::up,       fw::Constants::backward),
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::forward,  fw::Constants::up),
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::backward, fw::Constants::up)
 };
@@ -69,6 +45,7 @@ EnvironmentImages::~EnvironmentImages()
 bool EnvironmentImages::initialize(const std::string& filename)
 {
     logicalDevice = fw::Context::getLogicalDevice();
+    prefilterLevelCount = static_cast<uint32_t>(floor(log2(defaultSize))) + 1;
 
     bool success =
         texture.load(filename) &&
@@ -76,7 +53,7 @@ bool EnvironmentImages::initialize(const std::string& filename)
         sampler.create(VK_COMPARE_OP_NEVER) &&
         createCubeImage(defaultSize, 1, plainImage, plainImageView) &&
         createCubeImage(irradianceSize, 1, irradianceImage, irradianceImageView) &&
-        createCubeImage(defaultSize, mipLevelCount, prefilterImage, prefilterImageView) &&
+        createCubeImage(defaultSize, prefilterLevelCount, prefilterImage, prefilterImageView) &&
         createRenderPass() &&
         createDescriptors();
 
@@ -89,47 +66,14 @@ bool EnvironmentImages::initialize(const std::string& filename)
     PipelineHelper::descriptorSetLayout = descriptorSetLayout;
     PipelineHelper::renderPass = renderPass;
 
-    irradiancePushConstants.deltaPhi = (2.0f * float(M_PI)) / 180.0f;
-    irradiancePushConstants.deltaTheta = (0.5f * float(M_PI)) / 64.0f;
-    prefilterPushConstants.numSamples = 32u;
+    VkPushConstantRange plainRange{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(plainPushConstants)};
+    VkPushConstantRange irradianceRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(irradiancePushConstants)};
+    VkPushConstantRange prefilterRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(prefilterPushConstants)};
+    
+    createEnvironmentImage(defaultSize, plainRange, "equirectangular_hdr", texture.getImageView(), Target::plain);
+    createEnvironmentImage(irradianceSize, irradianceRange, "irradiance", plainImageView, Target::irradiance);
+    createEnvironmentImage(defaultSize, prefilterRange, "prefilter", plainImageView, Target::prefilter);
 
-    {
-        Offscreen offscreen;
-        success = success && offscreen.createFramebuffer(defaultSize, 1, 1);
-        
-        PipelineHelper pipelineHelper;        
-        success = success && pipelineHelper.createPipeline(
-            defaultSize,
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(plainPushConstants)},
-            "equirectangular_hdr_vert.spv",
-            "equirectangular_hdr_frag.spv");
-
-        if (!success) {
-            return false;
-        }
-
-        updateDescriptors(texture.getImageView());
-        render(offscreen, pipelineHelper, Target::plain);
-    }
-
-    {
-        Offscreen offscreen;
-        success = success && offscreen.createFramebuffer(irradianceSize, 1, 1);
-
-        PipelineHelper pipelineHelper;
-        success = success && pipelineHelper.createPipeline(
-            irradianceSize,
-            {VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(irradiancePushConstants)},
-            "irradiance_vert.spv",
-            "irradiance_frag.spv");
-
-        if (!success) {
-            return false;
-        }
-
-        updateDescriptors(plainImageView);
-        render(offscreen, pipelineHelper, Target::irradiance);
-    }
     return true;
 }
 
@@ -141,6 +85,11 @@ VkImageView EnvironmentImages::getPlainImageView() const
 VkImageView EnvironmentImages::getIrradianceImageView() const
 {
     return irradianceImageView;
+}
+
+VkImageView EnvironmentImages::getPrefilterImageView() const
+{
+    return prefilterImageView;
 }
 
 bool EnvironmentImages::loadModel()
@@ -185,7 +134,7 @@ bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::I
     viewInfo.image = image.getHandle();
     if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
         r != VK_SUCCESS) {        
-        fw::printError("Failed to create image view for HDR equirectangular", &r);
+        fw::printError("Failed to create an environment image view", &r);
         return false;
     }
     return true;
@@ -234,7 +183,7 @@ bool EnvironmentImages::createRenderPass()
     
     if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
         r != VK_SUCCESS) {
-        fw::printError("Failed to create a equirectangular HDR render pass", &r);
+        fw::printError("Failed to create a environment image render pass", &r);
         return false;
     }
     return true;
@@ -255,7 +204,7 @@ bool EnvironmentImages::createDescriptors()
 
     if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
         r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor pool for HDR equirectangular", &r);
+        fw::printError("Failed to create descriptor pool for environment image", &r);
         return false;
     }
 
@@ -273,7 +222,7 @@ bool EnvironmentImages::createDescriptors()
     layoutInfo.bindingCount = 1;
     if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
         r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor set layout for HDR equirectangular", &r);
+        fw::printError("Failed to create descriptor set layout for environment image", &r);
         return false;
     }
 
@@ -285,10 +234,31 @@ bool EnvironmentImages::createDescriptors()
     allocInfo.descriptorSetCount = 1;
     if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
         r != VK_SUCCESS) {
-        fw::printError("Failed to allocate descriptor set HDR equirectangular", &r);
+        fw::printError("Failed to allocate descriptor set environment image", &r);
         return false;
     }
 
+    return true;
+}
+
+bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
+                                               const std::string& shader, VkImageView input, Target target)
+{
+    std::string vertexShader = shader + "_vert.spv";
+    std::string fragmentShader = shader + "_frag.spv";
+    
+    Offscreen offscreen;
+    PipelineHelper pipelineHelper;
+    bool success =
+        offscreen.createFramebuffer(textureSize) &&
+        pipelineHelper.createPipeline(textureSize, range, vertexShader, fragmentShader);
+
+    if (!success) {
+        return false;
+    }
+
+    updateDescriptors(input);
+    render(offscreen, pipelineHelper, target);
     return true;
 }
 
@@ -315,6 +285,8 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
         target == Target::plain ? plainImage :
         target == Target::irradiance ? irradianceImage :
         prefilterImage;
+    uint32_t levelCount = target == Target::prefilter ? prefilterLevelCount : 1; 
+    
     
     VkClearValue clearValues;
     clearValues.color = {0.0f, 0.0f, 0.2f, 0.0f};
@@ -330,14 +302,20 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
 
     VkCommandBuffer cmd = fw::Command::beginSingleTimeCommands();
 
+    VkViewport viewport{};
+    viewport.width = static_cast<float>(offscreen.getSize());
+    viewport.height = static_cast<float>(offscreen.getSize());
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    
     VkImageSubresourceRange cubeSubresourceRange{};
     cubeSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     cubeSubresourceRange.baseMipLevel = 0;
-    cubeSubresourceRange.levelCount = 1;
+    cubeSubresourceRange.levelCount = levelCount;
     cubeSubresourceRange.layerCount = 6;
     
     {
-        // Change cube map layout
+        // Change target cube map layout
         VkImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.image = targetImage.getHandle();
@@ -351,81 +329,92 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
         vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
     }
 
-    for (uint32_t face = 0; face < 6; ++face) {
-        // Draw one layer to offscreen framebuffer
-        vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    for (uint32_t level = 0; level < levelCount; ++level) {
+        viewport.width = static_cast<float>(offscreen.getSize() * std::pow(0.5f, level));
+        viewport.height = static_cast<float>(offscreen.getSize() * std::pow(0.5f, level));
+            
+        for (uint32_t face = 0; face < 6; ++face) {
+            vkCmdSetViewport(cmd, 0, 1, &viewport);                    
+            vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkPipelineLayout layout = pipelineHelper.getPipelineLayout();
-        VkShaderStageFlags stage = pipelineHelper.getPushConstantRange().stageFlags;
-        uint32_t size = pipelineHelper.getPushConstantRange().size;
+            VkPipelineLayout layout = pipelineHelper.getPipelineLayout();
+            VkShaderStageFlags stage = pipelineHelper.getPushConstantRange().stageFlags;
+            uint32_t size = pipelineHelper.getPushConstantRange().size;
 
-        void* data;
-        glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
-        switch (target) {
-        case Target::plain:
-            plainPushConstants.mvp = mvp;
-            data = &plainPushConstants;
-            break;
-        case Target::irradiance:
-            irradiancePushConstants.mvp = mvp;
-            data = &irradiancePushConstants;
-            break;
-        case Target::prefilter:
-            prefilterPushConstants.mvp = mvp;
-            //prefilterPushConstants.roughness = (float)m / (float)(numMips - 1);
-            data = &prefilterPushConstants;
-            break;
-        }
+            glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
+            void* data;
+            
+            switch (target) {
+            case Target::plain:
+                plainPushConstants.mvp = mvp;
+                data = &plainPushConstants;
+                break;
+            case Target::irradiance:
+                irradiancePushConstants.mvp = mvp;
+                irradiancePushConstants.deltaPhi = (2.0f * float(M_PI)) / 180.0f;
+                irradiancePushConstants.deltaTheta = (0.5f * float(M_PI)) / 64.0f;
+                data = &irradiancePushConstants;
+                break;
+            case Target::prefilter:
+                prefilterPushConstants.mvp = mvp;
+                prefilterPushConstants.numSamples = 32u;
+                prefilterPushConstants.roughness = static_cast<float>(level) / static_cast<float>(levelCount - 1);
+                data = &prefilterPushConstants;
+                break;
+            }
 
-        vkCmdPushConstants(cmd, layout, stage, 0, size, data);
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineHelper.getPipeline());
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineHelper.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-        VkBuffer vb = vertexBuffer.getBuffer();
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(cmd, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(cmd, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(cmd, numIndices, 1, 0, 0, 0);        
-        vkCmdEndRenderPass(cmd);
+            VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            vkCmdPushConstants(cmd, layout, stage, 0, size, data);
+            vkCmdBindPipeline(cmd, bindPoint, pipelineHelper.getPipeline());
+            vkCmdBindDescriptorSets(cmd, bindPoint, pipelineHelper.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+            VkBuffer vb = vertexBuffer.getBuffer();
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(cmd, 0, 1, &vb, offsets);
+            vkCmdBindIndexBuffer(cmd, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdDrawIndexed(cmd, numIndices, 1, 0, 0, 0);        
+            vkCmdEndRenderPass(cmd);
 
-        // Copy rendered images
-        {
-            VkImageSubresourceRange subresourceRange{};
-            subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            subresourceRange.baseMipLevel = 0;
-            subresourceRange.levelCount = 1;
-            subresourceRange.layerCount = 1;
+            // Transfer rendered output
+            {
+                VkImageSubresourceRange subresourceRange{};
+                subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                subresourceRange.baseMipLevel = 0;
+                subresourceRange.levelCount = 1;
+                subresourceRange.layerCount = 1;
         
-            VkImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageMemoryBarrier.image = offscreen.getImageHandle();
-            imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            imageMemoryBarrier.subresourceRange = subresourceRange;
-            VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-            VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-            vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+                VkImageMemoryBarrier imageMemoryBarrier{};
+                imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                imageMemoryBarrier.image = offscreen.getImageHandle();
+                imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                imageMemoryBarrier.subresourceRange = subresourceRange;
+                VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+                VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+                vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+            }
+
+            // Copy rendered images
+            VkImageCopy copyRegion{};
+            copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            copyRegion.srcSubresource.baseArrayLayer = 0;
+            copyRegion.srcSubresource.mipLevel = 0;
+            copyRegion.srcSubresource.layerCount = 1;
+            copyRegion.srcOffset = { 0, 0, 0 };
+            copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            copyRegion.dstSubresource.baseArrayLayer = face;
+            copyRegion.dstSubresource.layerCount = 1;
+            copyRegion.dstSubresource.mipLevel = level;            
+            copyRegion.dstOffset = { 0, 0, 0 };
+            copyRegion.extent.width = static_cast<uint32_t>(viewport.width);
+            copyRegion.extent.height = static_cast<uint32_t>(viewport.height);
+            copyRegion.extent.depth = 1;
+
+            VkImageLayout srcLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            VkImageLayout dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            vkCmdCopyImage(cmd, offscreen.getImageHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
         }
-
-        VkImageCopy copyRegion{};
-        copyRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyRegion.srcSubresource.baseArrayLayer = 0;
-        copyRegion.srcSubresource.mipLevel = 0;
-        copyRegion.srcSubresource.layerCount = 1;
-        copyRegion.srcOffset = { 0, 0, 0 };
-        copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyRegion.dstSubresource.baseArrayLayer = face;
-        copyRegion.dstSubresource.mipLevel = 0;
-        copyRegion.dstSubresource.layerCount = 1;
-        copyRegion.dstOffset = { 0, 0, 0 };
-        copyRegion.extent.width = offscreen.getSize();
-        copyRegion.extent.height = offscreen.getSize();
-        copyRegion.extent.depth = 1;
-
-        VkImageLayout srcLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        VkImageLayout dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        vkCmdCopyImage(cmd, offscreen.getImageHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
     }
 /*
     {

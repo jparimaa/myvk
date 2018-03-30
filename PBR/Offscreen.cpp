@@ -14,7 +14,7 @@ Offscreen::~Offscreen()
     vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 }
 
-bool Offscreen::createFramebuffer(uint32_t size, uint32_t layerCount, uint32_t levelCount)
+bool Offscreen::createFramebuffer(uint32_t size)
 {
     logicalDevice = fw::Context::getLogicalDevice();
     
@@ -29,9 +29,9 @@ bool Offscreen::createFramebuffer(uint32_t size, uint32_t layerCount, uint32_t l
     viewInfo.subresourceRange = {};
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = levelCount;
+    viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = layerCount;
+    viewInfo.subresourceRange.layerCount = 1;
     viewInfo.image = image.getHandle();
     if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
         r != VK_SUCCESS) {        

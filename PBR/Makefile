@@ -16,11 +16,13 @@ SHADER_DIR = shaders/
 VERTEX_SHADERS = \
 	skybox.vert \
 	equirectangular_hdr.vert \
-	irradiance.vert
+	irradiance.vert \
+	prefilter.vert
 FRAGMENT_SHADERS = \
 	skybox.frag \
 	equirectangular_hdr.frag \
-	irradiance.frag
+	irradiance.frag \
+	prefilter.frag
 FRAG_SPIRS = $(FRAGMENT_SHADERS:.frag=_frag.spv)
 VERT_SPIRS = $(VERTEX_SHADERS:.vert=_vert.spv)
 

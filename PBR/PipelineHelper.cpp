@@ -71,6 +71,12 @@ bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     vertexInputState.vertexAttributeDescriptionCount = 1;
     vertexInputState.pVertexAttributeDescriptions = &vertexAttribute;
 
+    VkDynamicState dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT };
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.pDynamicStates = &dynamicStateEnables;
+    dynamicState.dynamicStateCount = 1;
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
         fw::Pipeline::getShaderStageInfos(vertexShader, fragmentShader);
     
@@ -95,7 +101,7 @@ bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     pipelineInfo.pMultisampleState = &multisampleState;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pDepthStencilState = &depthStencilState;
-    pipelineInfo.pDynamicState = nullptr;
+    pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.stageCount = fw::ui32size(shaderStages);
     pipelineInfo.pStages = shaderStages.data();
 
