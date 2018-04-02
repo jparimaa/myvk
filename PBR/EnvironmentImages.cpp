@@ -28,6 +28,15 @@ const glm::mat4 viewMatrices[] = {
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::backward, fw::Constants::up)
 };
 
+const glm::mat4 invertViewMatrices[] = {
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::right,    fw::Constants::down),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::left,     fw::Constants::down),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::up,       fw::Constants::backward),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::down,     fw::Constants::forward),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::backward, fw::Constants::down),
+    glm::lookAt(fw::Constants::zeroVec3, fw::Constants::forward,  fw::Constants::down)
+};
+
 const std::string assetsFolder = "../Assets/";
 
 } // unnamed
@@ -70,7 +79,7 @@ bool EnvironmentImages::initialize(const std::string& filename)
     VkPushConstantRange irradianceRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(irradiancePushConstants)};
     VkPushConstantRange prefilterRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(prefilterPushConstants)};
     
-    createEnvironmentImage(defaultSize, plainRange, "equirectangular_hdr", texture.getImageView(), Target::plain);
+    createEnvironmentImage(defaultSize, plainRange, "plain", texture.getImageView(), Target::plain);
     createEnvironmentImage(irradianceSize, irradianceRange, "irradiance", plainImageView, Target::irradiance);
     createEnvironmentImage(defaultSize, prefilterRange, "prefilter", plainImageView, Target::prefilter);
 
@@ -244,7 +253,7 @@ bool EnvironmentImages::createDescriptors()
 bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
                                                const std::string& shader, VkImageView input, Target target)
 {
-    std::string vertexShader = shader + "_vert.spv";
+    std::string vertexShader = "environment_cube_vert.spv";
     std::string fragmentShader = shader + "_frag.spv";
     
     Offscreen offscreen;
@@ -259,6 +268,7 @@ bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConsta
 
     updateDescriptors(input);
     render(offscreen, pipelineHelper, target);
+    changeLayoutToShaderRead(target);
     return true;
 }
 
@@ -279,14 +289,26 @@ void EnvironmentImages::updateDescriptors(VkImageView imageView)
     vkUpdateDescriptorSets(logicalDevice, 1, &writeDescriptorSet, 0, nullptr);
 }
 
+fw::Image& EnvironmentImages::getImageByTarget(Target target)
+{
+    if (target == Target::plain) {
+        return plainImage;
+    } else if (target == Target::irradiance) {
+        return irradianceImage;
+    } else {
+        return prefilterImage;
+    }
+}
+
+uint32_t EnvironmentImages::getLevelCountByTarget(Target target)
+{
+    return target == Target::prefilter ? prefilterLevelCount : 1;
+}
+
 void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHelper, Target target)
 {
-    fw::Image& targetImage =
-        target == Target::plain ? plainImage :
-        target == Target::irradiance ? irradianceImage :
-        prefilterImage;
-    uint32_t levelCount = target == Target::prefilter ? prefilterLevelCount : 1; 
-    
+    fw::Image& targetImage = getImageByTarget(target);
+    uint32_t levelCount = getLevelCountByTarget(target);
     
     VkClearValue clearValues;
     clearValues.color = {0.0f, 0.0f, 0.2f, 0.0f};
@@ -340,23 +362,21 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
             VkPipelineLayout layout = pipelineHelper.getPipelineLayout();
             VkShaderStageFlags stage = pipelineHelper.getPushConstantRange().stageFlags;
             uint32_t size = pipelineHelper.getPushConstantRange().size;
-
-            glm::mat4 mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
             void* data;
             
             switch (target) {
             case Target::plain:
-                plainPushConstants.mvp = mvp;
+                plainPushConstants.mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
                 data = &plainPushConstants;
                 break;
             case Target::irradiance:
-                irradiancePushConstants.mvp = mvp;
+                irradiancePushConstants.mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * invertViewMatrices[face];
                 irradiancePushConstants.deltaPhi = (2.0f * float(M_PI)) / 180.0f;
                 irradiancePushConstants.deltaTheta = (0.5f * float(M_PI)) / 64.0f;
                 data = &irradiancePushConstants;
                 break;
             case Target::prefilter:
-                prefilterPushConstants.mvp = mvp;
+                prefilterPushConstants.mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * invertViewMatrices[face];
                 prefilterPushConstants.numSamples = 32u;
                 prefilterPushConstants.roughness = static_cast<float>(level) / static_cast<float>(levelCount - 1);
                 data = &prefilterPushConstants;
@@ -416,21 +436,35 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
             vkCmdCopyImage(cmd, offscreen.getImageHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
         }
     }
-/*
-    {
-        // Change cube map layout back
-        VkImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imageMemoryBarrier.image = targetImage.getHandle();
-        imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        imageMemoryBarrier.subresourceRange = cubeSubresourceRange;
-        VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-        vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-    }
-*/
+    
     fw::Command::endSingleTimeCommands(cmd);    
+}
+
+void EnvironmentImages::changeLayoutToShaderRead(Target target)
+{
+    fw::Image& targetImage = getImageByTarget(target);
+    uint32_t levelCount = getLevelCountByTarget(target);
+    
+    VkCommandBuffer cmd = fw::Command::beginSingleTimeCommands();
+
+    VkImageSubresourceRange cubeSubresourceRange{};
+    cubeSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cubeSubresourceRange.baseMipLevel = 0;
+    cubeSubresourceRange.levelCount = levelCount;
+    cubeSubresourceRange.layerCount = 6;
+    
+    // Change cube map layout back
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.image = targetImage.getHandle();
+    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    imageMemoryBarrier.subresourceRange = cubeSubresourceRange;
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    vkCmdPipelineBarrier(cmd, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+    fw::Command::endSingleTimeCommands(cmd);
 }

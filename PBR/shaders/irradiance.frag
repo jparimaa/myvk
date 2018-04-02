@@ -12,7 +12,7 @@ layout(push_constant) uniform PushConsts {
 }
 consts;
 
-#define PI 3.1415926535897932384626433832795
+const float PI = 3.1415926536;
 
 void main() {
     vec3 N = normalize(worldPos);

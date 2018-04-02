@@ -15,12 +15,10 @@ OBJECTS = $(SOURCES:.cpp=.o)
 SHADER_DIR = shaders/
 VERTEX_SHADERS = \
 	skybox.vert \
-	equirectangular_hdr.vert \
-	irradiance.vert \
-	prefilter.vert
+	environment_cube.vert
 FRAGMENT_SHADERS = \
 	skybox.frag \
-	equirectangular_hdr.frag \
+	plain.frag \
 	irradiance.frag \
 	prefilter.frag
 FRAG_SPIRS = $(FRAGMENT_SHADERS:.frag=_frag.spv)

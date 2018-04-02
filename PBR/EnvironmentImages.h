@@ -37,14 +37,14 @@ private:
     struct IrradiancePushConstants
     {
         glm::mat4 mvp;
-        float deltaPhi;
-        float deltaTheta;        
+        float deltaPhi = 0.0f;
+        float deltaTheta = 0.0f;
     };
 
     struct PrefilterPushConstants
     {
         glm::mat4 mvp;
-        float roughness;
+        float roughness = 0.0f;
         uint32_t numSamples = 32u;
     };
     
@@ -89,5 +89,8 @@ private:
     bool createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
                                 const std::string& shader, VkImageView input, Target target);
     void updateDescriptors(VkImageView imageView);
+    fw::Image& getImageByTarget(Target target);
+    uint32_t getLevelCountByTarget(Target target);
     void render(Offscreen& offscreen, PipelineHelper& pipelineHelper, Target target);
+    void changeLayoutToShaderRead(Target target);
 };
