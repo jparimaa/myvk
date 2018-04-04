@@ -91,7 +91,7 @@ bool Instance::createInstance()
         return false;
     }
 
-    VkApplicationInfo appInfo = {};
+    VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "MyApp";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -99,7 +99,7 @@ bool Instance::createInstance()
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_0;
 
-    VkInstanceCreateInfo createInfo = {};
+    VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     std::vector<const char*> extensions = getRequiredExtensions();
@@ -128,7 +128,7 @@ bool Instance::createDebugReportCallback()
         return true;
     }
     
-    VkDebugReportCallbackCreateInfoEXT createInfo = {};
+    VkDebugReportCallbackCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
     createInfo.flags =
         VK_DEBUG_REPORT_ERROR_BIT_EXT |

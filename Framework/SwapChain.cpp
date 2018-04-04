@@ -112,7 +112,7 @@ bool SwapChain::create(uint32_t width, uint32_t height)
         imageCount = maxImageCount;
     }
 
-    VkSwapchainCreateInfoKHR createInfo = {};
+    VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = Context::getSurface();
     createInfo.minImageCount = imageCount;
@@ -185,7 +185,7 @@ bool SwapChain::createImageViews()
 
     imageViews.resize(images.size());
     for (size_t i = 0; i < images.size(); ++i) {
-        VkImageViewCreateInfo createInfo = {};
+        VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         createInfo.image = images[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -229,7 +229,7 @@ bool SwapChain::createFramebuffers(VkRenderPass renderPass)
             depthImageView
         };
 
-        VkFramebufferCreateInfo framebufferInfo = {};
+        VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = fw::ui32size(attachments);

@@ -16,7 +16,7 @@ Sampler::~Sampler()
 
 bool Sampler::create(VkCompareOp compareOp)
 {
-    VkSamplerCreateInfo samplerInfo = {};
+    VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
