@@ -60,7 +60,7 @@ bool EnvironmentImages::initialize(const std::string& filename)
         texture.load(filename) &&
         loadModel() &&
         sampler.create(VK_COMPARE_OP_NEVER) &&
-        createCubeImage(defaultSize, 1, plainImage, plainImageView) &&
+        createCubeImage(defaultSize, prefilterLevelCount, plainImage, plainImageView) &&
         createCubeImage(irradianceSize, 1, irradianceImage, irradianceImageView) &&
         createCubeImage(defaultSize, prefilterLevelCount, prefilterImage, prefilterImageView) &&
         createRenderPass() &&
@@ -302,7 +302,7 @@ fw::Image& EnvironmentImages::getImageByTarget(Target target)
 
 uint32_t EnvironmentImages::getLevelCountByTarget(Target target)
 {
-    return target == Target::prefilter ? prefilterLevelCount : 1;
+    return target == Target::irradiance ? 1 : prefilterLevelCount;
 }
 
 void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHelper, Target target)
