@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EnvironmentImages.h"
+#include "BRDFLUT.h"
 
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
@@ -35,7 +36,7 @@ public:
         uint32_t numIndices;
         fw::Texture texture;
     };
-    
+
     PBRApp() {};
     virtual ~PBRApp();
     PBRApp(const PBRApp&) = delete;
@@ -57,14 +58,15 @@ private:
     fw::Sampler sampler;
     fw::Camera camera;
     fw::CameraController cameraController;
-        
+
     RenderObject skybox{};
 
     EnvironmentImages environmentImages;
-    
+    BRDFLUT brdfLut;
+
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkExtent2D extent;
-    
+
     bool createRenderPass();
     bool createDescriptorSetLayout();
     bool createSkyboxPipeline();

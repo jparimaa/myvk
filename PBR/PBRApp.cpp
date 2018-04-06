@@ -36,6 +36,7 @@ bool PBRApp::initialize()
     logicalDevice = fw::Context::getLogicalDevice();
     bool success =
         environmentImages.initialize(assetsFolder + "Factory_Catwalk_2k.hdr") &&
+        brdfLut.initialize() &&
         createRenderPass() &&
         fw::API::initializeSwapChain(renderPass) &&
         createDescriptorSetLayout() &&
@@ -68,13 +69,13 @@ void PBRApp::update()
 
 void PBRApp::onGUI()
 {
-#pragma GCC diagnostic push 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    
+
 #pragma GCC diagnostic pop
 }
 
@@ -173,7 +174,7 @@ bool PBRApp::createSkyboxPipeline()
     vertexBinding.binding = 0;
     vertexBinding.stride = sizeof(glm::vec3);
     vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    
+
     VkVertexInputAttributeDescription vertexAttribute{};
     vertexAttribute.binding = 0;
     vertexAttribute.location = 0;
@@ -186,7 +187,7 @@ bool PBRApp::createSkyboxPipeline()
     vertexInputState.pVertexBindingDescriptions = &vertexBinding;
     vertexInputState.vertexAttributeDescriptionCount = 1;
     vertexInputState.pVertexAttributeDescriptions = &vertexAttribute;
-    
+
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
     VkViewport viewport = fw::Pipeline::getViewport();
@@ -230,8 +231,8 @@ bool PBRApp::createSkyboxPipeline()
         r != VK_SUCCESS) {
         fw::printError("Failed to create graphics pipeline", &r);
         return false;
-    }   
-   
+    }
+
     return true;
 }
 
@@ -271,11 +272,11 @@ bool PBRApp::createSkybox()
     }
 
     const fw::Mesh& mesh = meshes[0];
-        
+
     bool success =
         skybox.vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         skybox.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        
+
     skybox.numIndices = mesh.indices.size();
 
     // Allocate skybox descriptors
@@ -318,7 +319,7 @@ bool PBRApp::createSkybox()
     writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     writeDescriptorSets[0].descriptorCount = 1;
     writeDescriptorSets[0].pBufferInfo = &bufferInfo;
-    
+
     writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeDescriptorSets[1].dstSet = skybox.descriptorSet;
     writeDescriptorSets[1].dstBinding = 1;
@@ -328,12 +329,12 @@ bool PBRApp::createSkybox()
     writeDescriptorSets[1].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(logicalDevice, fw::ui32size(writeDescriptorSets), writeDescriptorSets.data(), 0, nullptr);
-    
+
     return success;
 }
 
 bool PBRApp::createCommandBuffers()
-{    
+{
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
 
@@ -353,28 +354,28 @@ bool PBRApp::createCommandBuffers()
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr;  // Optional
-    
+
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;    
+    renderPassInfo.renderPass = renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
 
     VkDeviceSize offsets[] = {0};
-    
+
     for (size_t i = 0; i < commandBuffers.size(); ++i) {
         VkCommandBuffer cb = commandBuffers[i];
-        
+
         vkBeginCommandBuffer(cb, &beginInfo);
 
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
-        
+
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, skyboxPipeline);
 

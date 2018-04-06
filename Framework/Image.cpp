@@ -12,6 +12,12 @@ Image::~Image()
     vkFreeMemory(logicalDevice, memory, nullptr);
 }
 
+bool Image::create(const VkImageCreateInfo& imageInfo)
+{
+    logicalDevice = Context::getLogicalDevice();
+    allocate(imageInfo);
+}
+
 bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage)
 {
     return create(width, height, format, flags, usage, 1, 1);
@@ -25,7 +31,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
 bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage, uint32_t arrayLayers, uint32_t mipLevels)
 {
     logicalDevice = Context::getLogicalDevice();
-        
+
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -42,29 +48,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.flags = flags;
 
-    if (VkResult r = vkCreateImage(logicalDevice, &imageInfo, nullptr, &image);
-        r != VK_SUCCESS) {
-        printError("Failed to create image", &r);
-        return false;
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    if (!findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocInfo.memoryTypeIndex)) {
-        return false;
-    }
-
-    if (VkResult r = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory);
-        r != VK_SUCCESS) {
-        printError("Failed to allocate image memory", &r);
-    }
-
-    vkBindImageMemory(logicalDevice, image, memory, 0);
-    return true;
+    return allocate(imageInfo);
 }
 
 bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView)
@@ -81,7 +65,7 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
     viewInfo.subresourceRange.layerCount = 1;
 
     if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, imageView);
-        r != VK_SUCCESS) {        
+        r != VK_SUCCESS) {
         printError("Failed to create image view", &r);
         return false;
     }
@@ -131,13 +115,13 @@ bool Image::transitLayout(VkImageLayout newLayout)
     }
 
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
-    
+
     vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     Command::endSingleTimeCommands(commandBuffer);
 
     layout = newLayout;
-    
+
     return true;
 }
 
@@ -146,6 +130,31 @@ VkImage Image::getHandle() const
     return image;
 }
 
+bool Image::allocate(const VkImageCreateInfo& imageInfo)
+{
+    if (VkResult r = vkCreateImage(logicalDevice, &imageInfo, nullptr, &image);
+        r != VK_SUCCESS) {
+        printError("Failed to create image", &r);
+        return false;
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    if (!findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocInfo.memoryTypeIndex)) {
+        return false;
+    }
+
+    if (VkResult r = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory);
+        r != VK_SUCCESS) {
+        printError("Failed to allocate image memory", &r);
+    }
+
+    vkBindImageMemory(logicalDevice, image, memory, 0);
+    return true;
+}
+
 } // namespace fw
-
-
