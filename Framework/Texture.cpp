@@ -4,7 +4,7 @@
 #include "Context.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#pragma GCC diagnostic push 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wduplicated-branches"
@@ -19,7 +19,9 @@ namespace fw
 
 Texture::~Texture()
 {
-    vkDestroyImageView(logicalDevice, imageView, nullptr);
+    if (imageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(logicalDevice, imageView, nullptr);
+    }
 }
 
 bool Texture::load(const std::string& filename)
@@ -32,6 +34,22 @@ bool Texture::loadHDR(const std::string& filename)
     return load(filename, VK_FORMAT_R16G16B16A16_SFLOAT, 0);
 }
 
+bool Texture::load(const unsigned char* data, unsigned int size)
+{
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, 0);
+    if (!pixels) {
+        printError("Failed to load texture from data");
+        return false;
+    }
+
+    Cleaner cleaner([&pixels]() {
+            stbi_image_free(pixels);
+        });
+
+    return true;
+}
+
 VkImageView Texture::getImageView() const
 {
     return imageView;
@@ -40,7 +58,7 @@ VkImageView Texture::getImageView() const
 bool Texture::load(const std::string& filename, VkFormat format, int desiredChannels)
 {
     logicalDevice = Context::getLogicalDevice();
-        
+
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, desiredChannels);
     if (!pixels) {
@@ -51,7 +69,7 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
     Cleaner cleaner([&pixels]() {
             stbi_image_free(pixels);
         });
-    
+
     VkDeviceSize imageSize = texWidth * texHeight * 4;
     Buffer staging;
     VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -72,20 +90,18 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
     if (!image.transitLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
         return false;
     }
-    
+
     staging.copyToImage(image.getHandle(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
     if (!image.transitLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
         return false;
     }
-    
+
     if (!image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
         return false;
     }
-    
+
     return true;
 }
 
 } // namespace fw
-
-

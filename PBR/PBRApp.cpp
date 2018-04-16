@@ -44,6 +44,7 @@ bool PBRApp::initialize()
         sampler.create(VK_COMPARE_OP_ALWAYS) &&
         createDescriptorPool() &&
         createSkybox() &&
+        createRenderObject() &&
         fw::API::initializeGUI(descriptorPool) &&
         createCommandBuffers();
 
@@ -296,9 +297,6 @@ bool PBRApp::createSkybox()
     success = success &&
         skybox.transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
-    std::string textureFile = assetsFolder + "checker.png";
-    skybox.texture.load(textureFile);
-
     // Update skybox descriptors
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = skybox.transformationBuffer.getBuffer();
@@ -329,6 +327,33 @@ bool PBRApp::createSkybox()
     writeDescriptorSets[1].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(logicalDevice, fw::ui32size(writeDescriptorSets), writeDescriptorSets.data(), 0, nullptr);
+
+    return success;
+}
+
+bool PBRApp::createRenderObject()
+{
+    fw::Model model;
+    if (!model.loadModel(assetsFolder + "DamagedHelmet.gltf")) {
+        return false;
+    }
+
+    const std::vector<unsigned char>& data = model.getTextureData(0);
+    renderObject.texture.load(data.data(), data.size());
+
+    fw::Model::Meshes meshes = model.getMeshes();
+    if (meshes.size() != 1) {
+        fw::printError("Expected that render object has only one mesh");
+        return false;
+    }
+
+    const fw::Mesh& mesh = meshes[0];
+
+    bool success =
+        renderObject.vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
+        renderObject.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+    renderObject.numIndices = mesh.indices.size();
 
     return success;
 }

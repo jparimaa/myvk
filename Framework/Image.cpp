@@ -8,14 +8,19 @@ namespace fw
 
 Image::~Image()
 {
-    vkDestroyImage(logicalDevice, image, nullptr);
-    vkFreeMemory(logicalDevice, memory, nullptr);
+    if (image != VK_NULL_HANDLE) {
+        vkDestroyImage(logicalDevice, image, nullptr);
+    }
+
+    if (memory != VK_NULL_HANDLE) {
+        vkFreeMemory(logicalDevice, memory, nullptr);
+    }
 }
 
 bool Image::create(const VkImageCreateInfo& imageInfo)
 {
     logicalDevice = Context::getLogicalDevice();
-    allocate(imageInfo);
+    return allocate(imageInfo);
 }
 
 bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage)

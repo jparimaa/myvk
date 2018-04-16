@@ -60,6 +60,7 @@ private:
     fw::CameraController cameraController;
 
     RenderObject skybox{};
+    RenderObject renderObject{};
 
     EnvironmentImages environmentImages;
     BRDFLUT brdfLut;
@@ -72,6 +73,7 @@ private:
     bool createSkyboxPipeline();
     bool createDescriptorPool();
     bool createSkybox();
+    bool createRenderObject();
     bool createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();
