@@ -10,7 +10,8 @@ SOURCES = \
 	EnvironmentImages.cpp \
 	Offscreen.cpp \
 	PipelineHelper.cpp \
-	BRDFLUT.cpp
+	BRDFLUT.cpp \
+	Skybox.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 SHADER_DIR = shaders/

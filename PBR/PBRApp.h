@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Helpers.h"
 #include "EnvironmentImages.h"
+#include "Skybox.h"
 #include "BRDFLUT.h"
 
 #include "../Framework/Application.h"
@@ -19,13 +21,6 @@
 class PBRApp : public fw::Application
 {
 public:
-    struct TransformMatrices
-    {
-        glm::mat4 world;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
     struct RenderObject
     {
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
@@ -59,7 +54,7 @@ private:
     fw::Camera camera;
     fw::CameraController cameraController;
 
-    RenderObject skybox{};
+    Skybox skybox;
     RenderObject renderObject{};
 
     EnvironmentImages environmentImages;
