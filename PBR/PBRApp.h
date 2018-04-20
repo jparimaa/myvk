@@ -4,6 +4,7 @@
 #include "EnvironmentImages.h"
 #include "Skybox.h"
 #include "BRDFLUT.h"
+#include "RenderObject.h"
 
 #include "../Framework/Application.h"
 #include "../Framework/Texture.h"
@@ -21,17 +22,6 @@
 class PBRApp : public fw::Application
 {
 public:
-    struct RenderObject
-    {
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-        fw::Transformation transformation;
-        fw::Buffer transformationBuffer;
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-    };
-
     PBRApp() {};
     virtual ~PBRApp();
     PBRApp(const PBRApp&) = delete;
@@ -55,7 +45,7 @@ private:
     fw::CameraController cameraController;
 
     Skybox skybox;
-    RenderObject renderObject{};
+    RenderObject renderObject;
 
     EnvironmentImages environmentImages;
     BRDFLUT brdfLut;
@@ -64,12 +54,6 @@ private:
     VkExtent2D extent;
 
     bool createRenderPass();
-    bool createDescriptorSetLayout();
-    bool createSkyboxPipeline();
     bool createDescriptorPool();
-    bool createSkybox();
-    bool createRenderObject();
-    bool createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     bool createCommandBuffers();
 };

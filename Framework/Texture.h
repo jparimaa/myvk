@@ -27,6 +27,7 @@ private:
     VkImageView imageView = VK_NULL_HANDLE;
 
     bool load(const std::string& filename, VkFormat format, int desiredChannels);
+    bool createImage(unsigned char* pixels, int width, int height, VkFormat format);
 };
 
 } // namespace fw

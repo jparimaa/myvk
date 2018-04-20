@@ -37,7 +37,7 @@ bool Texture::loadHDR(const std::string& filename)
 bool Texture::load(const unsigned char* data, unsigned int size)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, 0);
+    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, 4);
     if (!pixels) {
         printError("Failed to load texture from data");
         return false;
@@ -47,7 +47,7 @@ bool Texture::load(const unsigned char* data, unsigned int size)
             stbi_image_free(pixels);
         });
 
-    return true;
+    return createImage(pixels, texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM);
 }
 
 VkImageView Texture::getImageView() const
@@ -70,7 +70,13 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
             stbi_image_free(pixels);
         });
 
-    VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    return createImage(pixels, texWidth, texHeight, format);
+}
+
+bool Texture::createImage(unsigned char* pixels, int width, int height, VkFormat format)
+{
+    VkDeviceSize imageSize = width * height * 4;
     Buffer staging;
     VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -83,7 +89,7 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
     }
 
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (!image.create(texWidth, texHeight, format, 0, imageUsage, 1)) {
+    if (!image.create(width, height, format, 0, imageUsage, 1)) {
         return false;
     }
 
@@ -91,7 +97,7 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
         return false;
     }
 
-    staging.copyToImage(image.getHandle(), static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    staging.copyToImage(image.getHandle(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     if (!image.transitLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
         return false;
@@ -100,7 +106,6 @@ bool Texture::load(const std::string& filename, VkFormat format, int desiredChan
     if (!image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
         return false;
     }
-
     return true;
 }
 

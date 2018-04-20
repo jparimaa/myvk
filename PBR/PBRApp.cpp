@@ -32,9 +32,9 @@ bool PBRApp::initialize()
         fw::API::initializeSwapChain(renderPass) &&
         sampler.create(VK_COMPARE_OP_ALWAYS) &&
         createDescriptorPool() &&
-        createRenderObject() &&
         fw::API::initializeGUI(descriptorPool) &&
         skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView()) &&
+        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler()) &&
         createCommandBuffers();
 
     extent = fw::API::getSwapChainExtent();
@@ -50,6 +50,7 @@ void PBRApp::update()
 {
     cameraController.update();
     skybox.update(camera);
+    renderObject.update(camera);
 }
 
 void PBRApp::onGUI()
@@ -110,36 +111,6 @@ bool PBRApp::createRenderPass()
     return true;
 }
 
-bool PBRApp::createDescriptorSetLayout()
-{
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
-
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = fw::ui32size(bindings);
-    layoutInfo.pBindings = bindings.data();
-
-    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor set layout", &r);
-        return false;
-    }
-    return true;
-}
-
 bool PBRApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
@@ -160,33 +131,6 @@ bool PBRApp::createDescriptorPool()
         return false;
     }
     return true;
-}
-
-bool PBRApp::createRenderObject()
-{
-    fw::Model model;
-    if (!model.loadModel(assetsFolder + "DamagedHelmet.gltf")) {
-        return false;
-    }
-
-    const std::vector<unsigned char>& data = model.getTextureData(0);
-    renderObject.texture.load(data.data(), data.size());
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    if (meshes.size() != 1) {
-        fw::printError("Expected that render object has only one mesh");
-        return false;
-    }
-
-    const fw::Mesh& mesh = meshes[0];
-
-    bool success =
-        renderObject.vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
-        renderObject.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-    renderObject.numIndices = mesh.indices.size();
-
-    return success;
 }
 
 bool PBRApp::createCommandBuffers()
@@ -231,6 +175,7 @@ bool PBRApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        renderObject.render(cb);
         skybox.render(cb);
         vkCmdEndRenderPass(cb);
 
