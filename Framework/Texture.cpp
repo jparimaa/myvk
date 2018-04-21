@@ -20,7 +20,7 @@ namespace fw
 Texture::~Texture()
 {
     if (imageView != VK_NULL_HANDLE) {
-        vkDestroyImageView(logicalDevice, imageView, nullptr);
+        vkDestroyImageView(Context::getLogicalDevice(), imageView, nullptr);
     }
 }
 
@@ -37,7 +37,7 @@ bool Texture::loadHDR(const std::string& filename)
 bool Texture::load(const unsigned char* data, unsigned int size)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, 4);
+    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!pixels) {
         printError("Failed to load texture from data");
         return false;
@@ -57,8 +57,6 @@ VkImageView Texture::getImageView() const
 
 bool Texture::load(const std::string& filename, VkFormat format, int desiredChannels)
 {
-    logicalDevice = Context::getLogicalDevice();
-
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, desiredChannels);
     if (!pixels) {

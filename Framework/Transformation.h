@@ -13,6 +13,7 @@ public:
     void setPosition(const glm::vec3& pos);
     void setPosition(float x, float y, float z);
     void setRotation(const glm::vec3& rot);
+    void setRotation(float x, float y, float z);
 	void move(const glm::vec3& translation);
     void move(float x, float y, float z);
 	void rotate(const glm::vec3& axis, float amount);
@@ -26,7 +27,7 @@ public:
 
 	const glm::mat4x4& getWorldMatrix() const;
 
-private:    
+private:
 	glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);

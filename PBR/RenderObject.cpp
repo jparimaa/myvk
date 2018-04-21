@@ -31,7 +31,8 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
 void RenderObject::update(const fw::Camera& camera)
 {
     TransformMatrices matrices;
-    transformation.setPosition(0.0f, 0.0f, 0.0f);
+    transformation.setPosition(0.0f, 0.0f, -3.0f);
+    transformation.setRotation(1.57f, 0.7f, 0.0f);
     matrices.world = transformation.getWorldMatrix();
     matrices.view = camera.getViewMatrix();
     matrices.proj = camera.getProjectionMatrix();

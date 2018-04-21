@@ -22,7 +22,6 @@ public:
     VkImageView getImageView() const;
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
     Image image;
     VkImageView imageView = VK_NULL_HANDLE;
 
