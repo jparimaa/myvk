@@ -72,10 +72,14 @@ bool Device::getPhysicalDevice()
     for (VkPhysicalDevice device : devices) {
         if (isDeviceSuitable(device)) {
             physicalDevice = device;
-            return true;
+            break;
         }
     }
 
+     if (physicalDevice != VK_NULL_HANDLE) {
+         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+        return true;
+    }
     printError("Did not find a suitable GPU");
     return false;
 }
@@ -91,7 +95,7 @@ bool Device::createLogicalDevice()
     for (int queueFamily : uniqueQueueFamilies) {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;        
+        queueCreateInfo.queueFamilyIndex = queueFamily;
         queueCreateInfo.queueCount = 1;
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
@@ -127,7 +131,8 @@ bool Device::createLogicalDevice()
     Context::logicalDevice = logicalDevice;
     Context::graphicsQueue = graphicsQueue;
     Context::presentQueue = presentQueue;
-    
+    Context::physicalDeviceProperties = &physicalDeviceProperties;
+
     return true;
 }
 

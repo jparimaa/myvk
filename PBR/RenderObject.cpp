@@ -15,6 +15,14 @@ RenderObject::~RenderObject()
 
 bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
 {
+    textures =
+    {
+        {aiTextureType_DIFFUSE, {fw::Texture(), 1}},
+        {aiTextureType_EMISSIVE, {fw::Texture(), 2}},
+        {aiTextureType_NORMALS, {fw::Texture(), 3}},
+        {aiTextureType_LIGHTMAP, {fw::Texture(), 4}}
+    };
+
     renderPass = pass;
     descriptorPool = pool;
     sampler = textureSampler;
@@ -60,14 +68,19 @@ bool RenderObject::createDescriptorSetLayout()
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    std::vector<VkDescriptorSetLayoutBinding> bindings{ uboLayoutBinding };
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    for (const auto& kv : textures)
+    {
+        VkDescriptorSetLayoutBinding textureBinding{};
+        textureBinding.binding = kv.second.binding;
+        textureBinding.descriptorCount = 1;
+        textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        textureBinding.pImmutableSamplers = nullptr;
+        bindings.push_back(textureBinding);
+    }
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -163,20 +176,26 @@ bool RenderObject::createRenderObject()
     }
 
     const fw::Mesh& mesh = meshes[0];
-
-    if (!allocateDescriptorSet()) {
-        return false;
-    }
-
-    const std::vector<unsigned char>& textureData = model.getTextureData(0);
-    texture.load(textureData.data(), textureData.size());
+    numIndices = mesh.indices.size();
 
     success =
         vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-    numIndices = mesh.indices.size();
-    updateDescriptorSet(texture.getImageView());
+    if (!allocateDescriptorSet()) {
+        return false;
+    }
+
+    for (const auto& kv : textures) {
+        std::string indexStr = mesh.materials.at(kv.first).front();
+        indexStr = indexStr.substr(1);
+        int index = std::stoi(indexStr);
+        const std::vector<unsigned char>& textureData = model.getTextureData(index);
+        TextureBinding& t = textures[kv.first];
+        t.texture.load(textureData.data(), textureData.size());
+    }
+
+    updateDescriptorSet();
 
     return success;
 }
@@ -197,35 +216,49 @@ bool RenderObject::allocateDescriptorSet()
     return true;
 }
 
-void RenderObject::updateDescriptorSet(VkImageView imageView)
+void RenderObject::updateDescriptorSet()
 {
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = transformationBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = transformMatricesSize;
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = sampler;
+    VkWriteDescriptorSet bufferWrite{};
+    bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    bufferWrite.pNext = nullptr;
+    bufferWrite.dstSet = descriptorSet;
+    bufferWrite.dstBinding = 0;
+    bufferWrite.dstArrayElement = 0;
+    bufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bufferWrite.descriptorCount = 1;
+    bufferWrite.pBufferInfo = &bufferInfo;
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    vkUpdateDescriptorSets(logicalDevice, 1, &bufferWrite, 0, nullptr);
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    for (const auto& kv : textures)
+    {
+        VkImageView imageView = kv.second.texture.getImageView();
+        uint32_t binding = kv.second.binding;
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = imageView;
+        imageInfo.sampler = sampler;
 
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+        VkWriteDescriptorSet imageWrite{};
+        imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        imageWrite.pNext = nullptr;
+        imageWrite.dstSet = descriptorSet;
+        imageWrite.dstBinding = binding;
+        imageWrite.dstArrayElement = 0;
+        imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        imageWrite.descriptorCount = 1;
+        imageWrite.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
+    }
+
+    // Todo: for some reason could not create an array of
+    // VkWriteDescriptorSet and update all the bindings with a single
+    // vkUpdateDescriptorSets command
 }

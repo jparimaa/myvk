@@ -78,7 +78,7 @@ bool EnvironmentImages::initialize(const std::string& filename)
     VkPushConstantRange plainRange{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(plainPushConstants)};
     VkPushConstantRange irradianceRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(irradiancePushConstants)};
     VkPushConstantRange prefilterRange{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(prefilterPushConstants)};
-    
+
     createEnvironmentImage(defaultSize, plainRange, "plain", texture.getImageView(), Target::plain);
     createEnvironmentImage(irradianceSize, irradianceRange, "irradiance", plainImageView, Target::irradiance);
     createEnvironmentImage(defaultSize, prefilterRange, "prefilter", plainImageView, Target::prefilter);
@@ -115,11 +115,11 @@ bool EnvironmentImages::loadModel()
     }
 
     const fw::Mesh& mesh = meshes[0];
-        
+
     bool success =
         vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        
+
     numIndices = mesh.indices.size();
     return success;
 }
@@ -131,7 +131,7 @@ bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::I
     if (!image.create(size, size, format, flags, imageUsage, 6, mipLevels)) {
         return false;
     }
- 
+
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
@@ -142,7 +142,7 @@ bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::I
     viewInfo.subresourceRange.layerCount = 6;
     viewInfo.image = image.getHandle();
     if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
-        r != VK_SUCCESS) {        
+        r != VK_SUCCESS) {
         fw::printError("Failed to create an environment image view", &r);
         return false;
     }
@@ -189,7 +189,7 @@ bool EnvironmentImages::createRenderPass()
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
-    
+
     if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
         r != VK_SUCCESS) {
         fw::printError("Failed to create a environment image render pass", &r);
@@ -224,7 +224,7 @@ bool EnvironmentImages::createDescriptors()
     setLayoutBinding.descriptorCount = 1;
     setLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     setLayoutBinding.pImmutableSamplers = nullptr;
-    
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.pBindings = &setLayoutBinding;
@@ -255,7 +255,7 @@ bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConsta
 {
     std::string vertexShader = "environment_cube_vert.spv";
     std::string fragmentShader = shader + "_frag.spv";
-    
+
     Offscreen offscreen;
     PipelineHelper pipelineHelper;
     bool success =
@@ -309,7 +309,7 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
 {
     fw::Image& targetImage = getImageByTarget(target);
     uint32_t levelCount = getLevelCountByTarget(target);
-    
+
     VkClearValue clearValues;
     clearValues.color = {0.0f, 0.0f, 0.2f, 0.0f};
 
@@ -329,13 +329,13 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
     viewport.height = static_cast<float>(offscreen.getSize());
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    
+
     VkImageSubresourceRange cubeSubresourceRange{};
     cubeSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     cubeSubresourceRange.baseMipLevel = 0;
     cubeSubresourceRange.levelCount = levelCount;
     cubeSubresourceRange.layerCount = 6;
-    
+
     {
         // Change target cube map layout
         VkImageMemoryBarrier imageMemoryBarrier{};
@@ -354,16 +354,16 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
     for (uint32_t level = 0; level < levelCount; ++level) {
         viewport.width = static_cast<float>(offscreen.getSize() * std::pow(0.5f, level));
         viewport.height = static_cast<float>(offscreen.getSize() * std::pow(0.5f, level));
-            
+
         for (uint32_t face = 0; face < 6; ++face) {
-            vkCmdSetViewport(cmd, 0, 1, &viewport);                    
+            vkCmdSetViewport(cmd, 0, 1, &viewport);
             vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             VkPipelineLayout layout = pipelineHelper.getPipelineLayout();
             VkShaderStageFlags stage = pipelineHelper.getPushConstantRange().stageFlags;
             uint32_t size = pipelineHelper.getPushConstantRange().size;
             void* data;
-            
+
             switch (target) {
             case Target::plain:
                 plainPushConstants.mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * viewMatrices[face];
@@ -391,7 +391,7 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(cmd, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cmd, indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdDrawIndexed(cmd, numIndices, 1, 0, 0, 0);        
+            vkCmdDrawIndexed(cmd, numIndices, 1, 0, 0, 0);
             vkCmdEndRenderPass(cmd);
 
             // Transfer rendered output
@@ -401,7 +401,7 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
                 subresourceRange.baseMipLevel = 0;
                 subresourceRange.levelCount = 1;
                 subresourceRange.layerCount = 1;
-        
+
                 VkImageMemoryBarrier imageMemoryBarrier{};
                 imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
                 imageMemoryBarrier.image = offscreen.getImageHandle();
@@ -425,7 +425,7 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
             copyRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             copyRegion.dstSubresource.baseArrayLayer = face;
             copyRegion.dstSubresource.layerCount = 1;
-            copyRegion.dstSubresource.mipLevel = level;            
+            copyRegion.dstSubresource.mipLevel = level;
             copyRegion.dstOffset = { 0, 0, 0 };
             copyRegion.extent.width = static_cast<uint32_t>(viewport.width);
             copyRegion.extent.height = static_cast<uint32_t>(viewport.height);
@@ -436,15 +436,15 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
             vkCmdCopyImage(cmd, offscreen.getImageHandle(), srcLayout, targetImage.getHandle(), dstLayout, 1, &copyRegion);
         }
     }
-    
-    fw::Command::endSingleTimeCommands(cmd);    
+
+    fw::Command::endSingleTimeCommands(cmd);
 }
 
 void EnvironmentImages::changeLayoutToShaderRead(Target target)
 {
     fw::Image& targetImage = getImageByTarget(target);
     uint32_t levelCount = getLevelCountByTarget(target);
-    
+
     VkCommandBuffer cmd = fw::Command::beginSingleTimeCommands();
 
     VkImageSubresourceRange cubeSubresourceRange{};
@@ -452,7 +452,7 @@ void EnvironmentImages::changeLayoutToShaderRead(Target target)
     cubeSubresourceRange.baseMipLevel = 0;
     cubeSubresourceRange.levelCount = levelCount;
     cubeSubresourceRange.layerCount = 6;
-    
+
     // Change cube map layout back
     VkImageMemoryBarrier imageMemoryBarrier{};
     imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

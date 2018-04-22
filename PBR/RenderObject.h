@@ -9,6 +9,9 @@
 #include "../Framework/Texture.h"
 
 #include <vulkan/vulkan.h>
+#include <assimp/material.h>
+
+#include <unordered_map>
 
 class RenderObject
 {
@@ -25,6 +28,12 @@ public:
     void render(VkCommandBuffer cb);
 
 private:
+    struct TextureBinding
+    {
+        fw::Texture texture;
+        uint32_t binding;
+    };
+
     VkDevice logicalDevice = VK_NULL_HANDLE;
 
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -38,8 +47,8 @@ private:
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
-    uint32_t numIndices;
-    fw::Texture texture;
+    uint32_t numIndices = 0;
+    std::unordered_map<aiTextureType, TextureBinding> textures;
     fw::Transformation transformation;
     fw::Buffer transformationBuffer;
 
@@ -47,5 +56,5 @@ private:
     bool createPipeline();
     bool createRenderObject();
     bool allocateDescriptorSet();
-    void updateDescriptorSet(VkImageView imageView);
+    void updateDescriptorSet();
 };

@@ -9,6 +9,7 @@ VkPhysicalDevice Context::physicalDevice = VK_NULL_HANDLE;
 VkDevice Context::logicalDevice = VK_NULL_HANDLE;
 VkQueue Context::graphicsQueue = VK_NULL_HANDLE;
 VkQueue Context::presentQueue = VK_NULL_HANDLE;
+VkPhysicalDeviceProperties* Context::physicalDeviceProperties = nullptr;
 
 VkInstance Context::getInstance()
 {
@@ -38,6 +39,11 @@ VkQueue Context::getGraphicsQueue()
 VkQueue Context::getPresentQueue()
 {
     return presentQueue;
+}
+
+VkPhysicalDeviceProperties* Context::getPhysicalDeviceProperties()
+{
+    return physicalDeviceProperties;
 }
 
 } // namespace fw

@@ -13,7 +13,7 @@ public:
     friend class Instance;
     friend class Window;
     friend class Device;
-    
+
     Context() = delete;
     static VkInstance getInstance();
     static VkSurfaceKHR getSurface();
@@ -21,6 +21,7 @@ public:
     static VkDevice getLogicalDevice();
     static VkQueue getGraphicsQueue();
     static VkQueue getPresentQueue();
+    static VkPhysicalDeviceProperties* getPhysicalDeviceProperties();
 
 private:
     static VkInstance instance;
@@ -29,6 +30,7 @@ private:
     static VkDevice logicalDevice;
     static VkQueue graphicsQueue;
     static VkQueue presentQueue;
+    static VkPhysicalDeviceProperties* physicalDeviceProperties;
 };
 
 } // namespace fw

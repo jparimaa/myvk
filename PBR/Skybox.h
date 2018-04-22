@@ -40,7 +40,7 @@ private:
     fw::Buffer transformationBuffer;
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
-    uint32_t numIndices;
+    uint32_t numIndices = 0;
 
     bool createDescriptorSetLayout();
     bool createPipeline();
