@@ -13,7 +13,7 @@ RenderObject::~RenderObject()
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 }
 
-bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
+bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler, VkImageView irradiance, VkImageView prefilter)
 {
     textures =
     {
@@ -21,6 +21,12 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
         {aiTextureType_EMISSIVE, {fw::Texture(), 2}},
         {aiTextureType_NORMALS, {fw::Texture(), 3}},
         {aiTextureType_LIGHTMAP, {fw::Texture(), 4}}
+    };
+
+    cubes =
+    {
+        {5, irradiance},
+        {6, prefilter}
     };
 
     renderPass = pass;
@@ -74,6 +80,17 @@ bool RenderObject::createDescriptorSetLayout()
     {
         VkDescriptorSetLayoutBinding textureBinding{};
         textureBinding.binding = kv.second.binding;
+        textureBinding.descriptorCount = 1;
+        textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        textureBinding.pImmutableSamplers = nullptr;
+        bindings.push_back(textureBinding);
+    }
+
+    for (const auto& kv : cubes)
+    {
+        VkDescriptorSetLayoutBinding textureBinding{};
+        textureBinding.binding = kv.first;
         textureBinding.descriptorCount = 1;
         textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -239,6 +256,29 @@ void RenderObject::updateDescriptorSet()
     {
         VkImageView imageView = kv.second.texture.getImageView();
         uint32_t binding = kv.second.binding;
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = imageView;
+        imageInfo.sampler = sampler;
+
+        VkWriteDescriptorSet imageWrite{};
+        imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        imageWrite.pNext = nullptr;
+        imageWrite.dstSet = descriptorSet;
+        imageWrite.dstBinding = binding;
+        imageWrite.dstArrayElement = 0;
+        imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        imageWrite.descriptorCount = 1;
+        imageWrite.pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
+    }
+
+    for (const auto& kv : cubes)
+    {
+        VkImageView imageView = kv.second;
+        uint32_t binding = kv.first;
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

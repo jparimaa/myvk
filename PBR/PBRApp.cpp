@@ -34,7 +34,7 @@ bool PBRApp::initialize()
         createDescriptorPool() &&
         fw::API::initializeGUI(descriptorPool) &&
         skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView()) &&
-        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler()) &&
+        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getIrradianceImageView(), environmentImages.getPrefilterImageView()) &&
         createCommandBuffers();
 
     extent = fw::API::getSwapChainExtent();

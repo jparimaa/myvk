@@ -245,6 +245,8 @@ void BRDFLUT::render()
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdSetScissor(cmd, 0, 1, &scissor);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    // https://www.saschawillems.de/?page_id=2122
+    // Vulkan tip: Rendering a fullscreen quad* without buffers
     vkCmdDraw(cmd, 3, 1, 0, 0);
     vkCmdEndRenderPass(cmd);
 

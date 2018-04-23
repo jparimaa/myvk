@@ -2,6 +2,8 @@
 
 layout (location = 0) out vec2 outUV;
 
+// https://www.saschawillems.de/?page_id=2122
+// Vulkan tip: Rendering a fullscreen quad* without buffers
 void main()
 {
 	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);

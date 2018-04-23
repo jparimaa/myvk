@@ -23,7 +23,7 @@ public:
     RenderObject& operator=(const RenderObject&) = delete;
     RenderObject& operator=(RenderObject&&) = delete;
 
-    bool initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler);
+    bool initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler, VkImageView irradiance, VkImageView prefilter);
     void update(const fw::Camera& camera);
     void render(VkCommandBuffer cb);
 
@@ -49,6 +49,7 @@ private:
     fw::Buffer indexBuffer;
     uint32_t numIndices = 0;
     std::unordered_map<aiTextureType, TextureBinding> textures;
+    std::unordered_map<uint32_t, VkImageView> cubes;
     fw::Transformation transformation;
     fw::Buffer transformationBuffer;
 
