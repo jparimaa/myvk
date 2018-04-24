@@ -17,17 +17,18 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
 {
     textures =
     {
-        {aiTextureType_DIFFUSE, {fw::Texture(), 1}},
-        {aiTextureType_EMISSIVE, {fw::Texture(), 2}},
-        {aiTextureType_NORMALS, {fw::Texture(), 3}},
-        {aiTextureType_LIGHTMAP, {fw::Texture(), 4}}
+        {aiTextureType_DIFFUSE, fw::Texture(), 1, VK_NULL_HANDLE},
+        {aiTextureType_DIFFUSE, fw::Texture(), 2, VK_NULL_HANDLE},
+        {aiTextureType_EMISSIVE, fw::Texture(), 3, VK_NULL_HANDLE},
+        {aiTextureType_NORMALS, fw::Texture(), 4, VK_NULL_HANDLE},
+        {aiTextureType_LIGHTMAP, fw::Texture(), 5, VK_NULL_HANDLE}
     };
 
     images =
     {
-        {5, VK_NULL_HANDLE}, // irradiance
-        {6, VK_NULL_HANDLE}, // prefilter
-        {7, VK_NULL_HANDLE}  // brdf
+        {aiTextureType_UNKNOWN, fw::Texture(), 6, VK_NULL_HANDLE}, // irradiance
+        {aiTextureType_UNKNOWN, fw::Texture(), 7, VK_NULL_HANDLE}, // prefilter
+        {aiTextureType_UNKNOWN, fw::Texture(), 8, VK_NULL_HANDLE}  // brdf
     };
 
     renderPass = pass;
@@ -45,9 +46,9 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
 
 void RenderObject::setImages(VkImageView irradiance, VkImageView prefilter, VkImageView brdf)
 {
-    images[5] = irradiance;
-    images[6] = prefilter;
-    images[7] = brdf;
+    images[0].imageView = irradiance;
+    images[1].imageView = prefilter;
+    images[2].imageView = brdf;
 
     updateDescriptorSet();
 }
@@ -86,10 +87,10 @@ bool RenderObject::createDescriptorSetLayout()
 
     std::vector<VkDescriptorSetLayoutBinding> bindings{ uboLayoutBinding };
 
-    for (const auto& kv : textures)
+    for (const TextureInfo& info : textures)
     {
         VkDescriptorSetLayoutBinding textureBinding{};
-        textureBinding.binding = kv.second.binding;
+        textureBinding.binding = info.binding;
         textureBinding.descriptorCount = 1;
         textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -97,10 +98,10 @@ bool RenderObject::createDescriptorSetLayout()
         bindings.push_back(textureBinding);
     }
 
-    for (const auto& kv : images)
+    for (const TextureInfo& info : images)
     {
         VkDescriptorSetLayoutBinding textureBinding{};
-        textureBinding.binding = kv.first;
+        textureBinding.binding = info.binding;
         textureBinding.descriptorCount = 1;
         textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -213,13 +214,20 @@ bool RenderObject::createRenderObject()
         return false;
     }
 
-    for (const auto& kv : textures) {
-        std::string indexStr = mesh.materials.at(kv.first).front();
-        indexStr = indexStr.substr(1);
-        int index = std::stoi(indexStr);
-        const std::vector<unsigned char>& textureData = model.getTextureData(index);
-        TextureBinding& t = textures[kv.first];
-        t.texture.load(textureData.data(), textureData.size());
+    for (const auto& kv : mesh.materials) {
+        for (unsigned int i = 0; i < kv.second.size(); ++i) {
+            std::string indexStr = kv.second[i];
+            indexStr = indexStr.substr(1);
+            int index = std::stoi(indexStr);
+            const std::vector<unsigned char>& textureData = model.getTextureData(index + i);
+            for (TextureInfo& info : textures) {
+                if (info.imageView == VK_NULL_HANDLE && info.type == kv.first) {
+                    info.texture.load(textureData.data(), textureData.size());
+                    info.imageView = info.texture.getImageView();
+                    break;
+                }
+            }
+        }
     }
 
     return success;
@@ -260,21 +268,18 @@ void RenderObject::updateDescriptorSet()
 
     vkUpdateDescriptorSets(logicalDevice, 1, &bufferWrite, 0, nullptr);
 
-    for (const auto& kv : textures)
+    for (const TextureInfo& texture : textures)
     {
-        VkImageView imageView = kv.second.texture.getImageView();
-        uint32_t binding = kv.second.binding;
-
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = imageView;
+        imageInfo.imageView = texture.imageView;
         imageInfo.sampler = sampler;
 
         VkWriteDescriptorSet imageWrite{};
         imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         imageWrite.pNext = nullptr;
         imageWrite.dstSet = descriptorSet;
-        imageWrite.dstBinding = binding;
+        imageWrite.dstBinding = texture.binding;
         imageWrite.dstArrayElement = 0;
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         imageWrite.descriptorCount = 1;
@@ -283,21 +288,18 @@ void RenderObject::updateDescriptorSet()
         vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
     }
 
-    for (const auto& kv : images)
+    for (const TextureInfo& image : images)
     {
-        VkImageView imageView = kv.second;
-        uint32_t binding = kv.first;
-
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = imageView;
+        imageInfo.imageView = image.imageView;
         imageInfo.sampler = sampler;
 
         VkWriteDescriptorSet imageWrite{};
         imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         imageWrite.pNext = nullptr;
         imageWrite.dstSet = descriptorSet;
-        imageWrite.dstBinding = binding;
+        imageWrite.dstBinding = image.binding;
         imageWrite.dstArrayElement = 0;
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         imageWrite.descriptorCount = 1;

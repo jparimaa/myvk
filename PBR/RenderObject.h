@@ -29,10 +29,12 @@ public:
     void render(VkCommandBuffer cb);
 
 private:
-    struct TextureBinding
+    struct TextureInfo
     {
+        aiTextureType type;
         fw::Texture texture;
         uint32_t binding;
+        VkImageView imageView;
     };
 
     VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -49,8 +51,8 @@ private:
     fw::Buffer vertexBuffer;
     fw::Buffer indexBuffer;
     uint32_t numIndices = 0;
-    std::unordered_map<aiTextureType, TextureBinding> textures;
-    std::unordered_map<uint32_t, VkImageView> images;
+    std::vector<TextureInfo> textures;
+    std::vector<TextureInfo> images;
 
     fw::Transformation transformation;
     fw::Buffer transformationBuffer;
