@@ -13,7 +13,7 @@ RenderObject::~RenderObject()
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 }
 
-bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler, VkImageView irradiance, VkImageView prefilter)
+bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
 {
     textures =
     {
@@ -23,10 +23,11 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
         {aiTextureType_LIGHTMAP, {fw::Texture(), 4}}
     };
 
-    cubes =
+    images =
     {
-        {5, irradiance},
-        {6, prefilter}
+        {5, VK_NULL_HANDLE}, // irradiance
+        {6, VK_NULL_HANDLE}, // prefilter
+        {7, VK_NULL_HANDLE}  // brdf
     };
 
     renderPass = pass;
@@ -40,6 +41,15 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
         createRenderObject();
 
     return success;
+}
+
+void RenderObject::setImages(VkImageView irradiance, VkImageView prefilter, VkImageView brdf)
+{
+    images[5] = irradiance;
+    images[6] = prefilter;
+    images[7] = brdf;
+
+    updateDescriptorSet();
 }
 
 void RenderObject::update(const fw::Camera& camera)
@@ -87,7 +97,7 @@ bool RenderObject::createDescriptorSetLayout()
         bindings.push_back(textureBinding);
     }
 
-    for (const auto& kv : cubes)
+    for (const auto& kv : images)
     {
         VkDescriptorSetLayoutBinding textureBinding{};
         textureBinding.binding = kv.first;
@@ -212,8 +222,6 @@ bool RenderObject::createRenderObject()
         t.texture.load(textureData.data(), textureData.size());
     }
 
-    updateDescriptorSet();
-
     return success;
 }
 
@@ -275,7 +283,7 @@ void RenderObject::updateDescriptorSet()
         vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
     }
 
-    for (const auto& kv : cubes)
+    for (const auto& kv : images)
     {
         VkImageView imageView = kv.second;
         uint32_t binding = kv.first;

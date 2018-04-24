@@ -34,14 +34,20 @@ bool PBRApp::initialize()
         createDescriptorPool() &&
         fw::API::initializeGUI(descriptorPool) &&
         skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView()) &&
-        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getIrradianceImageView(), environmentImages.getPrefilterImageView()) &&
-        createCommandBuffers();
+        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler());
 
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
     glm::vec3 initPos(0.0f, 0.0f, 0.0f);
     cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     camera.setPosition(initPos);
+
+    VkImageView irradiance = environmentImages.getIrradianceImageView();
+    VkImageView prefilter = environmentImages.getPrefilterImageView();
+    VkImageView brdf = brdfLut.getImageView();
+    renderObject.setImages(irradiance, prefilter, brdf);
+
+    success = success && createCommandBuffers();
 
     return success;
 }
