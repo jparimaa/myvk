@@ -13,15 +13,18 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inTexCoord;
 
-layout(location = 0) out vec3 modelPosition;
-layout(location = 1) out vec2 texCoord;
+layout(location = 0) out vec3 outWorldPosition;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec2 outTexCoord;
 
 out gl_PerVertex {
     vec4 gl_Position;
 };
 
-void main() {
-    modelPosition = inPosition;
+void main()
+{
+    outWorldPosition = vec3(ubo.world * vec4(inPosition, 1.0));
+    outNormal = mat3(ubo.world) * inNormal;
+    outTexCoord = inTexCoord;
     gl_Position = ubo.proj * ubo.view * ubo.world * vec4(inPosition, 1.0);
-    texCoord = inTexCoord;
 }
