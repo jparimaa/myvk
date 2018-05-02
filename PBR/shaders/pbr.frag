@@ -110,9 +110,27 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
 	return color;
 }
 
+// See http://www.thetenthplanet.de/archives/1180
+vec3 perturbNormal()
+{
+	vec3 tangentNormal = texture(normals, texCoord).xyz * 2.0 - 1.0;
+
+	vec3 q1 = dFdx(worldPosition);
+	vec3 q2 = dFdy(worldPosition);
+	vec2 st1 = dFdx(texCoord);
+	vec2 st2 = dFdy(texCoord);
+
+	vec3 N = normalize(normal);
+	vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+	vec3 B = -normalize(cross(N, T));
+	mat3 TBN = mat3(T, B, N);
+
+	return normalize(TBN * tangentNormal);
+}
+
 void main()
 {
-	vec3 N = normalize(normal);
+	vec3 N = perturbNormal();
 	vec3 V = normalize(ubo.cameraPosition - worldPosition);
 	vec3 R = reflect(-V, N);
 
