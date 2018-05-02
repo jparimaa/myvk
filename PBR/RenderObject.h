@@ -37,6 +37,12 @@ private:
         VkImageView imageView;
     };
 
+    struct UniformData
+    {
+        TransformMatrices transformationMatrices;
+        glm::vec3 cameraPosition;
+    };
+
     VkDevice logicalDevice = VK_NULL_HANDLE;
 
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -55,7 +61,8 @@ private:
     std::vector<TextureInfo> images;
 
     fw::Transformation transformation;
-    fw::Buffer transformationBuffer;
+    UniformData uniformData;
+    fw::Buffer uniformBuffer;
 
     bool createDescriptorSetLayout();
     bool createPipeline();

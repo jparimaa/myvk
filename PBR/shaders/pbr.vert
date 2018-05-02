@@ -5,6 +5,7 @@ layout(set = 0, binding = 0) uniform TransformationMatrices {
     mat4 world;
     mat4 view;
     mat4 proj;
+    vec3 cameraPosition;
 }
 ubo;
 

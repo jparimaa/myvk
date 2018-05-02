@@ -61,7 +61,9 @@ void RenderObject::update(const fw::Camera& camera)
     matrices.world = transformation.getWorldMatrix();
     matrices.view = camera.getViewMatrix();
     matrices.proj = camera.getProjectionMatrix();
-    transformationBuffer.setData(sizeof(matrices), &matrices);
+    uniformData.transformationMatrices = matrices;
+    uniformData.cameraPosition = camera.getTransformation().getPosition();
+    uniformBuffer.setData(sizeof(uniformData), &uniformData);
 }
 
 void RenderObject::render(VkCommandBuffer cb)
@@ -82,7 +84,7 @@ bool RenderObject::createDescriptorSetLayout()
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
 
     std::vector<VkDescriptorSetLayoutBinding> bindings{ uboLayoutBinding };
@@ -190,7 +192,7 @@ bool RenderObject::createPipeline()
 bool RenderObject::createRenderObject()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    bool success = transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    bool success = uniformBuffer.create(sizeof(uniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
     fw::Model model;
     if (!model.loadModel(assetsFolder + "DamagedHelmet.gltf")) {
@@ -252,9 +254,9 @@ bool RenderObject::allocateDescriptorSet()
 void RenderObject::updateDescriptorSet()
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = transformationBuffer.getBuffer();
+    bufferInfo.buffer = uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
-    bufferInfo.range = transformMatricesSize;
+    bufferInfo.range = sizeof(uniformData);
 
     VkWriteDescriptorSet bufferWrite{};
     bufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

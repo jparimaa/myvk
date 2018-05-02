@@ -1,6 +1,13 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout(set = 0, binding = 0) uniform TransformationMatrices {
+    mat4 world;
+    mat4 view;
+    mat4 proj;
+    vec3 cameraPosition;
+}
+ubo;
 layout(set = 0, binding = 1) uniform sampler2D albedo;
 layout(set = 0, binding = 2) uniform sampler2D metallic;
 layout(set = 0, binding = 3) uniform sampler2D emissive;
