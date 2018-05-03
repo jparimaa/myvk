@@ -26,7 +26,7 @@ bool PBRApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
     bool success =
-        environmentImages.initialize(assetsFolder + "Factory_Catwalk_2k.hdr") &&
+        environmentImages.initialize(assetsFolder + "Factory_Catwalk_Bg.jpg") &&
         brdfLut.initialize() &&
         createRenderPass() &&
         fw::API::initializeSwapChain(renderPass) &&

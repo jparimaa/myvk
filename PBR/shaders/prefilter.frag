@@ -2,7 +2,7 @@
 
 layout(binding = 0) uniform samplerCube samplerEnv;
 
-layout(location = 0) in vec3 worldPos;
+layout(location = 0) in vec3 pos;
 
 layout(location = 0) out vec4 outColor;
 
@@ -94,6 +94,6 @@ vec3 prefilterEnvMap(vec3 R, float roughness) {
 }
 
 void main() {
-    vec3 N = normalize(worldPos);
+    vec3 N = normalize(pos);
     outColor = vec4(prefilterEnvMap(N, consts.roughness), 1.0);
 }

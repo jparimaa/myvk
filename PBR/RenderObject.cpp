@@ -56,8 +56,9 @@ void RenderObject::setImages(VkImageView irradiance, VkImageView prefilter, VkIm
 void RenderObject::update(const fw::Camera& camera)
 {
     TransformMatrices matrices;
+    rotation += 0.0003f;
     transformation.setPosition(0.0f, 0.0f, -3.0f);
-    transformation.setRotation(1.57f, 0.7f, 0.0f);
+    transformation.setRotation(1.57f, 0.7f + rotation, 0.0f);
     matrices.world = transformation.getWorldMatrix();
     matrices.view = camera.getViewMatrix();
     matrices.proj = camera.getProjectionMatrix();

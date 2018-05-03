@@ -64,6 +64,8 @@ private:
     UniformData uniformData;
     fw::Buffer uniformBuffer;
 
+    float rotation = 0.0f;
+
     bool createDescriptorSetLayout();
     bool createPipeline();
     bool createRenderObject();

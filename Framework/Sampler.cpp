@@ -32,7 +32,7 @@ bool Sampler::create(VkCompareOp compareOp)
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
+    samplerInfo.maxLod = 512.0f;
 
     if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &sampler);
         r != VK_SUCCESS) {
@@ -48,5 +48,3 @@ VkSampler Sampler::getSampler() const
 }
 
 } // namespace fw
-
-

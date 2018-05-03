@@ -14,6 +14,7 @@ public:
     void setPosition(float x, float y, float z);
     void setRotation(const glm::vec3& rot);
     void setRotation(float x, float y, float z);
+    void setScale(float s);
 	void move(const glm::vec3& translation);
     void move(float x, float y, float z);
 	void rotate(const glm::vec3& axis, float amount);

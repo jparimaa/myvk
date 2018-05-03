@@ -31,6 +31,14 @@ void Transformation::setRotation(float x, float y, float z)
     updateWorldMatrix();
 }
 
+void Transformation::setScale(float s)
+{
+    scale.x = s;
+    scale.y = s;
+    scale.z = s;
+    updateWorldMatrix();
+}
+
 void Transformation::move(const glm::vec3& translation)
 {
 	position += translation;

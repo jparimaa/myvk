@@ -8,13 +8,13 @@ layout(push_constant) uniform PushConsts {
 }
 pushConsts;
 
-layout(location = 0) out vec3 worldPos;
+layout(location = 0) out vec3 pos;
 
 out gl_PerVertex {
     vec4 gl_Position;
 };
 
 void main() {
-    worldPos = inPosition;
+    pos = inPosition;
     gl_Position = pushConsts.mvp * vec4(inPosition, 1.0);
 }
