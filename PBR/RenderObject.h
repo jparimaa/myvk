@@ -11,8 +11,6 @@
 #include <vulkan/vulkan.h>
 #include <assimp/material.h>
 
-#include <unordered_map>
-
 class RenderObject
 {
 public:

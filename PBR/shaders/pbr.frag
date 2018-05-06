@@ -1,33 +1,36 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform TransformationMatrices {
+layout(set = 0, binding = 0) uniform TransformationMatrices
+{
     mat4 world;
     mat4 view;
     mat4 proj;
     vec3 cameraPosition;
 }
 ubo;
+
 layout(set = 0, binding = 1) uniform sampler2D albedo;
 layout(set = 0, binding = 2) uniform sampler2D metallicRoughness;
 layout(set = 0, binding = 3) uniform sampler2D emissive;
-layout(set = 0, binding = 4) uniform sampler2D normals;
-layout(set = 0, binding = 5) uniform sampler2D lightmap;
+layout(set = 0, binding = 4) uniform sampler2D normal;
+layout(set = 0, binding = 5) uniform sampler2D ao;
 layout(set = 0, binding = 6) uniform samplerCube irradiance;
 layout(set = 0, binding = 7) uniform samplerCube prefilter;
 layout(set = 0, binding = 8) uniform sampler2D brdfLut;
 
-layout(location = 0) in vec3 worldPosition;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec2 texCoord;
+layout(location = 0) in vec3 inPos;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUv;
 
 layout(location = 0) out vec4 outColor;
 
-#define PI 3.1415926535897932384626433832795
-#define ALBEDO pow(texture(albedo, texCoord).rgb, vec3(2.2))
-#define LIGHT_DIR vec3(0.0, -0.5, -0.5)
-#define EXPOSURE 4.5
-#define GAMMA 2.2
+const float PI = 3.1415926536;
+const vec3 LIGHT_DIR = vec3(0.0, -0.5, -0.5);
+const float EXPOSURE = 4.5;
+const float GAMMA = 2.2;
+
+#define ALBEDO pow(texture(albedo, inUv).rgb, vec3(2.2))
 
 // From http://filmicworlds.com/blog/filmic-tonemapping-operators/
 vec3 Uncharted2Tonemap(vec3 x)
@@ -113,14 +116,14 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
 // See http://www.thetenthplanet.de/archives/1180
 vec3 perturbNormal()
 {
-	vec3 tangentNormal = texture(normals, texCoord).xyz * 2.0 - 1.0;
+	vec3 tangentNormal = texture(normal, inUv).xyz * 2.0 - 1.0;
 
-	vec3 q1 = dFdx(worldPosition);
-	vec3 q2 = dFdy(worldPosition);
-	vec2 st1 = dFdx(texCoord);
-	vec2 st2 = dFdy(texCoord);
+	vec3 q1 = dFdx(inPos);
+	vec3 q2 = dFdy(inPos);
+	vec2 st1 = dFdx(inUv);
+	vec2 st2 = dFdy(inUv);
 
-	vec3 N = normalize(normal);
+	vec3 N = normalize(inNormal);
 	vec3 T = normalize(q1 * st2.t - q2 * st1.t);
 	vec3 B = -normalize(cross(N, T));
 	mat3 TBN = mat3(T, B, N);
@@ -131,11 +134,11 @@ vec3 perturbNormal()
 void main()
 {
 	vec3 N = perturbNormal();
-	vec3 V = normalize(ubo.cameraPosition - worldPosition);
+	vec3 V = normalize(ubo.cameraPosition - inPos);
 	vec3 R = reflect(-V, N);
 
-	float metallic = texture(metallicRoughness, texCoord).b;
-	float roughness = texture(metallicRoughness, texCoord).g;
+	float metallic = texture(metallicRoughness, inUv).b;
+	float roughness = texture(metallicRoughness, inUv).g;
 
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, ALBEDO, metallic);
@@ -158,7 +161,7 @@ void main()
 	// Ambient part
 	vec3 kD = 1.0 - F;
 	kD *= 1.0 - metallic;
-	float ao = texture(lightmap, texCoord).r;
+	float ao = texture(ao, inUv).r;
 	vec3 ambient = (kD * diffuse + specular) * ao;
 	vec3 color = ambient + Lo;
 
@@ -168,7 +171,7 @@ void main()
 	// Gamma correction
 	color = pow(color, vec3(1.0f / GAMMA));
 
-    vec3 emissive = texture(emissive, texCoord).rgb;
+    vec3 emissive = texture(emissive, inUv).rgb;
     color += emissive;
 
 	outColor = vec4(color, 1.0);

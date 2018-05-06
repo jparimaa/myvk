@@ -1,9 +1,9 @@
 #version 450
 
-layout (location = 0) in vec2 inUV;
+layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
-layout (constant_id = 0) const uint NUM_SAMPLES = 1024u;
 
+const uint NUM_SAMPLES = 1024u;
 const float PI = 3.1415926536;
 
 // Based omn http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/
@@ -86,5 +86,5 @@ vec2 BRDF(float NoV, float roughness)
 
 void main()
 {
-	outColor = vec4(BRDF(inUV.s, 1.0-inUV.t), 0.0, 1.0);
+	outColor = vec4(BRDF(inUv.s, 1.0-inUv.t), 0.0, 1.0);
 }
