@@ -16,11 +16,11 @@ PipelineHelper::~PipelineHelper()
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
 }
 
-bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange pushConstRange, const std::string& vertexShader, const std::string& fragmentShader)
+void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange pushConstRange, const std::string& vertexShader, const std::string& fragmentShader)
 {
     logicalDevice = fw::Context::getLogicalDevice();
     pushConstantRange = pushConstRange;
-    
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -52,12 +52,12 @@ bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    
+
     VkVertexInputBindingDescription vertexBinding{};
     vertexBinding.binding = 0;
     vertexBinding.stride = sizeof(glm::vec3);
     vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    
+
     VkVertexInputAttributeDescription vertexAttribute{};
     vertexAttribute.binding = 0;
     vertexAttribute.location = 0;
@@ -79,10 +79,8 @@ bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
         fw::Pipeline::getShaderStageInfos(vertexShader, fragmentShader);
-    
-    if (shaderStages.empty()) {
-        return false;
-    }
+
+    CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
             for (const auto& info : shaderStages) {
@@ -105,9 +103,7 @@ bool PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     pipelineInfo.stageCount = fw::ui32size(shaderStages);
     pipelineInfo.pStages = shaderStages.data();
 
-    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));   
-
-    return true;
+    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 }
 
 VkPipeline PipelineHelper::getPipeline() const

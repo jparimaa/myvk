@@ -51,24 +51,19 @@ EnvironmentImages::~EnvironmentImages()
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 }
 
-bool EnvironmentImages::initialize(const std::string& filename)
+void EnvironmentImages::initialize(const std::string& filename)
 {
     logicalDevice = fw::Context::getLogicalDevice();
     prefilterLevelCount = static_cast<uint32_t>(floor(log2(defaultSize))) + 1;
 
-    bool success =
-        texture.load(filename) &&
-        loadModel() &&
-        sampler.create(VK_COMPARE_OP_NEVER) &&
-        createCubeImage(defaultSize, prefilterLevelCount, plainImage, plainImageView) &&
-        createCubeImage(irradianceSize, 1, irradianceImage, irradianceImageView) &&
-        createCubeImage(defaultSize, prefilterLevelCount, prefilterImage, prefilterImageView) &&
-        createRenderPass() &&
-        createDescriptors();
-
-    if (!success) {
-        return false;
-    }
+    texture.load(filename);
+    loadModel();
+    sampler.create(VK_COMPARE_OP_NEVER);
+    createCubeImage(defaultSize, prefilterLevelCount, plainImage, plainImageView);
+    createCubeImage(irradianceSize, 1, irradianceImage, irradianceImageView);
+    createCubeImage(defaultSize, prefilterLevelCount, prefilterImage, prefilterImageView);
+    createRenderPass();
+    createDescriptors();
 
     Offscreen::renderPass = renderPass;
     Offscreen::format = format;
@@ -82,8 +77,6 @@ bool EnvironmentImages::initialize(const std::string& filename)
     createEnvironmentImage(defaultSize, plainRange, "plain", texture.getImageView(), Target::plain);
     createEnvironmentImage(irradianceSize, irradianceRange, "irradiance", plainImageView, Target::irradiance);
     createEnvironmentImage(defaultSize, prefilterRange, "prefilter", plainImageView, Target::prefilter);
-
-    return true;
 }
 
 VkImageView EnvironmentImages::getPlainImageView() const
@@ -101,18 +94,13 @@ VkImageView EnvironmentImages::getPrefilterImageView() const
     return prefilterImageView;
 }
 
-bool EnvironmentImages::loadModel()
+void EnvironmentImages::loadModel()
 {
     fw::Model model;
-    if (!model.loadModel(assetsFolder + "cube.3ds")) {
-        return false;
-    }
+    CHECK(model.loadModel(assetsFolder + "cube.3ds"));
 
     fw::Model::Meshes meshes = model.getMeshes();
-    if (meshes.size() != 1) {
-        fw::printError("Expected that skybox has only one mesh");
-        return false;
-    }
+    CHECK(meshes.size() == 1);
 
     const fw::Mesh& mesh = meshes[0];
 
@@ -120,17 +108,17 @@ bool EnvironmentImages::loadModel()
         vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
+    CHECK(success);
+
     numIndices = mesh.indices.size();
-    return success;
 }
 
-bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView)
+void EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView)
 {
     VkImageCreateFlags flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (!image.create(size, size, format, flags, imageUsage, 6, mipLevels)) {
-        return false;
-    }
+
+    CHECK(image.create(size, size, format, flags, imageUsage, 6, mipLevels));
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -141,15 +129,10 @@ bool EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::I
     viewInfo.subresourceRange.levelCount = mipLevels;
     viewInfo.subresourceRange.layerCount = 6;
     viewInfo.image = image.getHandle();
-    if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create an environment image view", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView));
 }
 
-bool EnvironmentImages::createRenderPass()
+void EnvironmentImages::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
     colorAttachment.format = format;
@@ -190,15 +173,10 @@ bool EnvironmentImages::createRenderPass()
     renderPassInfo.dependencyCount = 2;
     renderPassInfo.pDependencies = dependencies.data();
 
-    if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a environment image render pass", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
-bool EnvironmentImages::createDescriptors()
+void EnvironmentImages::createDescriptors()
 {
     // Pool
     VkDescriptorPoolSize poolSize{};
@@ -211,11 +189,7 @@ bool EnvironmentImages::createDescriptors()
     poolInfo.pPoolSizes = &poolSize;
     poolInfo.maxSets = 2;
 
-    if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor pool for environment image", &r);
-        return false;
-    }
+    VK_CHECK(vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool));
 
     // Layout
     VkDescriptorSetLayoutBinding setLayoutBinding{};
@@ -229,11 +203,8 @@ bool EnvironmentImages::createDescriptors()
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.pBindings = &setLayoutBinding;
     layoutInfo.bindingCount = 1;
-    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor set layout for environment image", &r);
-        return false;
-    }
+
+    VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 
     // Descriptor set
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -241,16 +212,11 @@ bool EnvironmentImages::createDescriptors()
     allocInfo.descriptorPool = descriptorPool;
     allocInfo.pSetLayouts = &descriptorSetLayout;
     allocInfo.descriptorSetCount = 1;
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate descriptor set environment image", &r);
-        return false;
-    }
 
-    return true;
+    VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet));
 }
 
-bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
+void EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
                                                const std::string& shader, VkImageView input, Target target)
 {
     std::string vertexShader = "environment_cube_vert.spv";
@@ -258,18 +224,12 @@ bool EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConsta
 
     Offscreen offscreen;
     PipelineHelper pipelineHelper;
-    bool success =
-        offscreen.createFramebuffer(textureSize) &&
-        pipelineHelper.createPipeline(textureSize, range, vertexShader, fragmentShader);
-
-    if (!success) {
-        return false;
-    }
+    offscreen.createFramebuffer(textureSize);
+    pipelineHelper.createPipeline(textureSize, range, vertexShader, fragmentShader);
 
     updateDescriptors(input);
     render(offscreen, pipelineHelper, target);
     changeLayoutToShaderRead(target);
-    return true;
 }
 
 void EnvironmentImages::updateDescriptors(VkImageView imageView)

@@ -12,7 +12,7 @@ public:
 
     PipelineHelper() {};
     ~PipelineHelper();
-    bool createPipeline(uint32_t viewportSize, VkPushConstantRange pushConstRange, const std::string& vertexShader, const std::string& fragmentShader);
+    void createPipeline(uint32_t viewportSize, VkPushConstantRange pushConstRange, const std::string& vertexShader, const std::string& fragmentShader);
 
     VkPipeline getPipeline() const;
     VkPipelineLayout getPipelineLayout() const;

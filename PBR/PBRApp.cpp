@@ -7,6 +7,7 @@
 #include "../Framework/API.h"
 #include "../Framework/Model.h"
 #include "../Framework/Mesh.h"
+#include "../Framework/Macros.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -25,16 +26,16 @@ PBRApp::~PBRApp()
 bool PBRApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
-    bool success =
-        environmentImages.initialize(assetsFolder + "Factory_Catwalk_Bg.jpg") &&
-        brdfLut.initialize() &&
-        createRenderPass() &&
-        fw::API::initializeSwapChain(renderPass) &&
-        sampler.create(VK_COMPARE_OP_ALWAYS) &&
-        createDescriptorPool() &&
-        fw::API::initializeGUI(descriptorPool) &&
-        skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView()) &&
-        renderObject.initialize(renderPass, descriptorPool, sampler.getSampler());
+
+    environmentImages.initialize(assetsFolder + "Factory_Catwalk_Bg.jpg");
+    brdfLut.initialize();
+    createRenderPass();
+    fw::API::initializeSwapChain(renderPass);
+    sampler.create(VK_COMPARE_OP_ALWAYS);
+    createDescriptorPool();
+    fw::API::initializeGUI(descriptorPool);
+    skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView());
+    renderObject.initialize(renderPass, descriptorPool, sampler.getSampler());
 
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
@@ -47,9 +48,9 @@ bool PBRApp::initialize()
     VkImageView brdf = brdfLut.getImageView();
     renderObject.setImages(irradiance, prefilter, brdf);
 
-    success = success && createCommandBuffers();
+    createCommandBuffers();
 
-    return success;
+    return true;
 }
 
 void PBRApp::update()
@@ -71,7 +72,7 @@ void PBRApp::onGUI()
 #pragma GCC diagnostic pop
 }
 
-bool PBRApp::createRenderPass()
+void PBRApp::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
 
@@ -109,15 +110,10 @@ bool PBRApp::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a render pass", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
-bool PBRApp::createDescriptorPool()
+void PBRApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -131,15 +127,10 @@ bool PBRApp::createDescriptorPool()
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 3;
 
-    if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor pool", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool));
 }
 
-bool PBRApp::createCommandBuffers()
+void PBRApp::createCommandBuffers()
 {
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
@@ -150,11 +141,7 @@ bool PBRApp::createCommandBuffers()
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
 
-    if (VkResult r = vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data());
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate command buffers", &r);
-        return false;
-    }
+    VK_CHECK(vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()));
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -185,13 +172,8 @@ bool PBRApp::createCommandBuffers()
         skybox.render(cb);
         vkCmdEndRenderPass(cb);
 
-        if (VkResult r = vkEndCommandBuffer(cb);
-            r != VK_SUCCESS) {
-            fw::printError("Failed to record command buffer", &r);
-            return false;
-        }
+        VK_CHECK(vkEndCommandBuffer(cb));
     }
 
     fw::API::setCommandBuffers(commandBuffers);
-    return true;
 }

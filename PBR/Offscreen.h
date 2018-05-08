@@ -12,12 +12,12 @@ public:
 
     Offscreen() {};
     ~Offscreen();
-    bool createFramebuffer(uint32_t size);
+    void createFramebuffer(uint32_t size);
 
     uint32_t getSize() const;
     VkImage getImageHandle() const;
     VkFramebuffer getFramebuffer() const;
-    
+
 private:
     VkDevice logicalDevice = VK_NULL_HANDLE;
     fw::Image image;

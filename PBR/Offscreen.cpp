@@ -14,10 +14,10 @@ Offscreen::~Offscreen()
     vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 }
 
-bool Offscreen::createFramebuffer(uint32_t size)
+void Offscreen::createFramebuffer(uint32_t size)
 {
     logicalDevice = fw::Context::getLogicalDevice();
-    
+
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     image.create(size, size, format, 0, usage, 1);
 
@@ -33,11 +33,8 @@ bool Offscreen::createFramebuffer(uint32_t size)
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
     viewInfo.image = image.getHandle();
-    if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView);
-        r != VK_SUCCESS) {        
-        fw::printError("Failed to create image view for HDR equirectangular offscreen", &r);
-        return false;
-    }
+
+    VK_CHECK(vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView));
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -47,14 +44,11 @@ bool Offscreen::createFramebuffer(uint32_t size)
     framebufferInfo.width = size;
     framebufferInfo.height = size;
     framebufferInfo.layers = 1;
-    if (VkResult r = vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create an offscreen framebuffer", &r);
-        return false;
-    }
+
+    VK_CHECK(vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &framebuffer));
 
     VkCommandBuffer commandBuffer = fw::Command::beginSingleTimeCommands();
-    
+
     VkImageMemoryBarrier imageMemoryBarrier{};
     imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     imageMemoryBarrier.image = image.getHandle();
@@ -70,8 +64,6 @@ bool Offscreen::createFramebuffer(uint32_t size)
 
     fw::Command::endSingleTimeCommands(commandBuffer);
     framebufferSize = size;
-
-    return true;
 }
 
 uint32_t Offscreen::getSize() const

@@ -19,7 +19,7 @@ public:
     Skybox& operator=(const Skybox&) = delete;
     Skybox& operator=(Skybox&&) = delete;
 
-    bool initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler skyboxSampler, VkImageView skyboxTexture);
+    void initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler skyboxSampler, VkImageView skyboxTexture);
     void update(const fw::Camera& camera);
     void render(VkCommandBuffer cb);
 
@@ -42,7 +42,7 @@ private:
     fw::Buffer indexBuffer;
     uint32_t numIndices = 0;
 
-    bool createDescriptorSetLayout();
-    bool createPipeline();
-    bool createSkybox();
+    void createDescriptorSetLayout();
+    void createPipeline();
+    void createSkybox();
 };

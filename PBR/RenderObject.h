@@ -21,7 +21,7 @@ public:
     RenderObject& operator=(const RenderObject&) = delete;
     RenderObject& operator=(RenderObject&&) = delete;
 
-    bool initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler);
+    void initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler);
     void setImages(VkImageView irradiance, VkImageView prefilter, VkImageView brdf);
     void update(const fw::Camera& camera);
     void render(VkCommandBuffer cb);
@@ -64,9 +64,9 @@ private:
 
     float rotation = 0.0f;
 
-    bool createDescriptorSetLayout();
-    bool createPipeline();
-    bool createRenderObject();
-    bool allocateDescriptorSet();
+    void createDescriptorSetLayout();
+    void createPipeline();
+    void createRenderObject();
+    void allocateDescriptorSet();
     void updateDescriptorSet();
 };

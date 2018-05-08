@@ -5,6 +5,7 @@
 #include "../Framework/Common.h"
 #include "../Framework/Pipeline.h"
 #include "../Framework/Model.h"
+#include "../Framework/Macros.h"
 
 RenderObject::~RenderObject()
 {
@@ -13,7 +14,7 @@ RenderObject::~RenderObject()
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 }
 
-bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
+void RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
 {
     textures =
     {
@@ -36,12 +37,9 @@ bool RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSample
     sampler = textureSampler;
     logicalDevice = fw::Context::getLogicalDevice();
 
-    bool success =
-        createDescriptorSetLayout() &&
-        createPipeline() &&
-        createRenderObject();
-
-    return success;
+    createDescriptorSetLayout();
+    createPipeline();
+    createRenderObject();
 }
 
 void RenderObject::setImages(VkImageView irradiance, VkImageView prefilter, VkImageView brdf)
@@ -79,7 +77,7 @@ void RenderObject::render(VkCommandBuffer cb)
     vkCmdDrawIndexed(cb, numIndices, 1, 0, 0, 0);
 }
 
-bool RenderObject::createDescriptorSetLayout()
+void RenderObject::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -117,22 +115,15 @@ bool RenderObject::createDescriptorSetLayout()
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
-    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a render object descriptor set layout", &r);
-        return false;
-    }
-    return true;
+
+    VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 }
 
-bool RenderObject::createPipeline()
+void RenderObject::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("pbr_vert.spv", "pbr_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("pbr_vert.spv", "pbr_frag.spv");
 
-    if (shaderStages.empty()) {
-        return false;
-    }
+    CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
             for (const auto& info : shaderStages) {
@@ -157,11 +148,7 @@ bool RenderObject::createPipeline()
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
 
-    if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a render object pipeline layout", &r);
-        return false;
-    }
+    VK_CHECK(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -181,30 +168,19 @@ bool RenderObject::createPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a render object pipeline", &r);
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 }
 
-bool RenderObject::createRenderObject()
+void RenderObject::createRenderObject()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     bool success = uniformBuffer.create(sizeof(uniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
     fw::Model model;
-    if (!model.loadModel(assetsFolder + "DamagedHelmet.gltf")) {
-        return false;
-    }
+    CHECK(model.loadModel(assetsFolder + "DamagedHelmet.gltf"));
 
     fw::Model::Meshes meshes = model.getMeshes();
-    if (meshes.size() != 1) {
-        fw::printError("Expected that render object has only one mesh");
-        return false;
-    }
+    CHECK(meshes.size() == 1);
 
     const fw::Mesh& mesh = meshes[0];
     numIndices = mesh.indices.size();
@@ -212,10 +188,9 @@ bool RenderObject::createRenderObject()
     success =
         vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    CHECK(success);
 
-    if (!allocateDescriptorSet()) {
-        return false;
-    }
+    allocateDescriptorSet();
 
     for (const auto& kv : mesh.materials) {
         for (unsigned int i = 0; i < kv.second.size(); ++i) {
@@ -232,11 +207,9 @@ bool RenderObject::createRenderObject()
             }
         }
     }
-
-    return success;
 }
 
-bool RenderObject::allocateDescriptorSet()
+void RenderObject::allocateDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -244,12 +217,7 @@ bool RenderObject::allocateDescriptorSet()
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate render object descriptor set", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet))
 }
 
 void RenderObject::updateDescriptorSet()

@@ -53,7 +53,7 @@ private:
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkExtent2D extent;
 
-    bool createRenderPass();
-    bool createDescriptorPool();
-    bool createCommandBuffers();
+    void createRenderPass();
+    void createDescriptorPool();
+    void createCommandBuffers();
 };

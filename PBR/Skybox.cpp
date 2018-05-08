@@ -5,6 +5,7 @@
 #include "../Framework/Common.h"
 #include "../Framework/Pipeline.h"
 #include "../Framework/Model.h"
+#include "../Framework/Macros.h"
 
 Skybox::~Skybox()
 {
@@ -13,7 +14,7 @@ Skybox::~Skybox()
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 }
 
-bool Skybox::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler skyboxSampler, VkImageView skyboxTexture)
+void Skybox::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler skyboxSampler, VkImageView skyboxTexture)
 {
     renderPass = pass;
     descriptorPool = pool;
@@ -21,12 +22,9 @@ bool Skybox::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler skyb
     texture = skyboxTexture;
     logicalDevice = fw::Context::getLogicalDevice();
 
-    bool success =
-        createDescriptorSetLayout() &&
-        createPipeline() &&
-        createSkybox();
-
-    return success;
+    createDescriptorSetLayout();
+    createPipeline();
+    createSkybox();
 }
 
 void Skybox::update(const fw::Camera& camera)
@@ -51,7 +49,7 @@ void Skybox::render(VkCommandBuffer cb)
     vkCmdDrawIndexed(cb, numIndices, 1, 0, 0, 0);
 }
 
-bool Skybox::createDescriptorSetLayout()
+void Skybox::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -73,22 +71,15 @@ bool Skybox::createDescriptorSetLayout()
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
-    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a skybox descriptor set layout", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 }
 
-bool Skybox::createPipeline()
+void Skybox::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
         fw::Pipeline::getShaderStageInfos("skybox_vert.spv", "skybox_frag.spv");
 
-    if (shaderStages.empty()) {
-        return false;
-    }
+    CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
             for (const auto& info : shaderStages) {
@@ -129,11 +120,7 @@ bool Skybox::createPipeline()
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
 
-    if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a skybox pipeline layout", &r);
-        return false;
-    }
+    VK_CHECK(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -153,27 +140,16 @@ bool Skybox::createPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a skybox pipeline", &r);
-        return false;
-    }
-
-    return true;
+    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 }
 
-bool Skybox::createSkybox()
+void Skybox::createSkybox()
 {
     fw::Model model;
-    if (!model.loadModel(assetsFolder + "cube.3ds")) {
-        return false;
-    }
+    CHECK(model.loadModel(assetsFolder + "cube.3ds"));
 
     fw::Model::Meshes meshes = model.getMeshes();
-    if (meshes.size() != 1) {
-        fw::printError("Expected that skybox has only one mesh");
-        return false;
-    }
+    CHECK(meshes.size() == 1);
 
     const fw::Mesh& mesh = meshes[0];
 
@@ -190,15 +166,13 @@ bool Skybox::createSkybox()
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate descriptor set", &r);
-        return false;
-    }
+    VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet));
 
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     success = success &&
         transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+
+    CHECK(success);
 
     // Update descriptors
     VkDescriptorBufferInfo bufferInfo{};
@@ -230,6 +204,4 @@ bool Skybox::createSkybox()
     writeDescriptorSets[1].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(logicalDevice, fw::ui32size(writeDescriptorSets), writeDescriptorSets.data(), 0, nullptr);
-
-    return success;
 }

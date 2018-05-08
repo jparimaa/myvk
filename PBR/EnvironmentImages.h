@@ -23,7 +23,7 @@ public:
     EnvironmentImages& operator=(const EnvironmentImages&) = delete;
     EnvironmentImages& operator=(EnvironmentImages&&) = delete;
 
-    bool initialize(const std::string& filename);
+    void initialize(const std::string& filename);
     VkImageView getPlainImageView() const;
     VkImageView getIrradianceImageView() const;
     VkImageView getPrefilterImageView() const;
@@ -47,7 +47,7 @@ private:
         float roughness = 0.0f;
         uint32_t numSamples = 32u;
     };
-    
+
     enum class Target
     {
         plain = 0,
@@ -64,15 +64,15 @@ private:
 
     fw::Texture texture;
     fw::Sampler sampler;
-    
+
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-    
+
     fw::Image plainImage;
     VkImageView plainImageView = VK_NULL_HANDLE;
-    PlainPushConstants plainPushConstants;    
+    PlainPushConstants plainPushConstants;
 
     fw::Image irradianceImage;
     VkImageView irradianceImageView = VK_NULL_HANDLE;
@@ -81,12 +81,12 @@ private:
     fw::Image prefilterImage;
     VkImageView prefilterImageView = VK_NULL_HANDLE;
     PrefilterPushConstants prefilterPushConstants;
-    
-    bool loadModel();
-    bool createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView);
-    bool createRenderPass();
-    bool createDescriptors();
-    bool createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
+
+    void loadModel();
+    void createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView);
+    void createRenderPass();
+    void createDescriptors();
+    void createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
                                 const std::string& shader, VkImageView input, Target target);
     void updateDescriptors(VkImageView imageView);
     fw::Image& getImageByTarget(Target target);
