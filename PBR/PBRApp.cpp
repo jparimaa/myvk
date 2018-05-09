@@ -30,10 +30,10 @@ bool PBRApp::initialize()
     environmentImages.initialize(assetsFolder + "Factory_Catwalk_Bg.jpg");
     brdfLut.initialize();
     createRenderPass();
-    fw::API::initializeSwapChain(renderPass);
-    sampler.create(VK_COMPARE_OP_ALWAYS);
+    CHECK(fw::API::initializeSwapChain(renderPass));
+    CHECK(sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
-    fw::API::initializeGUI(descriptorPool);
+    CHECK(fw::API::initializeGUI(descriptorPool));
     skybox.initialize(renderPass, descriptorPool, sampler.getSampler(), environmentImages.getPlainImageView());
     renderObject.initialize(renderPass, descriptorPool, sampler.getSampler());
 
