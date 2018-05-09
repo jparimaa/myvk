@@ -7,6 +7,7 @@
 #include "../Framework/API.h"
 #include "../Framework/Model.h"
 #include "../Framework/Mesh.h"
+#include "../Framework/Macros.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -34,52 +35,54 @@ ExampleApp::~ExampleApp()
 bool ExampleApp::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
-    bool success =
-        createRenderPass() &&
-        fw::API::initializeSwapChain(renderPass) &&
-        createDescriptorSetLayout() &&
-        createPipeline() &&
-        sampler.create(VK_COMPARE_OP_ALWAYS) &&
-        createDescriptorPool() &&
-        createRenderObjects() &&
-        fw::API::initializeGUI(descriptorPool) &&
-        createCommandBuffers();
-    
+
+    createRenderPass();
+    bool success = fw::API::initializeSwapChain(renderPass);
+    createDescriptorSetLayout();
+    createPipeline();
+    success = success && sampler.create(VK_COMPARE_OP_ALWAYS);
+    createDescriptorPool();
+    createRenderObjects();
+    success = success && fw::API::initializeGUI(descriptorPool);
+    createCommandBuffers();
+
+    CHECK(success);
+
     extent = fw::API::getSwapChainExtent();
     cameraController.setCamera(&camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
     cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     camera.setPosition(initPos);
- 
+
     ubo.proj = camera.getProjectionMatrix();
-    
-    return success;
+
+    return true;
 }
 
 void ExampleApp::update()
 {
     trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     ubo.world = trans.getWorldMatrix();
-    
+
     cameraController.update();
     ubo.view = camera.getViewMatrix();
-    
+
     uniformBuffer.setData(sizeof(ubo), &ubo);
 }
 
 void ExampleApp::onGUI()
 {
-#pragma GCC diagnostic push 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    
+
 #pragma GCC diagnostic pop
 }
 
-bool ExampleApp::createRenderPass()
+void ExampleApp::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
 
@@ -117,15 +120,10 @@ bool ExampleApp::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create a render pass", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
-bool ExampleApp::createDescriptorSetLayout()
+void ExampleApp::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -147,22 +145,14 @@ bool ExampleApp::createDescriptorSetLayout()
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
-    if (VkResult r = vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor set layout", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 }
 
-bool ExampleApp::createPipeline()
+void ExampleApp::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("shader_vert.spv", "shader_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("shader_vert.spv", "shader_frag.spv");
 
-    if (shaderStages.empty()) {
-        return false;
-    }
+    CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
             for (const auto& info : shaderStages) {
@@ -173,7 +163,7 @@ bool ExampleApp::createPipeline()
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
-    
+
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
     VkViewport viewport = fw::Pipeline::getViewport();
@@ -187,11 +177,7 @@ bool ExampleApp::createPipeline()
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
 
-    if (VkResult r = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create pipeline layout", &r);
-        return false;
-    }
+    VK_CHECK(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -211,16 +197,10 @@ bool ExampleApp::createPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (VkResult r = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create graphics pipeline", &r);
-        return false;
-    }   
-   
-    return true;
+    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline));
 }
 
-bool ExampleApp::createDescriptorPool()
+void ExampleApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -234,56 +214,48 @@ bool ExampleApp::createDescriptorPool()
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 3;
 
-    if (VkResult r = vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool);
-        r != VK_SUCCESS) {
-        fw::printError("Failed to create descriptor pool", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool));
 }
 
-bool ExampleApp::createRenderObjects()
+void ExampleApp::createRenderObjects()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    bool success = uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    CHECK(uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
     fw::Model model;
-    if (!model.loadModel(assetsFolder + "attack_droid.obj")) {
-        return false;
-    }
+    CHECK(model.loadModel(assetsFolder + "attack_droid.obj"));
 
     fw::Model::Meshes meshes = model.getMeshes();
     uint32_t numMeshes = fw::ui32size(meshes);
-    
-    if (!createDescriptorSets(numMeshes)) {
-        return false;
-    }
-    
+
+    createDescriptorSets(numMeshes);
+
     renderObjects.resize(numMeshes);
-    
+
+    bool success = true;
     for (unsigned int i = 0; i < numMeshes; ++i) {
         const fw::Mesh& mesh = meshes[i];
         RenderObject& ro = renderObjects[i];
-        
+
         success = success &&
             ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
             ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        
+
         ro.numIndices = mesh.indices.size();
-        
+
         std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile);
         updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
         ro.descriptorSet = descriptorSets[i];
     }
 
-    return success;
+    CHECK(success);
 }
 
-bool ExampleApp::createDescriptorSets(uint32_t setCount)
+void ExampleApp::createDescriptorSets(uint32_t setCount)
 {
     descriptorSets.resize(setCount);
-    
+
     std::vector<VkDescriptorSetLayout> layouts(setCount, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -291,12 +263,7 @@ bool ExampleApp::createDescriptorSets(uint32_t setCount)
     allocInfo.descriptorSetCount = setCount;
     allocInfo.pSetLayouts = layouts.data();
 
-    if (VkResult r = vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data());
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate descriptor set", &r);
-        return false;
-    }
-    return true;
+    VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data()));
 }
 
 void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
@@ -320,7 +287,7 @@ void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
-    
+
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSet;
     descriptorWrites[1].dstBinding = 1;
@@ -329,11 +296,11 @@ void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
 
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);    
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
-bool ExampleApp::createCommandBuffers()
-{    
+void ExampleApp::createCommandBuffers()
+{
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
 
@@ -343,38 +310,34 @@ bool ExampleApp::createCommandBuffers()
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
 
-    if (VkResult r = vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data());
-        r != VK_SUCCESS) {
-        fw::printError("Failed to allocate command buffers", &r);
-        return false;
-    }
+    VK_CHECK(vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()));
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr;  // Optional
-    
+
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;    
+    renderPassInfo.renderPass = renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
 
     VkDeviceSize offsets[] = {0};
-    
+
     for (size_t i = 0; i < commandBuffers.size(); ++i) {
         VkCommandBuffer cb = commandBuffers[i];
-        
+
         vkBeginCommandBuffer(cb, &beginInfo);
 
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
-        
+
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
@@ -388,13 +351,8 @@ bool ExampleApp::createCommandBuffers()
 
         vkCmdEndRenderPass(cb);
 
-        if (VkResult r = vkEndCommandBuffer(cb);
-            r != VK_SUCCESS) {
-            fw::printError("Failed to record command buffer", &r);
-            return false;
-        }
+        VK_CHECK(vkEndCommandBuffer(cb));
     }
 
     fw::API::setCommandBuffers(commandBuffers);
-    return true;
 }

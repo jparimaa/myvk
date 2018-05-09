@@ -30,7 +30,7 @@ public:
         fw::Texture texture;
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
-    
+
     ExampleApp() {};
     virtual ~ExampleApp();
     ExampleApp(const ExampleApp&) = delete;
@@ -56,18 +56,18 @@ private:
     MatrixUBO ubo;
     fw::Buffer uniformBuffer;
     std::vector<RenderObject> renderObjects;
-    
+
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> descriptorSets;
 
     VkExtent2D extent;
-    
-    bool createRenderPass();
-    bool createDescriptorSetLayout();
-    bool createPipeline();
-    bool createDescriptorPool();
-    bool createRenderObjects();
-    bool createDescriptorSets(uint32_t setCount);
+
+    void createRenderPass();
+    void createDescriptorSetLayout();
+    void createPipeline();
+    void createDescriptorPool();
+    void createRenderObjects();
+    void createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
-    bool createCommandBuffers();
+    void createCommandBuffers();
 };
