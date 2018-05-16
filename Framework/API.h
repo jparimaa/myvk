@@ -12,16 +12,16 @@ class API
 {
 public:
     friend class Framework;
-    
+
     API() = delete;
 
     static bool initializeSwapChain(VkRenderPass renderPass);
     static bool initializeGUI(VkDescriptorPool descriptorPool);
-    
+
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
     static const std::vector<VkFramebuffer>& getSwapChainFramebuffers();
-    
+
     static VkCommandPool getCommandPool();
 
     static float getTimeSinceStart();
@@ -38,7 +38,7 @@ public:
     static GLFWwindow* getGLFWwindow();
 
 private:
-    static Framework* framework;
+    static Framework* s_framework;
 };
 
 } // namespace fw

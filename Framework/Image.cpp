@@ -8,18 +8,18 @@ namespace fw
 
 Image::~Image()
 {
-    if (image != VK_NULL_HANDLE) {
-        vkDestroyImage(logicalDevice, image, nullptr);
+    if (m_image != VK_NULL_HANDLE) {
+        vkDestroyImage(m_logicalDevice, m_image, nullptr);
     }
 
-    if (memory != VK_NULL_HANDLE) {
-        vkFreeMemory(logicalDevice, memory, nullptr);
+    if (m_memory != VK_NULL_HANDLE) {
+        vkFreeMemory(m_logicalDevice, m_memory, nullptr);
     }
 }
 
 bool Image::create(const VkImageCreateInfo& imageInfo)
 {
-    logicalDevice = Context::getLogicalDevice();
+    m_logicalDevice = Context::getLogicalDevice();
     return allocate(imageInfo);
 }
 
@@ -35,7 +35,7 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
 
 bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage, uint32_t arrayLayers, uint32_t mipLevels)
 {
-    logicalDevice = Context::getLogicalDevice();
+    m_logicalDevice = Context::getLogicalDevice();
 
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -60,7 +60,7 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image;
+    viewInfo.image = m_image;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = format;
     viewInfo.subresourceRange.aspectMask = aspectFlags;
@@ -69,7 +69,7 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (VkResult r = vkCreateImageView(logicalDevice, &viewInfo, nullptr, imageView);
+    if (VkResult r = vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, imageView);
         r != VK_SUCCESS) {
         printError("Failed to create image view", &r);
         return false;
@@ -81,11 +81,11 @@ bool Image::transitLayout(VkImageLayout newLayout)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = layout;
+    barrier.oldLayout = m_layout;
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
+    barrier.image = m_image;
     if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
     } else {
@@ -99,17 +99,17 @@ bool Image::transitLayout(VkImageLayout newLayout)
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
 
-    if (layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    } else if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    } else if (m_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    } else if (layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    } else if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -125,26 +125,26 @@ bool Image::transitLayout(VkImageLayout newLayout)
 
     Command::endSingleTimeCommands(commandBuffer);
 
-    layout = newLayout;
+    m_layout = newLayout;
 
     return true;
 }
 
 VkImage Image::getHandle() const
 {
-    return image;
+    return m_image;
 }
 
 bool Image::allocate(const VkImageCreateInfo& imageInfo)
 {
-    if (VkResult r = vkCreateImage(logicalDevice, &imageInfo, nullptr, &image);
+    if (VkResult r = vkCreateImage(m_logicalDevice, &imageInfo, nullptr, &m_image);
         r != VK_SUCCESS) {
         printError("Failed to create image", &r);
         return false;
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+    vkGetImageMemoryRequirements(m_logicalDevice, m_image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -153,12 +153,12 @@ bool Image::allocate(const VkImageCreateInfo& imageInfo)
         return false;
     }
 
-    if (VkResult r = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory);
+    if (VkResult r = vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_memory);
         r != VK_SUCCESS) {
         printError("Failed to allocate image memory", &r);
     }
 
-    vkBindImageMemory(logicalDevice, image, memory, 0);
+    vkBindImageMemory(m_logicalDevice, m_image, m_memory, 0);
     return true;
 }
 

@@ -29,11 +29,11 @@ bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint3
 class Cleaner {
 public:
     Cleaner() = delete;
-    explicit Cleaner(std::function<void()> callback) : clean(callback) {}
-    ~Cleaner() { clean(); }
+    explicit Cleaner(std::function<void()> callback) : m_clean(callback) {}
+    ~Cleaner() { m_clean(); }
 
 private:
-    std::function<void()> clean;
+    std::function<void()> m_clean;
 };
 
 template <typename T>
@@ -41,5 +41,5 @@ uint32_t ui32size(const T& container)
 {
     return static_cast<uint32_t>(container.size());
 }
-    
+
 } // namespace fw

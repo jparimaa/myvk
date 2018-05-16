@@ -3,83 +3,81 @@
 namespace fw
 {
 
-Framework* API::framework = nullptr;
+Framework* API::s_framework = nullptr;
 
 bool API::initializeSwapChain(VkRenderPass renderPass)
 {
-    return framework->swapChain.initialize(renderPass);
+    return s_framework->m_swapChain.initialize(renderPass);
 }
 
 bool API::initializeGUI(VkDescriptorPool descriptorPool)
 {
-    return framework->gui.initialize(descriptorPool);
+    return s_framework->m_gui.initialize(descriptorPool);
 }
 
 VkFormat API::getSwapChainImageFormat()
 {
-    return framework->swapChain.getImageFormat();
+    return s_framework->m_swapChain.getImageFormat();
 }
 
 VkExtent2D API::getSwapChainExtent()
 {
-    return framework->swapChain.getExtent();
+    return s_framework->m_swapChain.getExtent();
 }
 
 const std::vector<VkFramebuffer>& API::getSwapChainFramebuffers()
 {
-    return framework->swapChain.getFramebuffers();
+    return s_framework->m_swapChain.getFramebuffers();
 }
 
 VkCommandPool API::getCommandPool()
 {
-    return framework->commandPool;
+    return s_framework->m_commandPool;
 }
 
 float API::getTimeSinceStart()
 {
-    return framework->time.getSinceStart();
+    return s_framework->m_time.getSinceStart();
 }
 
 float API::getTimeDelta()
 {
-    return framework->time.getDelta();
+    return s_framework->m_time.getDelta();
 }
 
 bool API::isKeyPressed(int key)
 {
-    return framework->input.isKeyPressed(key);
+    return s_framework->m_input.isKeyPressed(key);
 }
 
 bool API::isKeyDown(int key)
 {
-    return framework->input.isKeyDown(key);
+    return s_framework->m_input.isKeyDown(key);
 }
 
 bool API::isKeyReleased(int key)
 {
-    return framework->input.isKeyReleased(key);
+    return s_framework->m_input.isKeyReleased(key);
 }
 
 float API::getMouseDeltaX()
 {
-    return framework->input.getDeltaX();
+    return s_framework->m_input.getDeltaX();
 }
 
 float API::getMouseDeltaY()
 {
-    return framework->input.getDeltaY();
+    return s_framework->m_input.getDeltaY();
 }
 
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
-    framework->commandBuffers = commandBuffers;
+    s_framework->m_commandBuffers = commandBuffers;
 }
 
 GLFWwindow* API::getGLFWwindow()
 {
-    return framework->window.getWindow();
+    return s_framework->m_window.getWindow();
 }
 
 } // namespace fw
-
-

@@ -3,47 +3,47 @@
 namespace fw
 {
 
-VkInstance Context::instance = VK_NULL_HANDLE;
-VkSurfaceKHR Context::surface = VK_NULL_HANDLE;
-VkPhysicalDevice Context::physicalDevice = VK_NULL_HANDLE;
-VkDevice Context::logicalDevice = VK_NULL_HANDLE;
-VkQueue Context::graphicsQueue = VK_NULL_HANDLE;
-VkQueue Context::presentQueue = VK_NULL_HANDLE;
-VkPhysicalDeviceProperties* Context::physicalDeviceProperties = nullptr;
+VkInstance Context::s_instance = VK_NULL_HANDLE;
+VkSurfaceKHR Context::s_surface = VK_NULL_HANDLE;
+VkPhysicalDevice Context::s_physicalDevice = VK_NULL_HANDLE;
+VkDevice Context::s_logicalDevice = VK_NULL_HANDLE;
+VkQueue Context::s_graphicsQueue = VK_NULL_HANDLE;
+VkQueue Context::s_presentQueue = VK_NULL_HANDLE;
+VkPhysicalDeviceProperties* Context::s_physicalDeviceProperties = nullptr;
 
 VkInstance Context::getInstance()
 {
-    return instance;
+    return s_instance;
 }
 
 VkSurfaceKHR Context::getSurface()
 {
-    return surface;
+    return s_surface;
 }
 
 VkPhysicalDevice Context::getPhysicalDevice()
 {
-    return physicalDevice;
+    return s_physicalDevice;
 }
 
 VkDevice Context::getLogicalDevice()
 {
-    return logicalDevice;
+    return s_logicalDevice;
 }
 
 VkQueue Context::getGraphicsQueue()
 {
-    return graphicsQueue;
+    return s_graphicsQueue;
 }
 
 VkQueue Context::getPresentQueue()
 {
-    return presentQueue;
+    return s_presentQueue;
 }
 
 VkPhysicalDeviceProperties* Context::getPhysicalDeviceProperties()
 {
-    return physicalDeviceProperties;
+    return s_physicalDeviceProperties;
 }
 
 } // namespace fw

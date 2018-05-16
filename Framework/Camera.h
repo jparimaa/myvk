@@ -9,9 +9,9 @@ namespace fw
 
 class Camera
 {
-public:    
+public:
     Camera();
-    
+
     void setPosition(const glm::vec3& pos);
     void setPosition(float x, float y, float z);
     void setRotation(const glm::vec3& rot);
@@ -25,15 +25,15 @@ public:
     const glm::mat4x4& getProjectionMatrix() const;
 
 private:
-    float FOV = 45.0f;
-	float ratio = 1.33333f;
-	float nearClipDistance = 0.1f;
-	float farClipDistance = 100.0f;
+    float m_FOV = 45.0f;
+	float m_ratio = 1.33333f;
+	float m_nearClipDistance = 0.1f;
+	float m_farClipDistance = 100.0f;
 
-	glm::mat4 viewMatrix;
-	glm::mat4 projectionMatrix;
+	glm::mat4 m_viewMatrix;
+	glm::mat4 m_projectionMatrix;
 
-    Transformation transformation;
+    Transformation m_transformation;
 
     void updateViewMatrix();
     void updateProjectionMatrix();

@@ -15,38 +15,38 @@ class Buffer
 {
 public:
     static void copy(Buffer& src, Buffer& dst, VkDeviceSize size);
-    
+
     Buffer() {};
     ~Buffer();
-    
-    bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);    
+
+    bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
     void copyToImage(VkImage image, uint32_t width, uint32_t height) const;
 
     VkBuffer getBuffer() const;
 
     template <typename T>
     bool setData(VkDeviceSize size, const T* src);
-    
+
     template <typename T>
     bool createForDevice(const std::vector<T>& content, VkBufferUsageFlagBits flag);
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkBuffer buffer = VK_NULL_HANDLE;
-    VkDeviceMemory memory = VK_NULL_HANDLE;    
+    VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkBuffer m_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_memory = VK_NULL_HANDLE;
 };
 
 template <typename T>
 bool Buffer::setData(VkDeviceSize size, const T* src)
 {
     void* dst;
-    if (VkResult r = vkMapMemory(logicalDevice, memory, 0, size, 0, &dst);
+    if (VkResult r = vkMapMemory(m_logicalDevice, m_memory, 0, size, 0, &dst);
         r != VK_SUCCESS) {
         printError("Failed to map memory");
         return false;
     }
     std::memcpy(dst, src, static_cast<size_t>(size));
-    vkUnmapMemory(logicalDevice, memory);
+    vkUnmapMemory(m_logicalDevice, m_memory);
     return true;
 }
 

@@ -21,10 +21,10 @@ public:
     VkImage getHandle() const;
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkImage image = VK_NULL_HANDLE;
-    VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkImage m_image = VK_NULL_HANDLE;
+    VkDeviceMemory m_memory = VK_NULL_HANDLE;
+    VkImageLayout m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     bool allocate(const VkImageCreateInfo& imageInfo);
 };

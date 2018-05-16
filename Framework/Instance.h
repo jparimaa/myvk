@@ -19,8 +19,8 @@ public:
     bool initialize();
 
 private:
-    VkInstance instance = VK_NULL_HANDLE;
-    VkDebugReportCallbackEXT callback;
+    VkInstance m_instance = VK_NULL_HANDLE;
+    VkDebugReportCallbackEXT m_callback;
 
     bool createInstance();
     bool createDebugReportCallback();

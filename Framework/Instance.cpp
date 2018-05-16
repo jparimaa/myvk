@@ -72,11 +72,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT /*flag
 
 Instance::~Instance()
 {
-    auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+    auto destroyDebugReportCallback = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugReportCallbackEXT");
     if (destroyDebugReportCallback != nullptr) {
-        destroyDebugReportCallback(instance, callback, nullptr);
+        destroyDebugReportCallback(m_instance, m_callback, nullptr);
     }
-    vkDestroyInstance(instance, nullptr);
+    vkDestroyInstance(m_instance, nullptr);
 }
 
 bool Instance::initialize()
@@ -112,13 +112,13 @@ bool Instance::createInstance()
         createInfo.enabledLayerCount = 0;
     }
 
-    if (VkResult r = vkCreateInstance(&createInfo, nullptr, &instance);
+    if (VkResult r = vkCreateInstance(&createInfo, nullptr, &m_instance);
         r != VK_SUCCESS) {
         printError("Failed to create instance", &r);
         return false;
     }
 
-    Context::instance = instance;
+    Context::s_instance = m_instance;
     return true;
 }
 
@@ -127,7 +127,7 @@ bool Instance::createDebugReportCallback()
     if (!Constants::enableValidationLayers) {
         return true;
     }
-    
+
     VkDebugReportCallbackCreateInfoEXT createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
     createInfo.flags =
@@ -136,9 +136,9 @@ bool Instance::createDebugReportCallback()
         VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
     createInfo.pfnCallback = debugCallback;
 
-    auto createDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+    auto createDebugReportCallback = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(m_instance, "vkCreateDebugReportCallbackEXT");
     if (createDebugReportCallback != nullptr) {
-        createDebugReportCallback(instance, &createInfo, nullptr, &callback);
+        createDebugReportCallback(m_instance, &createInfo, nullptr, &m_callback);
     } else {
         printError("Failed to set up debug callback");
         return false;

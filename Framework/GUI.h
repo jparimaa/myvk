@@ -1,6 +1,6 @@
 #pragma once
 
-#pragma GCC diagnostic push 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuseless-cast"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_vulkan.h"
@@ -29,12 +29,12 @@ public:
     bool isInitialized() const;
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkCommandBufferBeginInfo info{};
-    VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkCommandBufferBeginInfo m_info{};
+    VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
+    VkRenderPass m_renderPass = VK_NULL_HANDLE;
 
-    bool initialized = false;
+    bool m_initialized = false;
 
     bool createCommandBuffer();
     bool createRenderPass();

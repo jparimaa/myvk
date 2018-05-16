@@ -6,57 +6,57 @@
 namespace fw
 {
 
-void CameraController::setCamera(Camera* c)
+void CameraController::setCamera(Camera* camera)
 {
-	camera = c;
+	m_camera = camera;
 }
 
-void CameraController::setMovementSpeed(float s)
+void CameraController::setMovementSpeed(float speed)
 {
-	movementSpeed = s;
+	m_movementSpeed = speed;
 }
 
-void CameraController::setSensitivity(float s)
+void CameraController::setSensitivity(float sensitivity)
 {
-	sensitivity = s;
+	m_sensitivity = sensitivity;
 }
 
 void CameraController::setResetMode(const glm::vec3& pos, const glm::vec3& rot, int key)
 {
-	resetPosition = pos;
-	resetRotation = rot;
-    resetKey = key;
+	m_resetPosition = pos;
+	m_resetRotation = rot;
+    m_resetKey = key;
 }
 
 void CameraController::update()
 {
-	if (!camera) {
-		printWarning("Camera is not set for camera controller");
+	if (!m_camera) {
+		printWarning("Camera is not set for m_camera controller");
 		return;
 	}
 
-	float speed = movementSpeed * API::getTimeDelta();
-    const Transformation& t = camera->getTransformation();
+	float speed = m_movementSpeed * API::getTimeDelta();
+    const Transformation& t = m_camera->getTransformation();
 
 	if (API::isKeyDown(GLFW_KEY_W)) {
-		camera->move(t.getForward() * speed);
+		m_camera->move(t.getForward() * speed);
 	}
 	if (API::isKeyDown(GLFW_KEY_S)) {
-		camera->move(-t.getForward() * speed);
+		m_camera->move(-t.getForward() * speed);
 	}
 	if (API::isKeyDown(GLFW_KEY_A)) {
-		camera->move(t.getLeft() * speed);
+		m_camera->move(t.getLeft() * speed);
 	}
 	if (API::isKeyDown(GLFW_KEY_D)) {
-		camera->move(-t.getLeft() * speed);
+		m_camera->move(-t.getLeft() * speed);
 	}
-	if (API::isKeyReleased(resetKey)) {
-		camera->setPosition(resetPosition);
-		camera->setRotation(resetRotation);
+	if (API::isKeyReleased(m_resetKey)) {
+		m_camera->setPosition(m_resetPosition);
+		m_camera->setRotation(m_resetRotation);
 	}
-    
-	camera->rotate(Constants::up, API::getMouseDeltaX() * sensitivity);
-	camera->rotate(Constants::left, -API::getMouseDeltaY() * sensitivity);
+
+	m_camera->rotate(Constants::up, API::getMouseDeltaX() * m_sensitivity);
+	m_camera->rotate(Constants::left, -API::getMouseDeltaY() * m_sensitivity);
 
     glm::vec3 r = t.getRotation();
 	if (r.x > Constants::rotationLimit) {
@@ -65,7 +65,7 @@ void CameraController::update()
 	if (r.x < -Constants::rotationLimit) {
 		r.x = -Constants::rotationLimit;
     }
-    camera->setRotation(r);
+    m_camera->setRotation(r);
 }
 
 } // fw

@@ -22,8 +22,8 @@ static void imguiVkResult(VkResult r)
 
 GUI::~GUI()
 {
-    if (initialized) {
-        vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    if (m_initialized) {
+        vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
         ImGui_ImplGlfwVulkan_Shutdown();
         ImGui::DestroyContext();
     }
@@ -31,58 +31,58 @@ GUI::~GUI()
 
 bool GUI::initialize(VkDescriptorPool descriptorPool)
 {
-    logicalDevice = Context::getLogicalDevice();
-    
-    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    m_logicalDevice = Context::getLogicalDevice();
 
-    bool success = createCommandBuffer() && createRenderPass();    
-    
+    m_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    m_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    bool success = createCommandBuffer() && createRenderPass();
+
     ImGui::CreateContext();
-    
+
     ImGui_ImplGlfwVulkan_Init_Data initData{};
     initData.allocator = nullptr;
     initData.gpu = Context::getPhysicalDevice();
-    initData.device = logicalDevice;
-    initData.render_pass = renderPass;
+    initData.device = m_logicalDevice;
+    initData.render_pass = m_renderPass;
     initData.pipeline_cache = VK_NULL_HANDLE;
     initData.descriptor_pool = descriptorPool;
     initData.check_vk_result = imguiVkResult;
     bool installCallbacks = false;
-    success = success && ImGui_ImplGlfwVulkan_Init(API::getGLFWwindow(), installCallbacks, &initData);    
+    success = success && ImGui_ImplGlfwVulkan_Init(API::getGLFWwindow(), installCallbacks, &initData);
 
-    VkCommandBuffer singleTimeCommandBuffer = Command::beginSingleTimeCommands();    
+    VkCommandBuffer singleTimeCommandBuffer = Command::beginSingleTimeCommands();
     success = success && ImGui_ImplGlfwVulkan_CreateFontsTexture(singleTimeCommandBuffer);
     Command::endSingleTimeCommands(singleTimeCommandBuffer);
     ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 
-    initialized = true;
-    
+    m_initialized = true;
+
     return success;
 }
 
 void GUI::beginPass() const
-{   
+{
     ImGui_ImplGlfwVulkan_NewFrame();
 }
 
 bool GUI::render(VkFramebuffer framebuffer) const
 {
-    vkBeginCommandBuffer(commandBuffer, &info);
-        
+    vkBeginCommandBuffer(m_commandBuffer, &m_info);
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.extent = API::getSwapChainExtent();
     renderPassInfo.clearValueCount = 0;
     renderPassInfo.pClearValues = nullptr;
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    ImGui_ImplGlfwVulkan_Render(commandBuffer);
+    ImGui_ImplGlfwVulkan_Render(m_commandBuffer);
 
-    vkCmdEndRenderPass(commandBuffer);
-    if (VkResult r = vkEndCommandBuffer(commandBuffer);
+    vkCmdEndRenderPass(m_commandBuffer);
+    if (VkResult r = vkEndCommandBuffer(m_commandBuffer);
         r != VK_SUCCESS) {
         fw::printError("Failed to record GUI command buffer", &r);
         return false;
@@ -92,12 +92,12 @@ bool GUI::render(VkFramebuffer framebuffer) const
 
 VkCommandBuffer GUI::getCommandBuffer() const
 {
-    return commandBuffer;
+    return m_commandBuffer;
 }
 
 bool GUI::isInitialized() const
 {
-    return initialized;
+    return m_initialized;
 }
 
 bool GUI::createCommandBuffer()
@@ -108,7 +108,7 @@ bool GUI::createCommandBuffer()
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
 
-    if (VkResult r = vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer);
+    if (VkResult r = vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer);
         r != VK_SUCCESS) {
         fw::printError("Failed to allocate GUI command buffer", &r);
         return false;
@@ -158,12 +158,12 @@ bool GUI::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (VkResult r = vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass);
+    if (VkResult r = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass);
         r != VK_SUCCESS) {
         fw::printError("Failed to create a GUI render pass", &r);
         return false;
     }
-    return true;   
-}   
+    return true;
+}
 
 }  // namespace fw

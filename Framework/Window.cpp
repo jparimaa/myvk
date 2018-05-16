@@ -26,7 +26,7 @@ bool Window::initialize()
         return false;
     }
 
-    Context::surface = surface;
+    Context::s_surface = surface;
     return true;
 }
 

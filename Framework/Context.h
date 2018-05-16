@@ -24,13 +24,13 @@ public:
     static VkPhysicalDeviceProperties* getPhysicalDeviceProperties();
 
 private:
-    static VkInstance instance;
-    static VkSurfaceKHR surface;
-    static VkPhysicalDevice physicalDevice;
-    static VkDevice logicalDevice;
-    static VkQueue graphicsQueue;
-    static VkQueue presentQueue;
-    static VkPhysicalDeviceProperties* physicalDeviceProperties;
+    static VkInstance s_instance;
+    static VkSurfaceKHR s_surface;
+    static VkPhysicalDevice s_physicalDevice;
+    static VkDevice s_logicalDevice;
+    static VkQueue s_graphicsQueue;
+    static VkQueue s_presentQueue;
+    static VkPhysicalDeviceProperties* s_physicalDeviceProperties;
 };
 
 } // namespace fw
