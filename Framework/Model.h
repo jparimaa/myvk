@@ -26,8 +26,8 @@ public:
     const TextureData& getTextureData(unsigned int index);
 
 private:
-	Meshes meshes;
-    std::unordered_map<unsigned int, TextureData> textureDatas;
+	Meshes m_meshes;
+    std::unordered_map<unsigned int, TextureData> m_textureDatas;
 };
 
 } // namespace fw

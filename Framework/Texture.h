@@ -22,8 +22,8 @@ public:
     VkImageView getImageView() const;
 
 private:
-    Image image;
-    VkImageView imageView = VK_NULL_HANDLE;
+    Image m_image;
+    VkImageView m_imageView = VK_NULL_HANDLE;
 
     bool load(const std::string& filename, VkFormat format, int desiredChannels);
     bool createImage(unsigned char* pixels, int width, int height, VkFormat format);

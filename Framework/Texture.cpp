@@ -19,8 +19,8 @@ namespace fw
 
 Texture::~Texture()
 {
-    if (imageView != VK_NULL_HANDLE) {
-        vkDestroyImageView(Context::getLogicalDevice(), imageView, nullptr);
+    if (m_imageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(Context::getLogicalDevice(), m_imageView, nullptr);
     }
 }
 
@@ -52,7 +52,7 @@ bool Texture::load(const unsigned char* data, unsigned int size)
 
 VkImageView Texture::getImageView() const
 {
-    return imageView;
+    return m_imageView;
 }
 
 bool Texture::load(const std::string& filename, VkFormat format, int desiredChannels)
@@ -87,21 +87,21 @@ bool Texture::createImage(unsigned char* pixels, int width, int height, VkFormat
     }
 
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (!image.create(width, height, format, 0, imageUsage, 1)) {
+    if (!m_image.create(width, height, format, 0, imageUsage, 1)) {
         return false;
     }
 
-    if (!image.transitLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
+    if (!m_image.transitLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)) {
         return false;
     }
 
-    staging.copyToImage(image.getHandle(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    staging.copyToImage(m_image.getHandle(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-    if (!image.transitLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
+    if (!m_image.transitLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)) {
         return false;
     }
 
-    if (!image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView)) {
+    if (!m_image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &m_imageView)) {
         return false;
     }
     return true;

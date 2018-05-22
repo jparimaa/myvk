@@ -8,18 +8,18 @@ namespace fw
 void Time::update()
 {
     float t = static_cast<float>(glfwGetTime());
-    delta = t - sinceStart;
-    sinceStart = t;
+    m_delta = t - m_sinceStart;
+    m_sinceStart = t;
 }
 
 float Time::getSinceStart() const
 {
-    return sinceStart;
+    return m_sinceStart;
 }
 
 float Time::getDelta() const
 {
-    return delta;
+    return m_delta;
 }
 
 }  // namespace fw

@@ -26,10 +26,10 @@ public:
     GLFWwindow* getWindow();
 
 private:
-    int width = 1600;
-    int height = 1200;
-    GLFWwindow* window = nullptr;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    int m_width = 1600;
+    int m_height = 1200;
+    GLFWwindow* m_window = nullptr;
+    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 };
 
 } // namespace fw

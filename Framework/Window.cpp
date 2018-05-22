@@ -7,8 +7,8 @@ namespace fw
 
 Window::~Window()
 {
-    vkDestroySurfaceKHR(Context::getInstance(), surface, nullptr);
-    glfwDestroyWindow(window);
+    vkDestroySurfaceKHR(Context::getInstance(), m_surface, nullptr);
+    glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 
@@ -16,23 +16,23 @@ bool Window::initialize()
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    window = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
+    m_window = glfwCreateWindow(m_width, m_height, "Vulkan", nullptr, nullptr);
 
-    glfwSetWindowPos(window, 1200, 200);
+    glfwSetWindowPos(m_window, 1200, 200);
 
-    if (VkResult r = glfwCreateWindowSurface(Context::getInstance(), window, nullptr, &surface);
+    if (VkResult r = glfwCreateWindowSurface(Context::getInstance(), m_window, nullptr, &m_surface);
         r != VK_SUCCESS) {
         printError("Failed to create window surface", &r);
         return false;
     }
 
-    Context::s_surface = surface;
+    Context::s_surface = m_surface;
     return true;
 }
 
 bool Window::shouldClose() const
 {
-    return glfwWindowShouldClose(window);
+    return glfwWindowShouldClose(m_window);
 }
 
 void Window::pollEvents() const
@@ -42,17 +42,17 @@ void Window::pollEvents() const
 
 int Window::getWidth() const
 {
-    return width;
+    return m_width;
 }
 
 int Window::getHeight() const
 {
-    return height;
+    return m_height;
 }
 
 GLFWwindow* Window::getWindow()
 {
-    return window;
+    return m_window;
 }
 
 } // namespace fw

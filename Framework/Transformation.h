@@ -29,13 +29,13 @@ public:
 	const glm::mat4x4& getWorldMatrix() const;
 
 private:
-	glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-	glm::vec3 forward = Constants::forward;
-	glm::vec3 up = Constants::up;
-	glm::vec3 left = Constants::left;
-    glm::mat4x4 worldMatrix;
+	glm::vec3 m_position = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 m_rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 m_scale = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 m_forward = Constants::forward;
+	glm::vec3 m_up = Constants::up;
+	glm::vec3 m_left = Constants::left;
+    glm::mat4x4 m_worldMatrix;
 
     void updateWorldMatrix();
 };

@@ -10,6 +10,7 @@ namespace fw
 Mesh::Vertices Mesh::getVertices() const
 {
     Vertices vertices;
+    vertices.reserve(positions.size());
     for (unsigned int i = 0; i < positions.size(); ++i) {
         Vertex v;
         v.position = positions[i];

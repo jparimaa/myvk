@@ -75,8 +75,8 @@ bool Model::loadModel(const std::string& file)
             if (aScene->HasTextures()) {
                 for (unsigned int i = 0; i < aScene->mNumTextures; ++i) {
                     aiTexture* aTexture = aScene->mTextures[i];
-                    textureDatas[i] = std::vector<unsigned char>(aTexture->mWidth);
-                    TextureData& data = textureDatas[i];
+                    m_textureDatas[i] = std::vector<unsigned char>(aTexture->mWidth);
+                    TextureData& data = m_textureDatas[i];
                     std::memcpy(data.data(), aTexture->pcData, aTexture->mWidth);
                 }
             }
@@ -90,7 +90,7 @@ bool Model::loadModel(const std::string& file)
 				printWarning("Invalid mesh (vertex attribute sizes do not match): " + file);
 				return false;
             }
-			meshes.push_back(std::move(mesh));
+			m_meshes.push_back(std::move(mesh));
 		}
 	} else {
 		printWarning("Failed to read model: " + file);
@@ -98,7 +98,7 @@ bool Model::loadModel(const std::string& file)
 		return false;
 	}
 
-	if (meshes.empty()) {
+	if (m_meshes.empty()) {
 		printWarning("Empty model: " + file);
 		return false;
 	}
@@ -109,12 +109,12 @@ bool Model::loadModel(const std::string& file)
 
 const Model::Meshes& Model::getMeshes() const
 {
-	return meshes;
+	return m_meshes;
 }
 
 const Model::TextureData& Model::getTextureData(unsigned int index)
 {
-    return textureDatas[index];
+    return m_textureDatas[index];
 }
 
 } // namespace fw

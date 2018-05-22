@@ -17,8 +17,8 @@ public:
     float getDelta() const;
 
 private:
-    float sinceStart = 0.0f;
-    float delta = 0.0f;
+    float m_sinceStart = 0.0f;
+    float m_delta = 0.0f;
 };
 
 } // namespace fw

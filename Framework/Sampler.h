@@ -14,13 +14,13 @@ public:
     Sampler(Sampler&&) = delete;
     Sampler& operator=(const Sampler&) = delete;
     Sampler& operator=(Sampler&&) = delete;
-    
+
     bool create(VkCompareOp compareOp);
 
     VkSampler getSampler() const;
 
-private:    
-    VkSampler sampler = VK_NULL_HANDLE;
+private:
+    VkSampler m_sampler = VK_NULL_HANDLE;
 };
 
 } // namespace fw

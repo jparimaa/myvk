@@ -11,7 +11,7 @@ Sampler::Sampler()
 
 Sampler::~Sampler()
 {
-    vkDestroySampler(Context::getLogicalDevice(), sampler, nullptr);
+    vkDestroySampler(Context::getLogicalDevice(), m_sampler, nullptr);
 }
 
 bool Sampler::create(VkCompareOp compareOp)
@@ -34,7 +34,7 @@ bool Sampler::create(VkCompareOp compareOp)
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 512.0f;
 
-    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &sampler);
+    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &m_sampler);
         r != VK_SUCCESS) {
         printError("Failed to create a sampler");
         return false;
@@ -44,7 +44,7 @@ bool Sampler::create(VkCompareOp compareOp)
 
 VkSampler Sampler::getSampler() const
 {
-    return sampler;
+    return m_sampler;
 }
 
 } // namespace fw
