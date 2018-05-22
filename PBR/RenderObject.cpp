@@ -200,7 +200,11 @@ void RenderObject::createRenderObject()
             const std::vector<unsigned char>& textureData = model.getTextureData(index + i);
             for (TextureInfo& info : textures) {
                 if (info.imageView == VK_NULL_HANDLE && info.type == kv.first) {
-                    info.texture.load(textureData.data(), textureData.size());
+                    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+                    if (info.type == aiTextureType_DIFFUSE || info.type == aiTextureType_EMISSIVE) {
+                        format = VK_FORMAT_R8G8B8A8_SRGB;
+                    }
+                    info.texture.load(textureData.data(), textureData.size(), format);
                     info.imageView = info.texture.getImageView();
                     break;
                 }

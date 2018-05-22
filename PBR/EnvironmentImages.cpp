@@ -56,7 +56,7 @@ void EnvironmentImages::initialize(const std::string& filename)
     logicalDevice = fw::Context::getLogicalDevice();
     prefilterLevelCount = static_cast<uint32_t>(floor(log2(defaultSize))) + 1;
 
-    texture.load(filename);
+    texture.load(filename, VK_FORMAT_R8G8B8A8_UNORM);
     loadModel();
     sampler.create(VK_COMPARE_OP_NEVER);
     createCubeImage(defaultSize, prefilterLevelCount, plainImage, plainImageView);

@@ -15,9 +15,9 @@ public:
     Texture() {};
     ~Texture();
 
-    bool load(const std::string& filename);
+    bool load(const std::string& filename, VkFormat format);
     bool loadHDR(const std::string& filename);
-    bool load(const unsigned char* data, unsigned int size);
+    bool load(const unsigned char* data, unsigned int size, VkFormat format);
 
     VkImageView getImageView() const;
 

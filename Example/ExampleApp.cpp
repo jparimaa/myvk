@@ -244,7 +244,7 @@ void ExampleApp::createRenderObjects()
         ro.numIndices = mesh.indices.size();
 
         std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile);
+        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
         updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
         ro.descriptorSet = descriptorSets[i];
     }
