@@ -18,56 +18,56 @@
 namespace
 {
 
-const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
-const std::string assetsFolder = "../Assets/";
+const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::string c_assetsFolder = "../Assets/";
 
 } // unnamed
 
 SubpassApp::~SubpassApp()
 {
-    vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
-    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
-    vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_gbufferPipeline, nullptr);
+    vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
+    vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
 bool SubpassApp::initialize()
 {
-    logicalDevice = fw::Context::getLogicalDevice();
+    m_logicalDevice = fw::Context::getLogicalDevice();
 
     createRenderPass();
-    bool success = fw::API::initializeSwapChain(renderPass);
+    bool success = fw::API::initializeSwapChain(m_renderPass);
     createDescriptorSetLayout();
     createPipeline();
-    success = success && sampler.create(VK_COMPARE_OP_ALWAYS);
+    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
     createRenderObjects();
-    success = success && fw::API::initializeGUI(descriptorPool);
+    success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
 
     CHECK(success);
 
-    extent = fw::API::getSwapChainExtent();
-    cameraController.setCamera(&camera);
+    m_extent = fw::API::getSwapChainExtent();
+    m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
-    cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
-    camera.setPosition(initPos);
+    m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
+    m_camera.setPosition(initPos);
 
-    ubo.proj = camera.getProjectionMatrix();
+    m_ubo.proj = m_camera.getProjectionMatrix();
 
     return true;
 }
 
 void SubpassApp::update()
 {
-    trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    ubo.world = trans.getWorldMatrix();
+    m_transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    m_ubo.world = m_transformation.getWorldMatrix();
 
-    cameraController.update();
-    ubo.view = camera.getViewMatrix();
+    m_cameraController.update();
+    m_ubo.view = m_camera.getViewMatrix();
 
-    uniformBuffer.setData(sizeof(ubo), &ubo);
+    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
 }
 
 void SubpassApp::createRenderPass()
@@ -108,7 +108,7 @@ void SubpassApp::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    VK_CHECK(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass));
+    VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
 }
 
 void SubpassApp::createDescriptorSetLayout()
@@ -133,7 +133,7 @@ void SubpassApp::createDescriptorSetLayout()
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
-    VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
+    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout));
 }
 
 void SubpassApp::createPipeline()
@@ -144,7 +144,7 @@ void SubpassApp::createPipeline()
 
     fw::Cleaner cleaner([&shaderStages, this]() {
             for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+                vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
             }
         });
 
@@ -163,9 +163,9 @@ void SubpassApp::createPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&descriptorSetLayout);
+    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
 
-    VK_CHECK(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout));
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &m_pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -179,13 +179,13 @@ void SubpassApp::createPipeline()
     pipelineInfo.pDepthStencilState = &depthStencilState;
     pipelineInfo.pColorBlendState = &colorBlendState;
     pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.layout = m_pipelineLayout;
+    pipelineInfo.renderPass = m_renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbufferPipeline));
 }
 
 void SubpassApp::createDescriptorPool()
@@ -202,28 +202,28 @@ void SubpassApp::createDescriptorPool()
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 3;
 
-    VK_CHECK(vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool));
+    VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
 void SubpassApp::createRenderObjects()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
     fw::Model model;
-    CHECK(model.loadModel(assetsFolder + "attack_droid.obj"));
+    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
 
     fw::Model::Meshes meshes = model.getMeshes();
     uint32_t numMeshes = fw::ui32size(meshes);
 
     createDescriptorSets(numMeshes);
 
-    renderObjects.resize(numMeshes);
+    m_renderObjects.resize(numMeshes);
 
     bool success = true;
     for (unsigned int i = 0; i < numMeshes; ++i) {
         const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = renderObjects[i];
+        RenderObject& ro = m_renderObjects[i];
 
         success = success &&
             ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
@@ -231,10 +231,10 @@ void SubpassApp::createRenderObjects()
 
         ro.numIndices = mesh.indices.size();
 
-        std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
+        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = descriptorSets[i];
+        updateDescriptorSet(m_descriptorSets[i], ro.texture.getImageView());
+        ro.descriptorSet = m_descriptorSets[i];
     }
 
     CHECK(success);
@@ -242,29 +242,30 @@ void SubpassApp::createRenderObjects()
 
 void SubpassApp::createDescriptorSets(uint32_t setCount)
 {
-    descriptorSets.resize(setCount);
+    m_descriptorSets.resize(setCount);
 
-    std::vector<VkDescriptorSetLayout> layouts(setCount, descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(setCount, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorPool = m_descriptorPool;
     allocInfo.descriptorSetCount = setCount;
     allocInfo.pSetLayouts = layouts.data();
 
-    VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, descriptorSets.data()));
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, m_descriptorSets.data()));
 }
 
 void SubpassApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffer.getBuffer();
+    bufferInfo.buffer = m_uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
-    bufferInfo.range = transformMatricesSize;
+    bufferInfo.range = c_transformMatricesSize;
+
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = imageView;
-    imageInfo.sampler = sampler.getSampler();
+    imageInfo.sampler = m_sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -284,7 +285,7 @@ void SubpassApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
 
-    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
 void SubpassApp::createCommandBuffers()
@@ -298,7 +299,7 @@ void SubpassApp::createCommandBuffers()
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
 
-    VK_CHECK(vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()));
+    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, commandBuffers.data()));
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -311,7 +312,7 @@ void SubpassApp::createCommandBuffers()
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
@@ -327,13 +328,13 @@ void SubpassApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbufferPipeline);
 
-        for (const RenderObject& ro : renderObjects) {
+        for (const RenderObject& ro : m_renderObjects) {
             VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 
