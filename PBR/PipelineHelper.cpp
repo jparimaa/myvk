@@ -32,8 +32,8 @@ void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     rasterizationState.cullMode = VK_CULL_MODE_NONE;
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendState();
-    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendInfo(&colorBlendAttachmentState);
+    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
+    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
 
     VkPipelineDepthStencilStateCreateInfo depthStencilState{};
     depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
