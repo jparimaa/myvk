@@ -27,8 +27,8 @@ public:
     static VkPipelineRasterizationStateCreateInfo getRasterizationState();
     static VkPipelineMultisampleStateCreateInfo getMultisampleState();
     static VkPipelineDepthStencilStateCreateInfo getDepthStencilState();
-    static VkPipelineColorBlendAttachmentState getColorBlendState();
-    static VkPipelineColorBlendStateCreateInfo getColorBlendInfo(const VkPipelineColorBlendAttachmentState* colorBlendState);
+    static VkPipelineColorBlendAttachmentState getColorBlendAttachmentState();
+    static VkPipelineColorBlendStateCreateInfo getColorBlendState(const VkPipelineColorBlendAttachmentState* attachment);
     static VkPipelineLayoutCreateInfo getPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
 };
 

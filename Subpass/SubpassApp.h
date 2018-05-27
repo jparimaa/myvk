@@ -15,6 +15,18 @@
 class SubpassApp : public fw::Application
 {
 public:
+    SubpassApp() {};
+    virtual ~SubpassApp();
+    SubpassApp(const SubpassApp&) = delete;
+    SubpassApp(SubpassApp&&) = delete;
+    SubpassApp& operator=(const SubpassApp&) = delete;
+    SubpassApp& operator=(SubpassApp&&) = delete;
+
+    virtual bool initialize() final;
+    virtual void update() final;
+    virtual void onGUI() final {};
+
+private:
     struct MatrixUBO
     {
         glm::mat4 world;
@@ -31,27 +43,28 @@ public:
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
 
-    SubpassApp() {};
-    virtual ~SubpassApp();
-    SubpassApp(const SubpassApp&) = delete;
-    SubpassApp(SubpassApp&&) = delete;
-    SubpassApp& operator=(const SubpassApp&) = delete;
-    SubpassApp& operator=(SubpassApp&&) = delete;
+    struct Subpass
+    {
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSet> descriptorSets;
+    };
 
-    virtual bool initialize() final;
-    virtual void update() final;
-    virtual void onGUI() final {};
+    struct FramebufferAttachment
+    {
+        fw::Image image;
+        VkImageView imageView = VK_NULL_HANDLE;
+    };
 
-private:
+
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
-    
-    
-    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
-    VkPipeline m_gbufferPipeline = VK_NULL_HANDLE;
-    VkPipeline m_compositePipeline = VK_NULL_HANDLE;
+    Subpass m_gbuffer;
+    Subpass m_composite;
+
+    std::vector<FramebufferAttachment> m_framebufferAttachments;
 
     fw::Sampler m_sampler;
     fw::Camera m_camera;
@@ -62,14 +75,13 @@ private:
     std::vector<RenderObject> m_renderObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_descriptorSets;
-
-    VkExtent2D m_extent;
 
     void createRenderPass();
-    void createDescriptorSetLayout();
-    void createPipeline();
+    void createDescriptorSetLayouts();
+    void createGBufferPipeline();
+    void createCompositePipeline();
     void createDescriptorPool();
+    void createGBufferAttachments();
     void createRenderObjects();
     void createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
