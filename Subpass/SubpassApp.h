@@ -60,6 +60,7 @@ private:
 
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    std::vector<VkFramebuffer> m_framebuffers;
 
     Subpass m_gbuffer;
     Subpass m_composite;
@@ -77,13 +78,15 @@ private:
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
     void createRenderPass();
+    void createFramebuffers();
     void createDescriptorSetLayouts();
     void createGBufferPipeline();
     void createCompositePipeline();
     void createDescriptorPool();
     void createGBufferAttachments();
     void createRenderObjects();
-    void createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void createGBufferDescriptorSets(uint32_t setCount);
+    void updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void createAndUpdateCompositeDescriptorSet();
     void createCommandBuffers();
 };

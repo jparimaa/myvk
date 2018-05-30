@@ -25,9 +25,24 @@ VkExtent2D API::getSwapChainExtent()
     return s_framework->m_swapChain.getExtent();
 }
 
+uint32_t API::getSwapChainImageCount()
+{
+    return s_framework->m_swapChain.getImageCount();
+}
+
 const std::vector<VkFramebuffer>& API::getSwapChainFramebuffers()
 {
     return s_framework->m_swapChain.getFramebuffers();
+}
+
+const std::vector<VkImageView>& API::getSwapChainImageViews()
+{
+    return s_framework->m_swapChain.getImageViews();
+}
+
+const VkImageView& API::getSwapChainDepthImageView()
+{
+    return s_framework->m_swapChain.getDepthImageView();
 }
 
 VkCommandPool API::getCommandPool()

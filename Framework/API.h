@@ -20,7 +20,10 @@ public:
 
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
+    static uint32_t getSwapChainImageCount();
     static const std::vector<VkFramebuffer>& getSwapChainFramebuffers();
+    static const std::vector<VkImageView>& getSwapChainImageViews();
+    static const VkImageView& getSwapChainDepthImageView();
 
     static VkCommandPool getCommandPool();
 

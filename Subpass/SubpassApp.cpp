@@ -20,6 +20,7 @@ namespace
 
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const std::string c_assetsFolder = "../Assets/";
+const uint32_t c_gbufferTextureCount = 3;
 
 } // unnamed
 
@@ -42,14 +43,15 @@ bool SubpassApp::initialize()
     m_logicalDevice = fw::Context::getLogicalDevice();
 
     createRenderPass();
-    bool success = fw::API::initializeSwapChain(m_renderPass);
+    createFramebuffers();
     createDescriptorSetLayouts();
     createGBufferPipeline();
     createCompositePipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
+    bool success = m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
     createGBufferAttachments();
     createRenderObjects();
+    createAndUpdateCompositeDescriptorSet();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
 
@@ -115,6 +117,37 @@ void SubpassApp::createRenderPass()
     renderPassInfo.pDependencies = &dependency;
 
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
+}
+
+void SubpassApp::createFramebuffers()
+{
+    const uint32_t attachmentCount = c_gbufferTextureCount + 2; // +Depth & final composite
+    VkImageView attachments[attachmentCount];
+
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+
+    VkFramebufferCreateInfo framebufferCreateInfo{};
+    framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferCreateInfo.pNext = nullptr;
+    framebufferCreateInfo.renderPass = m_renderPass;
+    framebufferCreateInfo.attachmentCount = attachmentCount;
+    framebufferCreateInfo.pAttachments = attachments;
+    framebufferCreateInfo.width = extent.width;
+    framebufferCreateInfo.height = extent.height;
+    framebufferCreateInfo.layers = 1;
+
+    m_framebuffers.resize(fw::API::getSwapChainImageCount());
+    const std::vector<VkImageView>& swapChainImageViews = fw::API::getSwapChainImageViews();
+    const VkImageView& depthImageView = fw::API::getSwapChainDepthImageView();
+
+    for (unsigned int i = 0; i < m_framebuffers.size(); ++i) {
+        attachments[0] = swapChainImageViews[i];
+        attachments[1] = m_framebufferAttachments[0].imageView;
+        attachments[2] = m_framebufferAttachments[1].imageView;
+        attachments[3] = m_framebufferAttachments[2].imageView;
+        attachments[4] = depthImageView;
+        VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferCreateInfo, nullptr, &m_framebuffers[i]));
+    }
 }
 
 void SubpassApp::createDescriptorSetLayouts()
@@ -199,11 +232,10 @@ void SubpassApp::createGBufferPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    const uint32_t attachmentCount = 4;
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(attachmentCount, colorBlendAttachmentState);
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_gbufferTextureCount, colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
     colorBlendState.pAttachments = blendAttachmentStates.data();
-    colorBlendState.attachmentCount = attachmentCount;
+    colorBlendState.attachmentCount = c_gbufferTextureCount;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &m_pipelineLayoutInfo, nullptr, &m_gbuffer.pipelineLayout));
 
@@ -306,8 +338,7 @@ void SubpassApp::createGBufferAttachments()
         attachment.image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &attachment.imageView);
     };
 
-    const uint32_t attachmentCount = 3;
-    m_framebufferAttachments.resize(attachmentCount);
+    m_framebufferAttachments.resize(c_gbufferTextureCount);
 
     createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[0]); // Positions
     createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[1]); // Normals
@@ -325,7 +356,7 @@ void SubpassApp::createRenderObjects()
     fw::Model::Meshes meshes = model.getMeshes();
     uint32_t numMeshes = fw::ui32size(meshes);
 
-    createDescriptorSets(numMeshes);
+    createGBufferDescriptorSets(numMeshes);
 
     m_renderObjects.resize(numMeshes);
 
@@ -342,16 +373,15 @@ void SubpassApp::createRenderObjects()
 
         std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_gbuffer.descriptorSets[i], ro.texture.getImageView());
+        updateGBufferDescriptorSet(m_gbuffer.descriptorSets[i], ro.texture.getImageView());
         ro.descriptorSet = m_gbuffer.descriptorSets[i];
     }
 
     CHECK(success);
 }
 
-void SubpassApp::createDescriptorSets(uint32_t setCount)
+void SubpassApp::createGBufferDescriptorSets(uint32_t setCount)
 {
-    // GBuffer
     m_gbuffer.descriptorSets.resize(setCount);
 
     std::vector<VkDescriptorSetLayout> gbufferLayouts(setCount, m_gbuffer.descriptorSetLayout);
@@ -362,30 +392,20 @@ void SubpassApp::createDescriptorSets(uint32_t setCount)
     gbufferAllocInfo.pSetLayouts = gbufferLayouts.data();
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &gbufferAllocInfo, m_gbuffer.descriptorSets.data()));
-
-    // Composite
-    std::vector<VkDescriptorSetLayout> compositeLayouts(1, m_composite.descriptorSetLayout);
-    VkDescriptorSetAllocateInfo compositeAllocInfo{};
-    compositeAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    compositeAllocInfo.descriptorPool = m_descriptorPool;
-    compositeAllocInfo.descriptorSetCount = fw::ui32size(compositeLayouts);
-    compositeAllocInfo.pSetLayouts = compositeLayouts.data();
-
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, m_composite.descriptorSets.data()));
 }
 
-void SubpassApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
+void SubpassApp::updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
-    bufferInfo.offset = 0;
-    bufferInfo.range = c_transformMatricesSize;
+    VkDescriptorBufferInfo matrixBufferInfo{};
+    matrixBufferInfo.buffer = m_uniformBuffer.getBuffer();
+    matrixBufferInfo.offset = 0;
+    matrixBufferInfo.range = c_transformMatricesSize;
 
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
+    VkDescriptorImageInfo albedoTextureInfo{};
+    albedoTextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    albedoTextureInfo.imageView = imageView;
+    albedoTextureInfo.sampler = m_sampler.getSampler();
 
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -395,7 +415,7 @@ void SubpassApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pBufferInfo = &matrixBufferInfo;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSet;
@@ -403,7 +423,41 @@ void SubpassApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].pImageInfo = &albedoTextureInfo;
+
+    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+}
+
+void SubpassApp::createAndUpdateCompositeDescriptorSet()
+{
+    std::vector<VkDescriptorSetLayout> compositeLayouts(1, m_composite.descriptorSetLayout);
+    VkDescriptorSetAllocateInfo compositeAllocInfo{};
+    compositeAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    compositeAllocInfo.descriptorPool = m_descriptorPool;
+    compositeAllocInfo.descriptorSetCount = fw::ui32size(compositeLayouts);
+    compositeAllocInfo.pSetLayouts = compositeLayouts.data();
+
+    m_composite.descriptorSets.resize(1);
+
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, m_composite.descriptorSets.data()));
+
+    unsigned int numAttachments = m_framebufferAttachments.size();
+    std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
+
+    for (unsigned int i = 0; i < numAttachments; ++i) {
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_framebufferAttachments[i].imageView;
+        imageInfo.sampler = m_sampler.getSampler();
+
+        descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[i].dstSet = m_composite.descriptorSets[i];
+        descriptorWrites[i].dstBinding = i;
+        descriptorWrites[i].dstArrayElement = 0;
+        descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[i].descriptorCount = 1;
+        descriptorWrites[i].pImageInfo = &imageInfo;
+    }
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }

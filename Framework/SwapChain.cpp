@@ -172,9 +172,24 @@ VkSwapchainKHR SwapChain::getSwapChain() const
     return m_swapChain;
 }
 
+uint32_t SwapChain::getImageCount() const
+{
+    return m_imageCount;
+}
+
 const std::vector<VkFramebuffer>& SwapChain::getFramebuffers() const
 {
     return m_framebuffers;
+}
+
+const std::vector<VkImageView>& SwapChain::getImageViews() const
+{
+    return m_imageViews;
+}
+
+const VkImageView& SwapChain::getDepthImageView() const
+{
+    return m_depthImageView;
 }
 
 bool SwapChain::createImageViews()

@@ -34,7 +34,11 @@ public:
     VkFormat getImageFormat() const;
     VkExtent2D getExtent() const;
     VkSwapchainKHR getSwapChain() const;
+    uint32_t getImageCount() const;
+
     const std::vector<VkFramebuffer>& getFramebuffers() const;
+    const std::vector<VkImageView>& getImageViews() const;
+    const VkImageView& getDepthImageView() const;
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
