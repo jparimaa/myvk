@@ -8,6 +8,7 @@
 #include "../Framework/Model.h"
 #include "../Framework/Mesh.h"
 #include "../Framework/Macros.h"
+#include "../Framework/Constants.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,6 +22,8 @@ namespace
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const std::string c_assetsFolder = "../Assets/";
 const uint32_t c_gbufferTextureCount = 3;
+// + 2 = Depth & final composite
+const uint32_t c_totalAttachmentCount = c_gbufferTextureCount + 2;
 
 } // unnamed
 
@@ -42,14 +45,14 @@ bool SubpassApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    createGBufferAttachments();
     createRenderPass();
-    createFramebuffers();
     createDescriptorSetLayouts();
     createGBufferPipeline();
     createCompositePipeline();
     bool success = m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
-    createGBufferAttachments();
+    createFramebuffers();
     createRenderObjects();
     createAndUpdateCompositeDescriptorSet();
     success = success && fw::API::initializeGUI(m_descriptorPool);
@@ -78,51 +81,126 @@ void SubpassApp::update()
     m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
 }
 
+void SubpassApp::createGBufferAttachments()
+{
+    auto createAttachment = [this](VkFormat format, FramebufferAttachment& attachment) {
+        VkExtent2D extent = fw::API::getSwapChainExtent();
+        VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+        attachment.image.create(extent.width, extent.height, format, 0, usage);
+        attachment.image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &attachment.imageView);
+        attachment.format = format;
+    };
+
+    m_framebufferAttachments.resize(c_gbufferTextureCount);
+
+    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[0]); // Positions
+    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[1]); // Normals
+    createAttachment(VK_FORMAT_R8G8B8A8_UNORM, m_framebufferAttachments[2]); // Albedo
+}
+
 void SubpassApp::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    VkAttachmentDescription defaultAttachment{};
+    defaultAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    defaultAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    defaultAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    defaultAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    defaultAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    defaultAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    defaultAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    defaultAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    std::vector<VkAttachmentDescription> attachments(c_totalAttachmentCount, defaultAttachment);
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
+    // Color attachment
+    attachments[0].format = fw::API::getSwapChainImageFormat();
+    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    // Deferred attachments
 
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // Position
+    attachments[1].format = m_framebufferAttachments[0].format;
+    // Normals
+    attachments[2].format = m_framebufferAttachments[1].format;
+    // Albedo
+    attachments[3].format = m_framebufferAttachments[3].format;
+    // Depth attachment
+    attachments[4].format = fw::Constants::depthFormat;
+    attachments[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    std::array<VkSubpassDescription,2> subpassDescriptions{};
 
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    // First subpass for creating the G-Buffer
+    VkAttachmentReference colorReferences[4];
+    colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+    colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+    colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+    colorReferences[3] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+    VkAttachmentReference depthReference = { 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
+    subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescriptions[0].colorAttachmentCount = 4;
+    subpassDescriptions[0].pColorAttachments = colorReferences;
+    subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
+
+    // Second subpass for composition using G-Buffer outputs
+    VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+    VkAttachmentReference inputReferences[3];
+    inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+
+    subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDescriptions[1].colorAttachmentCount = 1;
+    subpassDescriptions[1].pColorAttachments = &colorReference;
+    subpassDescriptions[1].pDepthStencilAttachment = &depthReference;
+    subpassDescriptions[1].inputAttachmentCount = 3;
+    subpassDescriptions[1].pInputAttachments = inputReferences;
+
+    // Subpass dependencies
+    std::array<VkSubpassDependency, 3> dependencies;
+
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0;
+    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    dependencies[1].srcSubpass = 0;
+    dependencies[1].dstSubpass = 1;
+    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    dependencies[2].srcSubpass = 0;
+    dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
     renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+    renderPassInfo.subpassCount = fw::ui32size(subpassDescriptions);
+    renderPassInfo.pSubpasses = subpassDescriptions.data();
+    renderPassInfo.dependencyCount = fw::ui32size(dependencies);
+    renderPassInfo.pDependencies = dependencies.data();
 
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
 }
 
 void SubpassApp::createFramebuffers()
 {
-    const uint32_t attachmentCount = c_gbufferTextureCount + 2; // +Depth & final composite
-    VkImageView attachments[attachmentCount];
+    VkImageView attachments[c_totalAttachmentCount];
 
     VkExtent2D extent = fw::API::getSwapChainExtent();
 
@@ -130,7 +208,7 @@ void SubpassApp::createFramebuffers()
     framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferCreateInfo.pNext = nullptr;
     framebufferCreateInfo.renderPass = m_renderPass;
-    framebufferCreateInfo.attachmentCount = attachmentCount;
+    framebufferCreateInfo.attachmentCount = c_totalAttachmentCount;
     framebufferCreateInfo.pAttachments = attachments;
     framebufferCreateInfo.width = extent.width;
     framebufferCreateInfo.height = extent.height;
@@ -327,22 +405,6 @@ void SubpassApp::createDescriptorPool()
     poolInfo.maxSets = 3;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
-}
-
-void SubpassApp::createGBufferAttachments()
-{
-    auto createAttachment = [this](VkFormat format, FramebufferAttachment& attachment) {
-        VkExtent2D extent = fw::API::getSwapChainExtent();
-        VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-        attachment.image.create(extent.width, extent.height, format, 0, usage);
-        attachment.image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &attachment.imageView);
-    };
-
-    m_framebufferAttachments.resize(c_gbufferTextureCount);
-
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[0]); // Positions
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[1]); // Normals
-    createAttachment(VK_FORMAT_R8G8B8A8_UNORM, m_framebufferAttachments[2]); // Albedo
 }
 
 void SubpassApp::createRenderObjects()

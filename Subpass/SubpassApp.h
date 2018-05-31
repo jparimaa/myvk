@@ -55,6 +55,7 @@ private:
     {
         fw::Image image;
         VkImageView imageView = VK_NULL_HANDLE;
+        VkFormat format = VK_FORMAT_UNDEFINED;
     };
 
 
@@ -77,13 +78,13 @@ private:
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
+    void createGBufferAttachments();
     void createRenderPass();
     void createFramebuffers();
     void createDescriptorSetLayouts();
     void createGBufferPipeline();
     void createCompositePipeline();
     void createDescriptorPool();
-    void createGBufferAttachments();
     void createRenderObjects();
     void createGBufferDescriptorSets(uint32_t setCount);
     void updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
