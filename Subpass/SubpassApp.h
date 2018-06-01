@@ -45,6 +45,7 @@ private:
 
     struct Subpass
     {
+        ~Subpass();
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
@@ -53,6 +54,7 @@ private:
 
     struct FramebufferAttachment
     {
+        ~FramebufferAttachment();
         fw::Image image;
         VkImageView imageView = VK_NULL_HANDLE;
         VkFormat format = VK_FORMAT_UNDEFINED;

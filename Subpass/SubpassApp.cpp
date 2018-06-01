@@ -27,17 +27,27 @@ const uint32_t c_totalAttachmentCount = c_gbufferTextureCount + 2;
 
 } // unnamed
 
+SubpassApp::Subpass::~Subpass()
+{
+    VkDevice logicalDevice = fw::Context::getLogicalDevice();
+    vkDestroyPipeline(logicalDevice, pipeline, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+}
+
+SubpassApp::FramebufferAttachment::~FramebufferAttachment()
+{
+    VkDevice logicalDevice = fw::Context::getLogicalDevice();
+    vkDestroyImageView(logicalDevice, imageView, nullptr);
+}
+
 SubpassApp::~SubpassApp()
 {
-    auto destroySubpass = [this](Subpass& subpass) {
-        vkDestroyPipeline(m_logicalDevice, subpass.pipeline, nullptr);
-        vkDestroyPipelineLayout(m_logicalDevice, subpass.pipelineLayout, nullptr);
-        vkDestroyDescriptorSetLayout(m_logicalDevice, subpass.descriptorSetLayout, nullptr);
-    };
-
+    for (VkFramebuffer fb : m_framebuffers)
+    {
+        vkDestroyFramebuffer(m_logicalDevice, fb, nullptr);
+    }
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
-    destroySubpass(m_gbuffer);
-    destroySubpass(m_composite);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
