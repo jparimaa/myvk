@@ -552,9 +552,10 @@ void SubpassApp::createCommandBuffers()
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr;  // Optional
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
+    VkClearValue clearValue;
+    clearValue.color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValue.depthStencil = { 1.0f, 0 };
+    std::vector<VkClearValue> clearValues(c_totalAttachmentCount, clearValue);
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -574,6 +575,8 @@ void SubpassApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        // G-Buffer
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipeline);
 
         for (const RenderObject& ro : m_renderObjects) {
@@ -583,6 +586,11 @@ void SubpassApp::createCommandBuffers()
             vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
+
+        // Composite
+        vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipeline);
+        vkCmdDraw(cb, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);
 
