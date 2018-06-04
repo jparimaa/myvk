@@ -30,7 +30,7 @@ bool PBRApp::initialize()
     environmentImages.initialize(assetsFolder + "Factory_Catwalk_Bg.jpg");
     brdfLut.initialize();
     createRenderPass();
-    CHECK(fw::API::initializeSwapChain(renderPass));
+    CHECK(fw::API::initializeSwapChainWithDefaultFramebuffer(renderPass));
     CHECK(sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
     CHECK(fw::API::initializeGUI(descriptorPool));

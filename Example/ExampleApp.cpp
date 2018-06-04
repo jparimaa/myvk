@@ -37,7 +37,7 @@ bool ExampleApp::initialize()
     logicalDevice = fw::Context::getLogicalDevice();
 
     createRenderPass();
-    bool success = fw::API::initializeSwapChain(renderPass);
+    bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(renderPass);
     createDescriptorSetLayout();
     createPipeline();
     success = success && sampler.create(VK_COMPARE_OP_ALWAYS);

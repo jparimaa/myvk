@@ -59,18 +59,16 @@ bool SubpassApp::initialize()
 
     createGBufferAttachments();
     createRenderPass();
-    bool success = fw::API::initializeSwapChain();
+    CHECK(fw::API::initializeSwapChain());
     createDescriptorSetLayouts();
     createGBufferPipeline();
     createCompositePipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
+    CHECK(m_sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
     createFramebuffers();
     createRenderObjects();
     createAndUpdateCompositeDescriptorSet();
     createCommandBuffers();
-
-    CHECK(success);
 
     m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
@@ -362,7 +360,6 @@ void SubpassApp::createCompositePipeline()
             }
         });
 
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
