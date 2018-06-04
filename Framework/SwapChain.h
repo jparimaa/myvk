@@ -29,7 +29,8 @@ public:
     SwapChain& operator=(SwapChain&&) = delete;
 
     bool create(uint32_t width, uint32_t height);
-    bool initialize(VkRenderPass renderPass);
+    bool initialize();
+    bool initializeWithDefaultFramebuffer(VkRenderPass renderPass);
 
     VkFormat getImageFormat() const;
     VkExtent2D getExtent() const;

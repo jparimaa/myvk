@@ -89,9 +89,11 @@ SwapChain::~SwapChain()
 {
     vkDestroyImageView(m_logicalDevice, m_depthImageView, nullptr);
 
-    for (size_t i = 0; i < m_imageViews.size(); ++i) {
-        vkDestroyImageView(m_logicalDevice, m_imageViews[i], nullptr);
-        vkDestroyFramebuffer(m_logicalDevice, m_framebuffers[i], nullptr);
+    for (VkImageView& iw : m_imageViews) {
+        vkDestroyImageView(m_logicalDevice, iw, nullptr);
+    }
+    for (VkFramebuffer& fb : m_framebuffers) {
+        vkDestroyFramebuffer(m_logicalDevice, fb, nullptr);
     }
     vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); // Destroys images
 }
@@ -149,7 +151,14 @@ bool SwapChain::create(uint32_t width, uint32_t height)
     return true;
 }
 
-bool SwapChain::initialize(VkRenderPass renderPass)
+bool SwapChain::initialize()
+{
+    return
+        createImageViews() &&
+        createDepthImage();
+}
+
+bool SwapChain::initializeWithDefaultFramebuffer(VkRenderPass renderPass)
 {
     return
         createImageViews() &&

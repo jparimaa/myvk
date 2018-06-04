@@ -5,9 +5,14 @@ namespace fw
 
 Framework* API::s_framework = nullptr;
 
-bool API::initializeSwapChain(VkRenderPass renderPass)
+bool API::initializeSwapChain()
 {
-    return s_framework->m_swapChain.initialize(renderPass);
+    return s_framework->m_swapChain.initialize();
+}
+
+bool API::initializeSwapChainWithDefaultFramebuffer(VkRenderPass renderPass)
+{
+    return s_framework->m_swapChain.initializeWithDefaultFramebuffer(renderPass);
 }
 
 bool API::initializeGUI(VkDescriptorPool descriptorPool)

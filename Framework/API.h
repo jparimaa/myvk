@@ -15,7 +15,8 @@ public:
 
     API() = delete;
 
-    static bool initializeSwapChain(VkRenderPass renderPass);
+    static bool initializeSwapChain();
+    static bool initializeSwapChainWithDefaultFramebuffer(VkRenderPass renderPass);
     static bool initializeGUI(VkDescriptorPool descriptorPool);
 
     static VkFormat getSwapChainImageFormat();
