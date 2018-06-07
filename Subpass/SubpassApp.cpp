@@ -57,15 +57,15 @@ bool SubpassApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    CHECK(fw::API::initializeSwapChain());
     createGBufferAttachments();
     createRenderPass();
-    CHECK(fw::API::initializeSwapChain());
+    createFramebuffers();
     createDescriptorSetLayouts();
     createGBufferPipeline();
     createCompositePipeline();
     CHECK(m_sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
-    createFramebuffers();
     createRenderObjects();
     createAndUpdateCompositeDescriptorSet();
     createCommandBuffers();
@@ -110,39 +110,10 @@ void SubpassApp::createGBufferAttachments()
 
 void SubpassApp::createRenderPass()
 {
-    VkAttachmentDescription defaultAttachment{};
-    defaultAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    defaultAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    defaultAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    defaultAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    defaultAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    defaultAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    defaultAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    defaultAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    std::vector<VkAttachmentDescription> attachments(c_totalAttachmentCount, defaultAttachment);
-
-    // Color attachment
-    attachments[0].format = fw::API::getSwapChainImageFormat();
-    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    // Deferred attachments
-
-    // Position
-    attachments[1].format = m_framebufferAttachments[0].format;
-    // Normals
-    attachments[2].format = m_framebufferAttachments[1].format;
-    // Albedo
-    attachments[3].format = m_framebufferAttachments[2].format;
-    // Depth attachment
-    attachments[4].format = fw::Constants::depthFormat;
-    attachments[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
     std::array<VkSubpassDescription,2> subpassDescriptions{};
 
     // First subpass for creating the G-Buffer
-    VkAttachmentReference colorReferences[4];
+    VkAttachmentReference colorReferences[c_colorAttachmentCount];
     colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
     colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
     colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -150,14 +121,14 @@ void SubpassApp::createRenderPass()
     VkAttachmentReference depthReference = { 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
     subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescriptions[0].colorAttachmentCount = 4;
+    subpassDescriptions[0].colorAttachmentCount = c_colorAttachmentCount;
     subpassDescriptions[0].pColorAttachments = colorReferences;
     subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
 
     // Second subpass for composition using G-Buffer outputs
     VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
-    VkAttachmentReference inputReferences[3];
+    VkAttachmentReference inputReferences[c_gbufferTextureCount];
     inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
@@ -166,7 +137,7 @@ void SubpassApp::createRenderPass()
     subpassDescriptions[1].colorAttachmentCount = 1;
     subpassDescriptions[1].pColorAttachments = &colorReference;
     subpassDescriptions[1].pDepthStencilAttachment = &depthReference;
-    subpassDescriptions[1].inputAttachmentCount = 3;
+    subpassDescriptions[1].inputAttachmentCount = c_gbufferTextureCount;
     subpassDescriptions[1].pInputAttachments = inputReferences;
 
     // Subpass dependencies
@@ -195,6 +166,34 @@ void SubpassApp::createRenderPass()
     dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    // Attachments
+    VkAttachmentDescription defaultAttachment{};
+    defaultAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    defaultAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    defaultAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    defaultAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    defaultAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    defaultAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    defaultAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    defaultAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    std::vector<VkAttachmentDescription> attachments(c_totalAttachmentCount, defaultAttachment);
+
+    // Output attachment
+    attachments[0].format = fw::API::getSwapChainImageFormat();
+    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // Position
+    attachments[1].format = m_framebufferAttachments[0].format;
+    // Normals
+    attachments[2].format = m_framebufferAttachments[1].format;
+    // Albedo
+    attachments[3].format = m_framebufferAttachments[2].format;
+    // Depth attachment
+    attachments[4].format = fw::Constants::depthFormat;
+    attachments[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -370,6 +369,7 @@ void SubpassApp::createCompositePipeline()
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
+    rasterizationState.cullMode = VK_CULL_MODE_NONE;
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
@@ -516,12 +516,13 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
 
     unsigned int numAttachments = m_framebufferAttachments.size();
     std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
+    std::vector<VkDescriptorImageInfo> imageInfos(numAttachments);
 
     for (unsigned int i = 0; i < numAttachments; ++i) {
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_framebufferAttachments[i].imageView;
-        imageInfo.sampler = m_sampler.getSampler();
+        imageInfos[i] = VkDescriptorImageInfo{};
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[i].imageView = m_framebufferAttachments[i].imageView;
+        imageInfos[i].sampler = m_sampler.getSampler();
 
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[i].dstSet = m_composite.descriptorSets[0];
@@ -529,7 +530,7 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
         descriptorWrites[i].dstArrayElement = 0;
         descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         descriptorWrites[i].descriptorCount = 1;
-        descriptorWrites[i].pImageInfo = &imageInfo;
+        descriptorWrites[i].pImageInfo = &imageInfos[i];
     }
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
@@ -570,7 +571,7 @@ void SubpassApp::createCommandBuffers()
     for (size_t i = 0; i < commandBuffers.size(); ++i) {
         VkCommandBuffer cb = commandBuffers[i];
 
-        vkBeginCommandBuffer(cb, &beginInfo);
+        VK_CHECK(vkBeginCommandBuffer(cb, &beginInfo));
 
         renderPassInfo.framebuffer = m_framebuffers[i];
 

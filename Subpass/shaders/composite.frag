@@ -9,8 +9,8 @@ layout (location = 0) in vec2 inUv;
 
 layout (location = 0) out vec4 outColor;
 
-const vec3 LIGHT_POS = vec3(2.0, 2.0, 2.0);
-const float LIGHT_RADIUS = 30.0;
+const vec3 LIGHT_POS = vec3(0.0, 20.0, 10.0);
+const float LIGHT_RADIUS = 150.0;
 
 void main()
 {

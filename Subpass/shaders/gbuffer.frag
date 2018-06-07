@@ -15,7 +15,7 @@ layout (location = 3) out vec4 outAlbedo;
 void main()
 {
     // Write color attachments to avoid undefined behaviour (validation error)
-	outColor = vec4(0.0);
+	outColor = vec4(0.0, 0.2, 0.0, 0.0);
 
     outPosition = vec4(inWorldPos.xyz, 1.0);
 
