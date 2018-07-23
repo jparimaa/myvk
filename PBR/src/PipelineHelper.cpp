@@ -1,9 +1,9 @@
 #include "PipelineHelper.h"
 
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Pipeline.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Macros.h"
+#include "fw/Pipeline.h"
 
 #include <glm/glm.hpp>
 

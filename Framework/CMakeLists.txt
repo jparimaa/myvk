@@ -8,29 +8,29 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 add_library(myvk
-    inc/API.h
-    inc/Buffer.h
-    inc/Camera.h
-    inc/CameraController.h
-    inc/Command.h
-    inc/Common.h
-    inc/Context.h
-    inc/Device.h
-    inc/Framework.h
-    inc/GUI.h
-    inc/Image.h
-    inc/Input.h
-    inc/Instance.h
-    inc/Mesh.h
-    inc/Model.h
-    inc/Pipeline.h
-    inc/RenderPass.h
-    inc/Sampler.h
-    inc/SwapChain.h
-    inc/Texture.h
-    inc/Time.h
-    inc/Transformation.h
-    inc/Window.h
+    include/fw/API.h
+    include/fw/Buffer.h
+    include/fw/Camera.h
+    include/fw/CameraController.h
+    include/fw/Command.h
+    include/fw/Common.h
+    include/fw/Context.h
+    include/fw/Device.h
+    include/fw/Framework.h
+    include/fw/GUI.h
+    include/fw/Image.h
+    include/fw/Input.h
+    include/fw/Instance.h
+    include/fw/Mesh.h
+    include/fw/Model.h
+    include/fw/Pipeline.h
+    include/fw/RenderPass.h
+    include/fw/Sampler.h
+    include/fw/SwapChain.h
+    include/fw/Texture.h
+    include/fw/Time.h
+    include/fw/Transformation.h
+    include/fw/Window.h
     src/API.cpp
     src/Buffer.cpp
     src/Camera.cpp
@@ -54,27 +54,28 @@ add_library(myvk
     src/Time.cpp
     src/Transformation.cpp
     src/Window.cpp
+    imgui/imgui.cpp
+	imgui/imgui_draw.cpp
+	imgui/imgui_demo.cpp
+	imgui/imgui_impl_glfw_vulkan.cpp
 )
-
-set(VULKAN_SDK_PATH $ENV{VULKAN_SDK} CACHE FILEPATH "Path to Vulkan SDK")
-
-if(WIN32)
-    set(VULKAN_LIB_PATH "${VULKAN_SDK_PATH}/Lib")
-elseif(UNIX)
-    message(FATAL_ERROR "Unix support is insufficient")
-else()
-    message(FATAL_ERROR "Invalid operating system")
-endif()
 
 target_link_libraries(myvk
     PUBLIC
         "${VULKAN_LIB_PATH}/vulkan-1.lib"
+        "${GLFW_PATH}/lib-vc2015/glfw3.lib"
+        "${ASSIMP_PATH}/lib/x86/assimp.lib"
 )
 
 target_include_directories(myvk
     PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
         "${VULKAN_SDK_PATH}/Include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/inc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/fw"
+        "${GLFW_PATH}/include"
+        "${GLM_PATH}"
+        "${ASSIMP_PATH}/include"
+        "${STB_PATH}"
 )
 
 target_compile_features(myvk 

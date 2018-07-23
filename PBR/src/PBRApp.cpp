@@ -1,13 +1,13 @@
 #include "PBRApp.h"
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Command.h"
-#include "../Framework/API.h"
-#include "../Framework/Model.h"
-#include "../Framework/Mesh.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Command.h"
+#include "fw/API.h"
+#include "fw/Model.h"
+#include "fw/Mesh.h"
+#include "fw/Macros.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>

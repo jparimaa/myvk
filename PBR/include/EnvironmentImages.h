@@ -3,10 +3,10 @@
 #include "Offscreen.h"
 #include "PipelineHelper.h"
 
-#include "../Framework/Texture.h"
-#include "../Framework/Sampler.h"
-#include "../Framework/Image.h"
-#include "../Framework/Buffer.h"
+#include "fw/Texture.h"
+#include "fw/Sampler.h"
+#include "fw/Image.h"
+#include "fw/Buffer.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>

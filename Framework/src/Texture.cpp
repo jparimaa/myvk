@@ -4,13 +4,17 @@
 #include "Context.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#pragma GCC diagnostic ignored "-Wduplicated-branches"
-#pragma GCC diagnostic ignored "-Wuseless-cast"
+#ifndef WIN32
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+	#pragma GCC diagnostic ignored "-Wdouble-promotion"
+	#pragma GCC diagnostic ignored "-Wduplicated-branches"
+	#pragma GCC diagnostic ignored "-Wuseless-cast"
+#endif
 #include <stb_image.h>
-#pragma GCC diagnostic pop
+#ifndef WIN32
+	#pragma GCC diagnostic pop
+#endif
 
 #include <cstring>
 

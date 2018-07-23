@@ -1,10 +1,12 @@
 #include "BRDFLUT.h"
 
-#include "../Framework/Common.h"
-#include "../Framework/Command.h"
-#include "../Framework/Context.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Pipeline.h"
+#include "fw/Common.h"
+#include "fw/Command.h"
+#include "fw/Context.h"
+#include "fw/Macros.h"
+#include "fw/Pipeline.h"
+
+#include <array>
 
 namespace
 {

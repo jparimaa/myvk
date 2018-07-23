@@ -1,10 +1,14 @@
 #pragma once
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuseless-cast"
+#ifndef WIN32
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wuseless-cast"
+#endif
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_vulkan.h"
-#pragma GCC diagnostic pop
+#ifndef WIN32
+	#pragma GCC diagnostic pop
+#endif
 
 #include <vulkan/vulkan.h>
 

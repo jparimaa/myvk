@@ -12,4 +12,4 @@ struct TransformMatrices
 };
 
 const std::size_t transformMatricesSize = sizeof(TransformMatrices);
-const std::string assetsFolder = "../Assets/";
+const std::string assetsFolder = ASSETS_PATH;

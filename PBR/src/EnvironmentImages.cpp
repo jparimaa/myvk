@@ -1,16 +1,20 @@
 #include "EnvironmentImages.h"
+#include "Helpers.h"
 
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/RenderPass.h"
-#include "../Framework/Command.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Model.h"
-#include "../Framework/Constants.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/RenderPass.h"
+#include "fw/Command.h"
+#include "fw/Macros.h"
+#include "fw/Pipeline.h"
+#include "fw/Model.h"
+#include "fw/Constants.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/constants.hpp>
+
+#include <array>
 
 namespace
 {
@@ -37,12 +41,10 @@ const glm::mat4 invertViewMatrices[] = {
     glm::lookAt(fw::Constants::zeroVec3, fw::Constants::forward,  fw::Constants::down)
 };
 
-const std::string assetsFolder = "../Assets/";
-
 } // unnamed
 
 EnvironmentImages::~EnvironmentImages()
-{
+{	
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
     vkDestroyImageView(logicalDevice, plainImageView, nullptr);
@@ -331,8 +333,8 @@ void EnvironmentImages::render(Offscreen& offscreen, PipelineHelper& pipelineHel
                 break;
             case Target::irradiance:
                 irradiancePushConstants.mvp = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.1f, 10.0f) * invertViewMatrices[face];
-                irradiancePushConstants.deltaPhi = (2.0f * float(M_PI)) / 180.0f;
-                irradiancePushConstants.deltaTheta = (0.5f * float(M_PI)) / 64.0f;
+                irradiancePushConstants.deltaPhi = (2.0f * glm::pi<float>()) / 180.0f;
+                irradiancePushConstants.deltaTheta = (0.5f * glm::pi<float>()) / 64.0f;
                 data = &irradiancePushConstants;
                 break;
             case Target::prefilter:

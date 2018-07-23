@@ -1,11 +1,13 @@
 #include "Skybox.h"
 
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Model.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Model.h"
+#include "fw/Macros.h"
+
+#include <array>
 
 Skybox::~Skybox()
 {
