@@ -1,4 +1,5 @@
 #include "RenderObject.h"
+#include "Helpers.h"
 
 #include "fw/RenderPass.h"
 #include "fw/Context.h"
@@ -121,7 +122,7 @@ void RenderObject::createDescriptorSetLayout()
 
 void RenderObject::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("pbr_vert.spv", "pbr_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos(shaderFolder + "pbr.vert.spv", shaderFolder + "pbr.frag.spv");
 
     CHECK(!shaderStages.empty());
 

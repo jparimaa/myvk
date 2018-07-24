@@ -221,8 +221,8 @@ void EnvironmentImages::createDescriptors()
 void EnvironmentImages::createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
                                                const std::string& shader, VkImageView input, Target target)
 {
-    std::string vertexShader = "environment_cube_vert.spv";
-    std::string fragmentShader = shader + "_frag.spv";
+	std::string vertexShader = shaderFolder + "environment_cube.vert.spv";
+	std::string fragmentShader = shaderFolder + shader + ".frag.spv";
 
     Offscreen offscreen;
     PipelineHelper pipelineHelper;

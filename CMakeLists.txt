@@ -11,7 +11,7 @@ set(ASSETS_PATH CACHE PATH "Path to asset folder")
 add_definitions(-DASSETS_PATH="${ASSETS_PATH}")
 
 if(WIN32)
-    set(VULKAN_LIB_PATH "${VULKAN_SDK_PATH}/Lib32")
+    set(VULKAN_LIB_PATH "${VULKAN_SDK_PATH}/Lib")
 elseif(UNIX)
     message(FATAL_ERROR "Unix support is insufficient")
 else()

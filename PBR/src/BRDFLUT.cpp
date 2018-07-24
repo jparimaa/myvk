@@ -1,4 +1,5 @@
 #include "BRDFLUT.h"
+#include "Helpers.h"
 
 #include "fw/Common.h"
 #include "fw/Command.h"
@@ -192,7 +193,7 @@ bool BRDFLUT::createPipeline()
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("brdflut_vert.spv", "brdflut_frag.spv");
+        fw::Pipeline::getShaderStageInfos(shaderFolder + "brdflut.vert.spv", shaderFolder + "brdflut.frag.spv");
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

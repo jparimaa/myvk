@@ -1,4 +1,5 @@
 #include "Skybox.h"
+#include "Helpers.h"
 
 #include "fw/RenderPass.h"
 #include "fw/Context.h"
@@ -79,7 +80,7 @@ void Skybox::createDescriptorSetLayout()
 void Skybox::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("skybox_vert.spv", "skybox_frag.spv");
+        fw::Pipeline::getShaderStageInfos(shaderFolder + "skybox.vert.spv", shaderFolder + "skybox.frag.spv");
 
     CHECK(!shaderStages.empty());
 
