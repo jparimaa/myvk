@@ -62,14 +62,18 @@ void PBRApp::update()
 
 void PBRApp::onGUI()
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#ifndef WIN32
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif 
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-#pragma GCC diagnostic pop
+#ifndef WIN32
+	#pragma GCC diagnostic pop
+#endif
 }
 
 void PBRApp::createRenderPass()

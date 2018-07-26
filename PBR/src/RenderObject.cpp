@@ -184,7 +184,7 @@ void RenderObject::createRenderObject()
     CHECK(meshes.size() == 1);
 
     const fw::Mesh& mesh = meshes[0];
-    numIndices = mesh.indices.size();
+    numIndices = fw::ui32size(mesh.indices);
 
     success =
         vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&

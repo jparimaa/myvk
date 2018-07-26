@@ -85,7 +85,8 @@ bool Model::loadModel(const std::string& file)
 				printWarning("Invalid mesh (no vertices): " + file);
 				return false;
 			}
-            unsigned int numVertices = mesh.positions.size();
+
+            size_t numVertices = mesh.positions.size();
             if (mesh.normals.size() != numVertices || mesh.tangents.size() != numVertices || mesh.uvs.size() != numVertices) {
 				printWarning("Invalid mesh (vertex attribute sizes do not match): " + file);
 				return false;

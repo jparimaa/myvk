@@ -38,10 +38,10 @@ bool Texture::loadHDR(const std::string& filename)
     return load(filename, VK_FORMAT_R16G16B16A16_SFLOAT, 0);
 }
 
-bool Texture::load(const unsigned char* data, unsigned int size, VkFormat format)
+bool Texture::load(const unsigned char* data, size_t size, VkFormat format)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load_from_memory(data, size, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load_from_memory(data, static_cast<int>(size), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!pixels) {
         printError("Failed to load texture from data");
         return false;

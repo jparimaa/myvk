@@ -43,9 +43,10 @@ void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     depthStencilState.front = depthStencilState.back;
     depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
+	float viewPortSizeAsFloat = static_cast<float>(viewportSize);
     VkViewport viewport = fw::Pipeline::getViewport();
-    viewport.width = viewportSize;
-    viewport.height = viewportSize;
+    viewport.width = viewPortSizeAsFloat;
+    viewport.height = viewPortSizeAsFloat;
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = {viewportSize, viewportSize};

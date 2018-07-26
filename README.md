@@ -8,5 +8,5 @@ Tools
 - GLFW 3.2.1
 - GLM 0.9.8.5
 - STB image
-- Assimp 3.3.1
+- Assimp 4.1.0
 - make

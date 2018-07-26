@@ -112,7 +112,7 @@ void EnvironmentImages::loadModel()
 
     CHECK(success);
 
-    numIndices = mesh.indices.size();
+    numIndices = fw::ui32size(mesh.indices);
 }
 
 void EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView)

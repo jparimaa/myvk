@@ -160,7 +160,7 @@ void Skybox::createSkybox()
         vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-    numIndices = mesh.indices.size();
+    numIndices = fw::ui32size(mesh.indices);
 
     // Allocate descriptors
     VkDescriptorSetAllocateInfo allocInfo{};

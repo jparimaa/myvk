@@ -17,7 +17,7 @@ public:
 
     bool load(const std::string& filename, VkFormat format);
     bool loadHDR(const std::string& filename);
-    bool load(const unsigned char* data, unsigned int size, VkFormat format);
+    bool load(const unsigned char* data, size_t size, VkFormat format);
 
     VkImageView getImageView() const;
 

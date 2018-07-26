@@ -83,6 +83,12 @@ target_compile_features(myvk
         cxx_std_17
 )
 
+if(MSVC)
+  target_compile_options(myvk PRIVATE /W3 /WX /MP)
+else()
+  target_compile_options(myvk PRIVATE -Wall -Wextra -pedantic -Werror)
+endif()
+
 include(GNUInstallDirs)
 
 install(TARGETS myvk EXPORT myvk-config
