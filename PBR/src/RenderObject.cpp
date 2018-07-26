@@ -1,11 +1,12 @@
 #include "RenderObject.h"
+#include "Helpers.h"
 
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Model.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Model.h"
+#include "fw/Macros.h"
 
 RenderObject::~RenderObject()
 {
@@ -121,7 +122,7 @@ void RenderObject::createDescriptorSetLayout()
 
 void RenderObject::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("pbr_vert.spv", "pbr_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos(shaderFolder + "pbr.vert.spv", shaderFolder + "pbr.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -183,7 +184,7 @@ void RenderObject::createRenderObject()
     CHECK(meshes.size() == 1);
 
     const fw::Mesh& mesh = meshes[0];
-    numIndices = mesh.indices.size();
+    numIndices = fw::ui32size(mesh.indices);
 
     success =
         vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&

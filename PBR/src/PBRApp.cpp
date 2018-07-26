@@ -1,13 +1,13 @@
 #include "PBRApp.h"
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Command.h"
-#include "../Framework/API.h"
-#include "../Framework/Model.h"
-#include "../Framework/Mesh.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Command.h"
+#include "fw/API.h"
+#include "fw/Model.h"
+#include "fw/Mesh.h"
+#include "fw/Macros.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -62,14 +62,18 @@ void PBRApp::update()
 
 void PBRApp::onGUI()
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#ifndef WIN32
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif 
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-#pragma GCC diagnostic pop
+#ifndef WIN32
+	#pragma GCC diagnostic pop
+#endif
 }
 
 void PBRApp::createRenderPass()

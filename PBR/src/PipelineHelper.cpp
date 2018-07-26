@@ -1,9 +1,9 @@
 #include "PipelineHelper.h"
 
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Pipeline.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Macros.h"
+#include "fw/Pipeline.h"
 
 #include <glm/glm.hpp>
 
@@ -43,9 +43,10 @@ void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     depthStencilState.front = depthStencilState.back;
     depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
+	float viewPortSizeAsFloat = static_cast<float>(viewportSize);
     VkViewport viewport = fw::Pipeline::getViewport();
-    viewport.width = viewportSize;
-    viewport.height = viewportSize;
+    viewport.width = viewPortSizeAsFloat;
+    viewport.height = viewPortSizeAsFloat;
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = {viewportSize, viewportSize};

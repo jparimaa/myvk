@@ -1,11 +1,14 @@
 #include "Skybox.h"
+#include "Helpers.h"
 
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Model.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Model.h"
+#include "fw/Macros.h"
+
+#include <array>
 
 Skybox::~Skybox()
 {
@@ -77,7 +80,7 @@ void Skybox::createDescriptorSetLayout()
 void Skybox::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos("skybox_vert.spv", "skybox_frag.spv");
+        fw::Pipeline::getShaderStageInfos(shaderFolder + "skybox.vert.spv", shaderFolder + "skybox.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -157,7 +160,7 @@ void Skybox::createSkybox()
         vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
         indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-    numIndices = mesh.indices.size();
+    numIndices = fw::ui32size(mesh.indices);
 
     // Allocate descriptors
     VkDescriptorSetAllocateInfo allocInfo{};

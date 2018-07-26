@@ -2,10 +2,10 @@
 
 #include "Helpers.h"
 
-#include "../Framework/Sampler.h"
-#include "../Framework/Buffer.h"
-#include "../Framework/Transformation.h"
-#include "../Framework/Camera.h"
+#include "fw/Sampler.h"
+#include "fw/Buffer.h"
+#include "fw/Transformation.h"
+#include "fw/Camera.h"
 
 #include <vulkan/vulkan.h>
 

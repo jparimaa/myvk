@@ -2,11 +2,11 @@
 
 #include "Helpers.h"
 
-#include "../Framework/Sampler.h"
-#include "../Framework/Buffer.h"
-#include "../Framework/Transformation.h"
-#include "../Framework/Camera.h"
-#include "../Framework/Texture.h"
+#include "fw/Sampler.h"
+#include "fw/Buffer.h"
+#include "fw/Transformation.h"
+#include "fw/Camera.h"
+#include "fw/Texture.h"
 
 #include <vulkan/vulkan.h>
 #include <assimp/material.h>

@@ -5,6 +5,8 @@
 #include "RenderPass.h"
 #include "API.h"
 
+#include <array>
+
 namespace fw
 {
 

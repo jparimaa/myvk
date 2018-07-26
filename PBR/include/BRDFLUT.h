@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Framework/Texture.h"
-#include "../Framework/Sampler.h"
-#include "../Framework/Image.h"
+#include "fw/Texture.h"
+#include "fw/Sampler.h"
+#include "fw/Image.h"
 
 #include <vulkan/vulkan.h>
 

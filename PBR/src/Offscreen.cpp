@@ -1,9 +1,9 @@
 #include "Offscreen.h"
 
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Command.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Macros.h"
+#include "fw/Command.h"
 
 VkRenderPass Offscreen::renderPass = VK_NULL_HANDLE;
 VkFormat Offscreen::format = VK_FORMAT_UNDEFINED;

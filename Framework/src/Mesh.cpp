@@ -27,7 +27,7 @@ std::string Mesh::getFirstTextureOfType(aiTextureType type) const
     std::string ret = "";
     try {
         ret = materials.at(type).at(0);
-    } catch (const std::out_of_range& e) {
+    } catch (const std::out_of_range& /*e*/) {
         printError("Mesh has no texture for the requested type");
     }
     return ret;

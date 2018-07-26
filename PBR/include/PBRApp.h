@@ -6,13 +6,13 @@
 #include "BRDFLUT.h"
 #include "RenderObject.h"
 
-#include "../Framework/Application.h"
-#include "../Framework/Texture.h"
-#include "../Framework/Sampler.h"
-#include "../Framework/Buffer.h"
-#include "../Framework/Transformation.h"
-#include "../Framework/Camera.h"
-#include "../Framework/CameraController.h"
+#include "fw/Application.h"
+#include "fw/Texture.h"
+#include "fw/Sampler.h"
+#include "fw/Buffer.h"
+#include "fw/Transformation.h"
+#include "fw/Camera.h"
+#include "fw/CameraController.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
