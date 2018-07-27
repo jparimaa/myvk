@@ -10,7 +10,6 @@ set(GLFW_PATH CACHE PATH "Path to GLFW")
 set(GLM_PATH CACHE PATH "Path to glm")
 set(ASSIMP_PATH CACHE PATH "Path to assimp")
 set(STB_PATH CACHE PATH "Path to stb image")
-set(ASSETS_PATH CACHE PATH "Path to asset folder")
 
 add_definitions(-DASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/")
 
@@ -22,7 +21,36 @@ else()
     message(FATAL_ERROR "Invalid operating system")
 endif()
 
-function(COMPILE_SHADERS)
+function(ADD_PROJECT_WITH_DEFAULT_SETTINGS PROJECT_NAME)
+    file(GLOB SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+
+    add_executable(${PROJECT_NAME} ${SOURCES})
+
+    target_link_libraries(${PROJECT_NAME} 
+        PRIVATE
+            myvk
+    )
+
+    target_include_directories(${PROJECT_NAME}
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../Framework/include"
+    )
+
+    if(MSVC)
+        target_compile_options(${PROJECT_NAME} PRIVATE /W3 /WX /MP)
+    else()
+        target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
+    endif()
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${ASSIMP_PATH}/bin/x64/assimp-vc140-mt.dll"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endfunction()
+
+function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
     file(GLOB_RECURSE GLSL_SOURCE_FILES
         "shaders/*.frag"
         "shaders/*.vert"
@@ -43,21 +71,23 @@ function(COMPILE_SHADERS)
     endforeach()
 
     add_custom_target(
-        Shaders 
+        ${SHADER_PROJECT} 
         DEPENDS ${SPIRV_BINARY_FILES}
     )
 
-    add_dependencies(PBR Shaders)
+    add_dependencies(${MAIN_PROJECT} ${SHADER_PROJECT} )
 
-    add_custom_command(TARGET PBR POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:PBR>/shaders/"
+    add_custom_command(TARGET ${MAIN_PROJECT} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders/"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${PROJECT_BINARY_DIR}/shaders"
-            "$<TARGET_FILE_DIR:PBR>/shaders"
+            "$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders"
     )
 
-    add_definitions(-DSHADER_PATH="$<TARGET_FILE_DIR:PBR>/shaders/")
+    add_definitions(-DSHADER_PATH="$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders/")
 endfunction()
 
 add_subdirectory(Framework)
+add_subdirectory(Example)
 add_subdirectory(PBR)
+add_subdirectory(Subpass)

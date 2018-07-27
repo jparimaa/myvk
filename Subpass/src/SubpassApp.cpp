@@ -1,14 +1,14 @@
 #include "SubpassApp.h"
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Command.h"
-#include "../Framework/API.h"
-#include "../Framework/Model.h"
-#include "../Framework/Mesh.h"
-#include "../Framework/Macros.h"
-#include "../Framework/Constants.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Command.h"
+#include "fw/API.h"
+#include "fw/Model.h"
+#include "fw/Mesh.h"
+#include "fw/Macros.h"
+#include "fw/Constants.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -20,12 +20,14 @@ namespace
 {
 
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
-const std::string c_assetsFolder = "../Assets/";
 const uint32_t c_gbufferTextureCount = 3;
 // + 1 = final composite
 const uint32_t c_colorAttachmentCount = 3 + 1;
 // + 2 = Depth & final composite
 const uint32_t c_totalAttachmentCount = c_gbufferTextureCount + 2;
+
+const std::string c_assetsFolder = ASSETS_PATH;
+const std::string c_shaderFolder = SHADER_PATH;
 
 } // unnamed
 
@@ -294,7 +296,8 @@ void SubpassApp::createDescriptorSetLayouts()
 
 void SubpassApp::createGBufferPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("gbuffer_vert.spv", "gbuffer_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
+		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -349,7 +352,8 @@ void SubpassApp::createGBufferPipeline()
 
 void SubpassApp::createCompositePipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("composite_vert.spv", "composite_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
+		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -442,7 +446,7 @@ void SubpassApp::createRenderObjects()
             ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
             ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-        ro.numIndices = mesh.indices.size();
+        ro.numIndices = fw::ui32size(mesh.indices);
 
         std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
@@ -514,11 +518,11 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, m_composite.descriptorSets.data()));
 
-    unsigned int numAttachments = m_framebufferAttachments.size();
+    uint32_t numAttachments = static_cast<uint32_t>(m_framebufferAttachments.size());
     std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
     std::vector<VkDescriptorImageInfo> imageInfos(numAttachments);
 
-    for (unsigned int i = 0; i < numAttachments; ++i) {
+    for (uint32_t i = 0; i < numAttachments; ++i) {
         imageInfos[i] = VkDescriptorImageInfo{};
         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfos[i].imageView = m_framebufferAttachments[i].imageView;

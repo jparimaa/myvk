@@ -1,13 +1,13 @@
 #include "ExampleApp.h"
-#include "../Framework/RenderPass.h"
-#include "../Framework/Context.h"
-#include "../Framework/Common.h"
-#include "../Framework/Pipeline.h"
-#include "../Framework/Command.h"
-#include "../Framework/API.h"
-#include "../Framework/Model.h"
-#include "../Framework/Mesh.h"
-#include "../Framework/Macros.h"
+#include "fw/RenderPass.h"
+#include "fw/Context.h"
+#include "fw/Common.h"
+#include "fw/Pipeline.h"
+#include "fw/Command.h"
+#include "fw/API.h"
+#include "fw/Model.h"
+#include "fw/Mesh.h"
+#include "fw/Macros.h"
 
 #include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,8 +18,9 @@
 namespace
 {
 
-const std::size_t transformMatricesSize = sizeof(glm::mat4x4) * 3;
-const std::string assetsFolder = "../Assets/";
+const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::string c_assetsFolder = ASSETS_PATH;
+const std::string c_shaderFolder = SHADER_PATH;
 
 } // unnamed
 
@@ -72,14 +73,18 @@ void ExampleApp::update()
 
 void ExampleApp::onGUI()
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#ifndef WIN32
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-#pragma GCC diagnostic pop
+#ifndef WIN32
+	#pragma GCC diagnostic pop
+#endif
 }
 
 void ExampleApp::createRenderPass()
@@ -150,7 +155,8 @@ void ExampleApp::createDescriptorSetLayout()
 
 void ExampleApp::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos("shader_vert.spv", "shader_frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
+		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -220,10 +226,10 @@ void ExampleApp::createDescriptorPool()
 void ExampleApp::createRenderObjects()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(uniformBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    CHECK(uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
     fw::Model model;
-    CHECK(model.loadModel(assetsFolder + "attack_droid.obj"));
+    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
 
     fw::Model::Meshes meshes = model.getMeshes();
     uint32_t numMeshes = fw::ui32size(meshes);
@@ -241,9 +247,9 @@ void ExampleApp::createRenderObjects()
             ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
             ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-        ro.numIndices = mesh.indices.size();
+        ro.numIndices = fw::ui32size(mesh.indices);
 
-        std::string textureFile = assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
+        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
         ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
         updateDescriptorSet(descriptorSets[i], ro.texture.getImageView());
         ro.descriptorSet = descriptorSets[i];
@@ -271,7 +277,7 @@ void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
-    bufferInfo.range = transformMatricesSize;
+    bufferInfo.range = c_transformMatricesSize;
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
