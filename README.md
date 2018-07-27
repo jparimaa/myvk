@@ -9,4 +9,4 @@ Tools
 - GLM 0.9.8.5
 - STB image
 - Assimp 4.1.0
-- make
+- CMake 3.5
