@@ -1,12 +1,12 @@
 #pragma once
 
 #include "fw/Application.h"
-#include "fw/Texture.h"
-#include "fw/Sampler.h"
 #include "fw/Buffer.h"
-#include "fw/Transformation.h"
 #include "fw/Camera.h"
 #include "fw/CameraController.h"
+#include "fw/Sampler.h"
+#include "fw/Texture.h"
+#include "fw/Transformation.h"
 
 #include <glm/glm.hpp>
 
@@ -15,7 +15,7 @@
 class SubpassApp : public fw::Application
 {
 public:
-    SubpassApp() {};
+    SubpassApp(){};
     virtual ~SubpassApp();
     SubpassApp(const SubpassApp&) = delete;
     SubpassApp(SubpassApp&&) = delete;
@@ -24,7 +24,7 @@ public:
 
     virtual bool initialize() final;
     virtual void update() final;
-    virtual void onGUI() final {};
+    virtual void onGUI() final{};
 
 private:
     struct MatrixUBO
@@ -59,7 +59,6 @@ private:
         VkImageView imageView = VK_NULL_HANDLE;
         VkFormat format = VK_FORMAT_UNDEFINED;
     };
-
 
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;

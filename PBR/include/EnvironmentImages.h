@@ -3,10 +3,10 @@
 #include "Offscreen.h"
 #include "PipelineHelper.h"
 
-#include "fw/Texture.h"
-#include "fw/Sampler.h"
-#include "fw/Image.h"
 #include "fw/Buffer.h"
+#include "fw/Image.h"
+#include "fw/Sampler.h"
+#include "fw/Texture.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -16,7 +16,7 @@
 class EnvironmentImages
 {
 public:
-    EnvironmentImages() {};
+    EnvironmentImages(){};
     ~EnvironmentImages();
     EnvironmentImages(const EnvironmentImages&) = delete;
     EnvironmentImages(EnvironmentImages&&) = delete;
@@ -86,8 +86,11 @@ private:
     void createCubeImage(uint32_t size, uint32_t mipLevels, fw::Image& image, VkImageView& imageView);
     void createRenderPass();
     void createDescriptors();
-    void createEnvironmentImage(int32_t textureSize, VkPushConstantRange range,
-                                const std::string& shader, VkImageView input, Target target);
+    void createEnvironmentImage(int32_t textureSize,
+                                VkPushConstantRange range,
+                                const std::string& shader,
+                                VkImageView input,
+                                Target target);
     void updateDescriptors(VkImageView imageView);
     fw::Image& getImageByTarget(Target target);
     uint32_t getLevelCountByTarget(Target target);

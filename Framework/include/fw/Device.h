@@ -4,11 +4,10 @@
 
 namespace fw
 {
-
 class Device
 {
 public:
-    Device() {};
+    Device(){};
     ~Device();
     Device(const Device&) = delete;
     Device(Device&&) = delete;

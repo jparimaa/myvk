@@ -4,7 +4,6 @@
 
 namespace fw
 {
-
 Window::~Window()
 {
     vkDestroySurfaceKHR(Context::getInstance(), m_surface, nullptr);
@@ -20,8 +19,8 @@ bool Window::initialize()
 
     glfwSetWindowPos(m_window, 1200, 200);
 
-    if (VkResult r = glfwCreateWindowSurface(Context::getInstance(), m_window, nullptr, &m_surface);
-        r != VK_SUCCESS) {
+    if (VkResult r = glfwCreateWindowSurface(Context::getInstance(), m_window, nullptr, &m_surface); r != VK_SUCCESS)
+    {
         printError("Failed to create window surface", &r);
         return false;
     }

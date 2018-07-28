@@ -1,13 +1,12 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 #include <vector>
 
 namespace fw::Constants
 {
-
 //#define NDEBUG
 #ifdef NDEBUG
 const bool enableValidationLayers = false;

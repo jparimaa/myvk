@@ -14,4 +14,3 @@ struct TransformMatrices
 const std::size_t transformMatricesSize = sizeof(TransformMatrices);
 const std::string assetsFolder = ASSETS_PATH;
 const std::string shaderFolder = SHADER_PATH;
-

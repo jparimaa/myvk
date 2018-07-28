@@ -4,10 +4,9 @@
 
 namespace fw
 {
-
 class RenderPass
 {
-public:    
+public:
     RenderPass() = delete;
     static VkAttachmentDescription getColorAttachment();
     static VkAttachmentDescription getDepthAttachment();

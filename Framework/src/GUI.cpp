@@ -1,21 +1,20 @@
 #include "GUI.h"
-#include "Context.h"
-#include "Common.h"
-#include "Command.h"
-#include "RenderPass.h"
 #include "API.h"
+#include "Command.h"
+#include "Common.h"
+#include "Context.h"
+#include "RenderPass.h"
 
 #include <array>
 
 namespace fw
 {
-
 namespace
 {
-
 static void imguiVkResult(VkResult r)
 {
-    if (r != VK_SUCCESS) {
+    if (r != VK_SUCCESS)
+    {
         printError("ImGUI Error: ", &r);
     }
 }
@@ -24,7 +23,8 @@ static void imguiVkResult(VkResult r)
 
 GUI::~GUI()
 {
-    if (m_initialized) {
+    if (m_initialized)
+    {
         vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
         ImGui_ImplGlfwVulkan_Shutdown();
         ImGui::DestroyContext();
@@ -84,8 +84,8 @@ bool GUI::render(VkFramebuffer framebuffer) const
     ImGui_ImplGlfwVulkan_Render(m_commandBuffer);
 
     vkCmdEndRenderPass(m_commandBuffer);
-    if (VkResult r = vkEndCommandBuffer(m_commandBuffer);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkEndCommandBuffer(m_commandBuffer); r != VK_SUCCESS)
+    {
         fw::printError("Failed to record GUI command buffer", &r);
         return false;
     }
@@ -110,8 +110,8 @@ bool GUI::createCommandBuffer()
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
 
-    if (VkResult r = vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer); r != VK_SUCCESS)
+    {
         fw::printError("Failed to allocate GUI command buffer", &r);
         return false;
     }
@@ -160,12 +160,12 @@ bool GUI::createRenderPass()
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (VkResult r = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass); r != VK_SUCCESS)
+    {
         fw::printError("Failed to create a GUI render pass", &r);
         return false;
     }
     return true;
 }
 
-}  // namespace fw
+} // namespace fw

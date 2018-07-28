@@ -2,7 +2,6 @@
 
 namespace fw
 {
-
 Framework* API::s_framework = nullptr;
 
 bool API::initializeSwapChain()

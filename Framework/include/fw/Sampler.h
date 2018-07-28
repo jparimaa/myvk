@@ -4,7 +4,6 @@
 
 namespace fw
 {
-
 class Sampler
 {
 public:

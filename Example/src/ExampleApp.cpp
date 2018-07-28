@@ -1,23 +1,22 @@
 #include "ExampleApp.h"
-#include "fw/RenderPass.h"
-#include "fw/Context.h"
-#include "fw/Common.h"
-#include "fw/Pipeline.h"
-#include "fw/Command.h"
 #include "fw/API.h"
-#include "fw/Model.h"
-#include "fw/Mesh.h"
+#include "fw/Command.h"
+#include "fw/Common.h"
+#include "fw/Context.h"
 #include "fw/Macros.h"
+#include "fw/Mesh.h"
+#include "fw/Model.h"
+#include "fw/Pipeline.h"
+#include "fw/RenderPass.h"
 
-#include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vulkan/vulkan.h>
 
-#include <iostream>
 #include <array>
+#include <iostream>
 
 namespace
 {
-
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
@@ -74,8 +73,8 @@ void ExampleApp::update()
 void ExampleApp::onGUI()
 {
 #ifndef WIN32
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
 #endif
 
     glm::vec3 p = camera.getTransformation().getPosition();
@@ -83,7 +82,7 @@ void ExampleApp::onGUI()
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 #ifndef WIN32
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 }
 
@@ -135,7 +134,7 @@ void ExampleApp::createDescriptorSetLayout()
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
+    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
@@ -155,20 +154,22 @@ void ExampleApp::createDescriptorSetLayout()
 
 void ExampleApp::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
-		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState
+        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -239,13 +240,14 @@ void ExampleApp::createRenderObjects()
     renderObjects.resize(numMeshes);
 
     bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i) {
+    for (unsigned int i = 0; i < numMeshes; ++i)
+    {
         const fw::Mesh& mesh = meshes[i];
         RenderObject& ro = renderObjects[i];
 
-        success = success &&
-            ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
-            ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        success = success
+            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
         ro.numIndices = fw::ui32size(mesh.indices);
 
@@ -321,7 +323,7 @@ void ExampleApp::createCommandBuffers()
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr;  // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
 
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
@@ -337,7 +339,8 @@ void ExampleApp::createCommandBuffers()
 
     VkDeviceSize offsets[] = {0};
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i) {
+    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    {
         VkCommandBuffer cb = commandBuffers[i];
 
         vkBeginCommandBuffer(cb, &beginInfo);
@@ -347,11 +350,13 @@ void ExampleApp::createCommandBuffers()
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        for (const RenderObject& ro : renderObjects) {
+        for (const RenderObject& ro : renderObjects)
+        {
             VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(
+                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 

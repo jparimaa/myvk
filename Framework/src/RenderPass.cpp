@@ -4,7 +4,6 @@
 
 namespace fw
 {
-
 VkAttachmentDescription RenderPass::getColorAttachment()
 {
     VkAttachmentDescription colorAttachment{};
@@ -34,5 +33,3 @@ VkAttachmentDescription RenderPass::getDepthAttachment()
 }
 
 } // namespace fw
-
-

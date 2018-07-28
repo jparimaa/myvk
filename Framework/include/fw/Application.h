@@ -2,12 +2,11 @@
 
 namespace fw
 {
-
 class Application
 {
 public:
-    Application() {};
-    virtual ~Application() {};
+    Application(){};
+    virtual ~Application(){};
     Application(const Application&) = delete;
     Application(Application&&) = delete;
     Application& operator=(const Application&) = delete;

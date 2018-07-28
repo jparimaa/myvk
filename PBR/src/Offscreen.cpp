@@ -1,9 +1,9 @@
 #include "Offscreen.h"
 
-#include "fw/Context.h"
-#include "fw/Common.h"
-#include "fw/Macros.h"
 #include "fw/Command.h"
+#include "fw/Common.h"
+#include "fw/Context.h"
+#include "fw/Macros.h"
 
 VkRenderPass Offscreen::renderPass = VK_NULL_HANDLE;
 VkFormat Offscreen::format = VK_FORMAT_UNDEFINED;
@@ -56,7 +56,7 @@ void Offscreen::createFramebuffer(uint32_t size)
     imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     imageMemoryBarrier.srcAccessMask = 0;
     imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    imageMemoryBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
     VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;

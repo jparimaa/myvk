@@ -1,18 +1,16 @@
 #include "Device.h"
 #include "Common.h"
-#include "Context.h"
 #include "Constants.h"
+#include "Context.h"
 #include "SwapChain.h"
 
-#include <set>
 #include <iostream>
+#include <set>
 
 namespace fw
 {
-
 namespace
 {
-
 bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
 {
     uint32_t extensionCount;
@@ -22,7 +20,8 @@ bool hasDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
 
     std::set<std::string> requiredExtensions(Constants::deviceExtensions.begin(), Constants::deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for (const auto& extension : availableExtensions)
+    {
         requiredExtensions.erase(extension.extensionName);
     }
 
@@ -34,9 +33,11 @@ bool isDeviceSuitable(VkPhysicalDevice physicalDevice)
     VkSurfaceKHR surface = Context::getSurface();
     QueueFamilyIndices indices = getQueueFamilies(physicalDevice, surface);
 
-    if (hasDeviceExtensionSupport(physicalDevice)) {
+    if (hasDeviceExtensionSupport(physicalDevice))
+    {
         SwapChain::Capabilities swapChainCapabilities = SwapChain::getCapabilities(physicalDevice, surface);
-        bool isSwapChainAdequate = !swapChainCapabilities.formats.empty() && !swapChainCapabilities.presentModes.empty();
+        bool isSwapChainAdequate
+            = !swapChainCapabilities.formats.empty() && !swapChainCapabilities.presentModes.empty();
         VkPhysicalDeviceFeatures supportedFeatures;
         vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
         return indices.hasGraphicsAndPresentFamily() && isSwapChainAdequate && supportedFeatures.samplerAnisotropy;
@@ -62,22 +63,26 @@ bool Device::getPhysicalDevice()
     uint32_t deviceCount = 0;
     VkInstance instance = Context::getInstance();
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
+    if (deviceCount == 0)
+    {
         printError("Failed to find a GPU with Vulkan support");
         return false;
     }
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    for (VkPhysicalDevice device : devices) {
-        if (isDeviceSuitable(device)) {
+    for (VkPhysicalDevice device : devices)
+    {
+        if (isDeviceSuitable(device))
+        {
             physicalDevice = device;
             break;
         }
     }
 
-     if (physicalDevice != VK_NULL_HANDLE) {
-         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+    if (physicalDevice != VK_NULL_HANDLE)
+    {
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
         return true;
     }
     printError("Did not find a suitable GPU");
@@ -92,7 +97,8 @@ bool Device::createLogicalDevice()
     std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
 
     float queuePriority = 1.0f;
-    for (int queueFamily : uniqueQueueFamilies) {
+    for (int queueFamily : uniqueQueueFamilies)
+    {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queueFamily;
@@ -111,15 +117,18 @@ bool Device::createLogicalDevice()
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = fw::ui32size(Constants::deviceExtensions);
     createInfo.ppEnabledExtensionNames = Constants::deviceExtensions.data();
-    if (Constants::enableValidationLayers) {
+    if (Constants::enableValidationLayers)
+    {
         createInfo.enabledLayerCount = fw::ui32size(Constants::validationLayers);
         createInfo.ppEnabledLayerNames = Constants::validationLayers.data();
-    } else {
+    }
+    else
+    {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (VkResult r = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice); r != VK_SUCCESS)
+    {
         printError("Failed to create a logical device", &r);
         return false;
     }
@@ -136,4 +145,4 @@ bool Device::createLogicalDevice()
     return true;
 }
 
-}  // namespace fw
+} // namespace fw

@@ -8,11 +8,10 @@
 
 namespace fw
 {
-
 class Texture
 {
 public:
-    Texture() {};
+    Texture(){};
     ~Texture();
 
     bool load(const std::string& filename, VkFormat format);

@@ -1,23 +1,20 @@
 #include "Pipeline.h"
+#include "API.h"
 #include "Common.h"
 #include "Mesh.h"
-#include "API.h"
 
 namespace fw
 {
-
-std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(
-    const std::string& vertexShaderFilename,
-    const std::string& fragmentShaderFilename)
+std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(const std::string& vertexShaderFilename,
+                                                                           const std::string& fragmentShaderFilename)
 {
     VkShaderModule vertexShaderModule = createShaderModule(vertexShaderFilename);
     VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderFilename);
 
-    auto isNull = [](VkShaderModule shaderModule) {
-        return shaderModule == VK_NULL_HANDLE;
-    };
+    auto isNull = [](VkShaderModule shaderModule) { return shaderModule == VK_NULL_HANDLE; };
 
-    if (isNull(vertexShaderModule) || isNull(fragmentShaderModule)) {
+    if (isNull(vertexShaderModule) || isNull(fragmentShaderModule))
+    {
         return std::vector<VkPipelineShaderStageCreateInfo>{};
     }
 
@@ -72,9 +69,9 @@ std::vector<VkVertexInputAttributeDescription> Pipeline::getAttributeDescription
     return attributeDescriptions;
 }
 
-VkPipelineVertexInputStateCreateInfo Pipeline::getVertexInputState(
-    const VkVertexInputBindingDescription* vertexDescription,
-    const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions)
+VkPipelineVertexInputStateCreateInfo
+Pipeline::getVertexInputState(const VkVertexInputBindingDescription* vertexDescription,
+                              const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions)
 {
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -149,10 +146,10 @@ VkPipelineMultisampleStateCreateInfo Pipeline::getMultisampleState()
     multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampleState.sampleShadingEnable = VK_FALSE;
     multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    multisampleState.minSampleShading = 1.0f;           // Optional
-    multisampleState.pSampleMask = nullptr;             // Optional
-    multisampleState.alphaToCoverageEnable = VK_FALSE;  // Optional
-    multisampleState.alphaToOneEnable = VK_FALSE;       // Optional
+    multisampleState.minSampleShading = 1.0f; // Optional
+    multisampleState.pSampleMask = nullptr; // Optional
+    multisampleState.alphaToCoverageEnable = VK_FALSE; // Optional
+    multisampleState.alphaToOneEnable = VK_FALSE; // Optional
     return multisampleState;
 }
 
@@ -171,14 +168,15 @@ VkPipelineDepthStencilStateCreateInfo Pipeline::getDepthStencilState()
 VkPipelineColorBlendAttachmentState Pipeline::getColorBlendAttachmentState()
 {
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
-    colorBlendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachmentState.colorWriteMask
+        = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachmentState.blendEnable = VK_FALSE;
-    colorBlendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-    colorBlendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-    colorBlendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;              // Optional
-    colorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-    colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-    colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
+    colorBlendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+    colorBlendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+    colorBlendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+    colorBlendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+    colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+    colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
     return colorBlendAttachmentState;
 }
 
@@ -187,13 +185,13 @@ VkPipelineColorBlendStateCreateInfo Pipeline::getColorBlendState(const VkPipelin
     VkPipelineColorBlendStateCreateInfo colorBlendState{};
     colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlendState.logicOpEnable = VK_FALSE;
-    colorBlendState.logicOp = VK_LOGIC_OP_COPY;  // Optional
+    colorBlendState.logicOp = VK_LOGIC_OP_COPY; // Optional
     colorBlendState.attachmentCount = 1;
     colorBlendState.pAttachments = attachment;
-    colorBlendState.blendConstants[0] = 0.0f;  // Optional
-    colorBlendState.blendConstants[1] = 0.0f;  // Optional
-    colorBlendState.blendConstants[2] = 0.0f;  // Optional
-    colorBlendState.blendConstants[3] = 0.0f;  // Optional
+    colorBlendState.blendConstants[0] = 0.0f; // Optional
+    colorBlendState.blendConstants[1] = 0.0f; // Optional
+    colorBlendState.blendConstants[2] = 0.0f; // Optional
+    colorBlendState.blendConstants[3] = 0.0f; // Optional
     return colorBlendState;
 }
 

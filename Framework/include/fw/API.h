@@ -7,7 +7,6 @@
 
 namespace fw
 {
-
 class API
 {
 public:

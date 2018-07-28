@@ -1,7 +1,7 @@
 #include "PipelineHelper.h"
 
-#include "fw/Context.h"
 #include "fw/Common.h"
+#include "fw/Context.h"
 #include "fw/Macros.h"
 #include "fw/Pipeline.h"
 
@@ -16,7 +16,10 @@ PipelineHelper::~PipelineHelper()
     vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
 }
 
-void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange pushConstRange, const std::string& vertexShader, const std::string& fragmentShader)
+void PipelineHelper::createPipeline(uint32_t viewportSize,
+                                    VkPushConstantRange pushConstRange,
+                                    const std::string& vertexShader,
+                                    const std::string& fragmentShader)
 {
     logicalDevice = fw::Context::getLogicalDevice();
     pushConstantRange = pushConstRange;
@@ -43,7 +46,7 @@ void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     depthStencilState.front = depthStencilState.back;
     depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
-	float viewPortSizeAsFloat = static_cast<float>(viewportSize);
+    float viewPortSizeAsFloat = static_cast<float>(viewportSize);
     VkViewport viewport = fw::Pipeline::getViewport();
     viewport.width = viewPortSizeAsFloat;
     viewport.height = viewPortSizeAsFloat;
@@ -72,22 +75,23 @@ void PipelineHelper::createPipeline(uint32_t viewportSize, VkPushConstantRange p
     vertexInputState.vertexAttributeDescriptionCount = 1;
     vertexInputState.pVertexAttributeDescriptions = &vertexAttribute;
 
-    VkDynamicState dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT };
+    VkDynamicState dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT};
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.pDynamicStates = &dynamicStateEnables;
     dynamicState.dynamicStateCount = 1;
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos(vertexShader, fragmentShader);
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(vertexShader, fragmentShader);
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

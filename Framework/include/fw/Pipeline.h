@@ -2,24 +2,22 @@
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace fw
 {
-
 class Pipeline
 {
 public:
     Pipeline() = delete;
-    static std::vector<VkPipelineShaderStageCreateInfo> getShaderStageInfos(
-        const std::string& vertexShaderFilename,
-        const std::string& fragmentShaderFilename);
+    static std::vector<VkPipelineShaderStageCreateInfo> getShaderStageInfos(const std::string& vertexShaderFilename,
+                                                                            const std::string& fragmentShaderFilename);
     static VkVertexInputBindingDescription getVertexDescription();
     static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
-    static VkPipelineVertexInputStateCreateInfo getVertexInputState(
-        const VkVertexInputBindingDescription* vertexDescription,
-        const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions);
+    static VkPipelineVertexInputStateCreateInfo
+    getVertexInputState(const VkVertexInputBindingDescription* vertexDescription,
+                        const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions);
     static VkPipelineInputAssemblyStateCreateInfo getInputAssemblyState();
     static VkViewport getViewport();
     static VkRect2D getScissorRect();
@@ -28,7 +26,8 @@ public:
     static VkPipelineMultisampleStateCreateInfo getMultisampleState();
     static VkPipelineDepthStencilStateCreateInfo getDepthStencilState();
     static VkPipelineColorBlendAttachmentState getColorBlendAttachmentState();
-    static VkPipelineColorBlendStateCreateInfo getColorBlendState(const VkPipelineColorBlendAttachmentState* attachment);
+    static VkPipelineColorBlendStateCreateInfo
+    getColorBlendState(const VkPipelineColorBlendAttachmentState* attachment);
     static VkPipelineLayoutCreateInfo getPipelineLayoutInfo(const VkDescriptorSetLayout* setLayout);
 };
 

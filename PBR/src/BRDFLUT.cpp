@@ -1,8 +1,8 @@
 #include "BRDFLUT.h"
 #include "Helpers.h"
 
-#include "fw/Common.h"
 #include "fw/Command.h"
+#include "fw/Common.h"
 #include "fw/Context.h"
 #include "fw/Macros.h"
 #include "fw/Pipeline.h"
@@ -11,7 +11,6 @@
 
 namespace
 {
-
 const VkFormat format = VK_FORMAT_R16G16_SFLOAT;
 const int32_t size = 512;
 
@@ -31,14 +30,11 @@ bool BRDFLUT::initialize()
 {
     logicalDevice = fw::Context::getLogicalDevice();
 
-    bool success =
-        sampler.create(VK_COMPARE_OP_ALWAYS) &&
-        createImage() &&
-        createRenderPass() &&
-        createFramebuffer() &&
-        createPipeline();
+    bool success = sampler.create(VK_COMPARE_OP_ALWAYS) && createImage() && createRenderPass() && createFramebuffer()
+        && createPipeline();
 
-    if (success) {
+    if (success)
+    {
         render();
         return true;
     }
@@ -65,9 +61,7 @@ bool BRDFLUT::createImage()
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    return
-        image.create(imageCreateInfo) &&
-        image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView);
+    return image.create(imageCreateInfo) && image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &imageView);
 }
 
 bool BRDFLUT::createRenderPass()
@@ -103,7 +97,8 @@ bool BRDFLUT::createRenderPass()
     dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;   dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     VkRenderPassCreateInfo renderPassInfo{};
@@ -158,7 +153,8 @@ bool BRDFLUT::createPipeline()
     rasterizationState.lineWidth = 1.0f;
 
     VkPipelineColorBlendAttachmentState blendAttachmentState{};
-    blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    blendAttachmentState.colorWriteMask
+        = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     blendAttachmentState.blendEnable = VK_FALSE;
 
     VkPipelineColorBlendStateCreateInfo colorBlendState{};
@@ -183,7 +179,7 @@ bool BRDFLUT::createPipeline()
     multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    std::vector<VkDynamicState> dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.pDynamicStates = dynamicStateEnables.data();
@@ -192,8 +188,8 @@ bool BRDFLUT::createPipeline()
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos(shaderFolder + "brdflut.vert.spv", shaderFolder + "brdflut.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(shaderFolder + "brdflut.vert.spv", shaderFolder + "brdflut.frag.spv");
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -212,7 +208,8 @@ bool BRDFLUT::createPipeline()
 
     VK_CHECK(vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 
-    for (const auto& shaderStage : shaderStages) {
+    for (const auto& shaderStage : shaderStages)
+    {
         vkDestroyShaderModule(logicalDevice, shaderStage.module, nullptr);
     }
     return true;

@@ -1,14 +1,13 @@
 #include "Framework.h"
 #include "API.h"
-#include "Context.h"
 #include "Command.h"
 #include "Common.h"
+#include "Context.h"
 
 #include <iostream>
 
 namespace fw
 {
-
 Framework::Framework()
 {
     API::s_framework = this;
@@ -24,14 +23,10 @@ Framework::~Framework()
 bool Framework::initialize()
 {
     glfwInit();
-    bool success =
-        m_instance.initialize() &&
-        m_window.initialize() &&
-        m_device.initialize() &&
-        m_swapChain.create(m_window.getWidth(), m_window.getHeight()) &&
-        Command::createGraphicsCommandPool(&m_commandPool) &&
-        createSemaphores() &&
-        m_input.initialize(m_window.getWindow());
+    bool success = m_instance.initialize() && m_window.initialize() && m_device.initialize()
+        && m_swapChain.create(m_window.getWidth(), m_window.getHeight())
+        && Command::createGraphicsCommandPool(&m_commandPool) && createSemaphores()
+        && m_input.initialize(m_window.getWindow());
 
     m_logicalDevice = Context::getLogicalDevice();
     m_graphicsQueue = Context::getGraphicsQueue();
@@ -48,21 +43,27 @@ void Framework::setApplication(Application* application)
 
 void Framework::execute()
 {
-    while (!m_window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE)) {
+    while (!m_window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE))
+    {
         m_input.clearKeyStatus();
         m_window.pollEvents();
         m_input.update();
         m_time.update();
         m_app->update();
-        if (m_gui.isInitialized()) {
+        if (m_gui.isInitialized())
+        {
             m_gui.beginPass();
             m_app->onGUI();
         }
-        if (!m_commandBuffers.empty()) {
-            if (!render()) {
+        if (!m_commandBuffers.empty())
+        {
+            if (!render())
+            {
                 break;
             }
-        } else {
+        }
+        else
+        {
             printWarning("Empty command buffer");
         }
     }
@@ -76,7 +77,8 @@ bool Framework::createSemaphores()
 
     auto createSemaphore = [semaphoreInfo](VkSemaphore& semaphore) {
         if (VkResult r = vkCreateSemaphore(Context::getLogicalDevice(), &semaphoreInfo, nullptr, &semaphore);
-            r != VK_SUCCESS) {
+            r != VK_SUCCESS)
+        {
             printError("Failed to create a semaphore", &r);
             return false;
         }
@@ -88,19 +90,22 @@ bool Framework::createSemaphores()
 
 bool Framework::render()
 {
-    vkQueueWaitIdle(m_presentQueue);  // Optional sync for validation layers
+    vkQueueWaitIdle(m_presentQueue); // Optional sync for validation layers
 
     uint32_t imageIndex;
     uint64_t timeout = std::numeric_limits<uint64_t>::max();
 
-    if (VkResult r = vkAcquireNextImageKHR(m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &imageIndex);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkAcquireNextImageKHR(
+            m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &imageIndex);
+        r != VK_SUCCESS)
+    {
         printError("Failed to acquire swap chain image");
         return false;
     }
 
     std::vector<VkCommandBuffer> renderCommandBuffers{m_commandBuffers[imageIndex]};
-    if (m_gui.isInitialized()) {
+    if (m_gui.isInitialized())
+    {
         m_gui.render(API::getSwapChainFramebuffers().at(imageIndex));
         renderCommandBuffers.push_back(m_gui.getCommandBuffer());
     }
@@ -120,8 +125,8 @@ bool Framework::render()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (VkResult r = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE); r != VK_SUCCESS)
+    {
         printError("Failed to submit a draw command buffer", &r);
         return false;
     }
@@ -134,10 +139,10 @@ bool Framework::render()
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;  // Optional
+    presentInfo.pResults = nullptr; // Optional
 
-    if (VkResult r = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkQueuePresentKHR(m_presentQueue, &presentInfo); r != VK_SUCCESS)
+    {
         printError("Failed to present swap chain image", &r);
         return false;
     }

@@ -8,7 +8,6 @@
 
 namespace fw
 {
-
 class SwapChain
 {
 public:
@@ -21,7 +20,7 @@ public:
 
     static Capabilities getCapabilities(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
-    SwapChain() {};
+    SwapChain(){};
     ~SwapChain();
     SwapChain(const SwapChain&) = delete;
     SwapChain(SwapChain&&) = delete;

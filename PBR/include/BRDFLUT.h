@@ -1,15 +1,15 @@
 #pragma once
 
-#include "fw/Texture.h"
-#include "fw/Sampler.h"
 #include "fw/Image.h"
+#include "fw/Sampler.h"
+#include "fw/Texture.h"
 
 #include <vulkan/vulkan.h>
 
 class BRDFLUT
 {
 public:
-    BRDFLUT() {};
+    BRDFLUT(){};
     ~BRDFLUT();
 
     bool initialize();

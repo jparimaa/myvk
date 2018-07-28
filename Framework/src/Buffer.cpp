@@ -3,14 +3,13 @@
 
 namespace fw
 {
-
 void Buffer::copy(Buffer& src, Buffer& dst, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = Command::beginSingleTimeCommands();
 
     VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;  // Optional
-    copyRegion.dstOffset = 0;  // Optional
+    copyRegion.srcOffset = 0; // Optional
+    copyRegion.dstOffset = 0; // Optional
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, src.m_buffer, dst.m_buffer, 1, &copyRegion);
 
@@ -19,14 +18,20 @@ void Buffer::copy(Buffer& src, Buffer& dst, VkDeviceSize size)
 
 Buffer::~Buffer()
 {
-    if (m_buffer != VK_NULL_HANDLE) {
+    if (m_buffer != VK_NULL_HANDLE)
+    {
         vkDestroyBuffer(m_logicalDevice, m_buffer, nullptr);
-    } else {
+    }
+    else
+    {
         printWarning("Trying to destroy a null buffer");
     }
-    if (m_memory != VK_NULL_HANDLE) {
+    if (m_memory != VK_NULL_HANDLE)
+    {
         vkFreeMemory(m_logicalDevice, m_memory, nullptr);
-    } else {
+    }
+    else
+    {
         printWarning("Trying to free a null memory");
     }
 }
@@ -41,8 +46,8 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (VkResult r = vkCreateBuffer(m_logicalDevice, &bufferInfo, nullptr, &m_buffer);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateBuffer(m_logicalDevice, &bufferInfo, nullptr, &m_buffer); r != VK_SUCCESS)
+    {
         printError("Failed to create buffer", &r);
         return false;
     }
@@ -53,12 +58,13 @@ bool Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropert
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    if (!findMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex)) {
+    if (!findMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
+    {
         return false;
     }
 
-    if (VkResult r = vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_memory);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_memory); r != VK_SUCCESS)
+    {
         printError("Failed to allocate buffer memory", &r);
         return false;
     }

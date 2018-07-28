@@ -1,22 +1,21 @@
 #pragma once
 
-#include "Context.h"
 #include "Common.h"
+#include "Context.h"
 
 #include <vulkan/vulkan.h>
 
-#include <vector>
 #include <cstring>
+#include <vector>
 
 namespace fw
 {
-
 class Buffer
 {
 public:
     static void copy(Buffer& src, Buffer& dst, VkDeviceSize size);
 
-    Buffer() {};
+    Buffer(){};
     ~Buffer();
 
     bool create(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
@@ -24,10 +23,10 @@ public:
 
     VkBuffer getBuffer() const;
 
-    template <typename T>
+    template<typename T>
     bool setData(VkDeviceSize size, const T* src);
 
-    template <typename T>
+    template<typename T>
     bool createForDevice(const std::vector<T>& content, VkBufferUsageFlagBits flag);
 
 private:
@@ -36,12 +35,12 @@ private:
     VkDeviceMemory m_memory = VK_NULL_HANDLE;
 };
 
-template <typename T>
+template<typename T>
 bool Buffer::setData(VkDeviceSize size, const T* src)
 {
     void* dst;
-    if (VkResult r = vkMapMemory(m_logicalDevice, m_memory, 0, size, 0, &dst);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkMapMemory(m_logicalDevice, m_memory, 0, size, 0, &dst); r != VK_SUCCESS)
+    {
         printError("Failed to map memory");
         return false;
     }
@@ -50,7 +49,7 @@ bool Buffer::setData(VkDeviceSize size, const T* src)
     return true;
 }
 
-template <typename T>
+template<typename T>
 bool Buffer::createForDevice(const std::vector<T>& content, VkBufferUsageFlagBits flag)
 {
     VkDeviceSize bufferSize = sizeof(content[0]) * content.size();
@@ -58,15 +57,18 @@ bool Buffer::createForDevice(const std::vector<T>& content, VkBufferUsageFlagBit
     Buffer staging;
     VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    if (!staging.create(bufferSize, usage, properties)) {
+    if (!staging.create(bufferSize, usage, properties))
+    {
         return false;
     }
 
-    if (!staging.setData<T>(bufferSize, content.data())) {
+    if (!staging.setData<T>(bufferSize, content.data()))
+    {
         return false;
     }
 
-    if (!create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | flag, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+    if (!create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | flag, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+    {
         return false;
     }
 

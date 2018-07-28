@@ -6,7 +6,6 @@
 
 namespace fw
 {
-
 class Context
 {
 public:

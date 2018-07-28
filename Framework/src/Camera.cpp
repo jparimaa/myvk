@@ -5,11 +5,10 @@
 
 namespace fw
 {
-
 Camera::Camera()
 {
-	updateViewMatrix();
-	updateProjectionMatrix();
+    updateViewMatrix();
+    updateProjectionMatrix();
 }
 
 void Camera::setPosition(const glm::vec3& pos)
@@ -55,23 +54,23 @@ const Transformation& Camera::getTransformation() const
 
 const glm::mat4x4& Camera::getViewMatrix() const
 {
-	return m_viewMatrix;
+    return m_viewMatrix;
 }
 
 const glm::mat4x4& Camera::getProjectionMatrix() const
 {
-	return m_projectionMatrix;
+    return m_projectionMatrix;
 }
 
 void Camera::updateViewMatrix()
 {
     glm::vec3 p = m_transformation.getPosition();
-	m_viewMatrix = glm::lookAt(p, p + m_transformation.getForward(), m_transformation.getUp());
+    m_viewMatrix = glm::lookAt(p, p + m_transformation.getForward(), m_transformation.getUp());
 }
 
 void Camera::updateProjectionMatrix()
 {
-	m_projectionMatrix = glm::perspective(m_FOV, m_ratio, m_nearClipDistance, m_farClipDistance);
+    m_projectionMatrix = glm::perspective(m_FOV, m_ratio, m_nearClipDistance, m_farClipDistance);
     m_projectionMatrix[1][1] *= -1;
 }
 

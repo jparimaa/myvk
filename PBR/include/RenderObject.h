@@ -2,19 +2,19 @@
 
 #include "Helpers.h"
 
-#include "fw/Sampler.h"
 #include "fw/Buffer.h"
-#include "fw/Transformation.h"
 #include "fw/Camera.h"
+#include "fw/Sampler.h"
 #include "fw/Texture.h"
+#include "fw/Transformation.h"
 
-#include <vulkan/vulkan.h>
 #include <assimp/material.h>
+#include <vulkan/vulkan.h>
 
 class RenderObject
 {
 public:
-    RenderObject() {};
+    RenderObject(){};
     ~RenderObject();
     RenderObject(const RenderObject&) = delete;
     RenderObject(RenderObject&&) = delete;

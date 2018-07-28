@@ -5,11 +5,10 @@
 
 namespace fw
 {
-
 class Window
 {
 public:
-    Window() {};
+    Window(){};
     ~Window();
     Window(const Window&) = delete;
     Window(Window&&) = delete;

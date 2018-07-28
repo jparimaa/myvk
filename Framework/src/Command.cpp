@@ -1,11 +1,10 @@
 #include "Command.h"
-#include "Context.h"
-#include "Common.h"
 #include "API.h"
+#include "Common.h"
+#include "Context.h"
 
 namespace fw
 {
-
 bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
 {
     QueueFamilyIndices indices = getQueueFamilies(Context::getPhysicalDevice(), Context::getSurface());
@@ -15,8 +14,8 @@ bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
     poolInfo.queueFamilyIndex = indices.graphicsFamily;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    if (VkResult r = vkCreateCommandPool(Context::getLogicalDevice(), &poolInfo, nullptr, commandPool);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateCommandPool(Context::getLogicalDevice(), &poolInfo, nullptr, commandPool); r != VK_SUCCESS)
+    {
         printError("Failed to create command pool", &r);
         return false;
     }
@@ -59,7 +58,4 @@ void Command::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(Context::getLogicalDevice(), API::getCommandPool(), 1, &commandBuffer);
 }
 
-
 } // namespace fw
-
-

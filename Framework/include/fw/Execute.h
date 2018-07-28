@@ -4,15 +4,16 @@
 
 namespace fw
 {
-
-template <typename T>
+template<typename T>
 int runApplication()
 {
     fw::Framework fw;
     int status = 1;
-    if (fw.initialize()) {
+    if (fw.initialize())
+    {
         T app;
-        if (app.initialize()) {
+        if (app.initialize())
+        {
             fw.setApplication(&app);
             fw.execute();
             status = 0;

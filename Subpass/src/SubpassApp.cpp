@@ -1,24 +1,23 @@
 #include "SubpassApp.h"
-#include "fw/RenderPass.h"
-#include "fw/Context.h"
-#include "fw/Common.h"
-#include "fw/Pipeline.h"
-#include "fw/Command.h"
 #include "fw/API.h"
-#include "fw/Model.h"
-#include "fw/Mesh.h"
-#include "fw/Macros.h"
+#include "fw/Command.h"
+#include "fw/Common.h"
 #include "fw/Constants.h"
+#include "fw/Context.h"
+#include "fw/Macros.h"
+#include "fw/Mesh.h"
+#include "fw/Model.h"
+#include "fw/Pipeline.h"
+#include "fw/RenderPass.h"
 
-#include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vulkan/vulkan.h>
 
-#include <iostream>
 #include <array>
+#include <iostream>
 
 namespace
 {
-
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const uint32_t c_gbufferTextureCount = 3;
 // + 1 = final composite
@@ -105,22 +104,25 @@ void SubpassApp::createGBufferAttachments()
 
     m_framebufferAttachments.resize(c_gbufferTextureCount);
 
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[0]); // Positions
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[1]); // Normals
-    createAttachment(VK_FORMAT_R8G8B8A8_UNORM, m_framebufferAttachments[2]); // Albedo
+    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT,
+                     m_framebufferAttachments[0]); // Positions
+    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT,
+                     m_framebufferAttachments[1]); // Normals
+    createAttachment(VK_FORMAT_R8G8B8A8_UNORM,
+                     m_framebufferAttachments[2]); // Albedo
 }
 
 void SubpassApp::createRenderPass()
 {
-    std::array<VkSubpassDescription,2> subpassDescriptions{};
+    std::array<VkSubpassDescription, 2> subpassDescriptions{};
 
     // First subpass for creating the G-Buffer
     VkAttachmentReference colorReferences[c_colorAttachmentCount];
-    colorReferences[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    colorReferences[3] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-    VkAttachmentReference depthReference = { 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+    colorReferences[0] = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    colorReferences[1] = {1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    colorReferences[2] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    colorReferences[3] = {3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    VkAttachmentReference depthReference = {4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
     subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescriptions[0].colorAttachmentCount = c_colorAttachmentCount;
@@ -128,12 +130,12 @@ void SubpassApp::createRenderPass()
     subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
 
     // Second subpass for composition using G-Buffer outputs
-    VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+    VkAttachmentReference colorReference = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
     VkAttachmentReference inputReferences[c_gbufferTextureCount];
-    inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-    inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    inputReferences[0] = {1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    inputReferences[1] = {2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    inputReferences[2] = {3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
     subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpassDescriptions[1].colorAttachmentCount = 1;
@@ -229,7 +231,8 @@ void SubpassApp::createFramebuffers()
     const std::vector<VkImageView>& swapChainImageViews = fw::API::getSwapChainImageViews();
     const VkImageView& depthImageView = fw::API::getSwapChainDepthImageView();
 
-    for (unsigned int i = 0; i < m_framebuffers.size(); ++i) {
+    for (unsigned int i = 0; i < m_framebuffers.size(); ++i)
+    {
         attachments[0] = swapChainImageViews[i];
         attachments[1] = m_framebufferAttachments[0].imageView;
         attachments[2] = m_framebufferAttachments[1].imageView;
@@ -241,7 +244,8 @@ void SubpassApp::createFramebuffers()
 
 void SubpassApp::createDescriptorSetLayouts()
 {
-    auto createDescriptorSetLayout = [this](const std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayout& descriptorSetLayout) {
+    auto createDescriptorSetLayout = [this](const std::vector<VkDescriptorSetLayoutBinding>& bindings,
+                                            VkDescriptorSetLayout& descriptorSetLayout) {
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -290,26 +294,29 @@ void SubpassApp::createDescriptorSetLayouts()
     albedoSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     albedoSamplerBinding.pImmutableSamplers = nullptr;
 
-    std::vector<VkDescriptorSetLayoutBinding> compositeBindings = {positionSamplerBinding, normalSamplerBinding, albedoSamplerBinding};
+    std::vector<VkDescriptorSetLayoutBinding> compositeBindings
+        = {positionSamplerBinding, normalSamplerBinding, albedoSamplerBinding};
     createDescriptorSetLayout(compositeBindings, m_composite.descriptorSetLayout);
 }
 
 void SubpassApp::createGBufferPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
-		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState
+        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -320,9 +327,11 @@ void SubpassApp::createGBufferPipeline()
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
-    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
+    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo
+        = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_colorAttachmentCount, colorBlendAttachmentState);
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_colorAttachmentCount,
+                                                                           colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
     colorBlendState.pAttachments = blendAttachmentStates.data();
     colorBlendState.attachmentCount = c_colorAttachmentCount;
@@ -347,21 +356,23 @@ void SubpassApp::createGBufferPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbuffer.pipeline));
+    VK_CHECK(
+        vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbuffer.pipeline));
 }
 
 void SubpassApp::createCompositePipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = 
-		fw::Pipeline::getShaderStageInfos(c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos(
+        c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -378,7 +389,8 @@ void SubpassApp::createCompositePipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_composite.descriptorSetLayout);
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo
+        = fw::Pipeline::getPipelineLayoutInfo(&m_composite.descriptorSetLayout);
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_composite.pipelineLayout));
 
@@ -400,7 +412,8 @@ void SubpassApp::createCompositePipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_composite.pipeline));
+    VK_CHECK(
+        vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_composite.pipeline));
 }
 
 void SubpassApp::createDescriptorPool()
@@ -438,13 +451,14 @@ void SubpassApp::createRenderObjects()
     m_renderObjects.resize(numMeshes);
 
     bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i) {
+    for (unsigned int i = 0; i < numMeshes; ++i)
+    {
         const fw::Mesh& mesh = meshes[i];
         RenderObject& ro = m_renderObjects[i];
 
-        success = success &&
-            ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
-            ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        success = success
+            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
         ro.numIndices = fw::ui32size(mesh.indices);
 
@@ -477,7 +491,6 @@ void SubpassApp::updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkIma
     matrixBufferInfo.buffer = m_uniformBuffer.getBuffer();
     matrixBufferInfo.offset = 0;
     matrixBufferInfo.range = c_transformMatricesSize;
-
 
     VkDescriptorImageInfo albedoTextureInfo{};
     albedoTextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -522,7 +535,8 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
     std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
     std::vector<VkDescriptorImageInfo> imageInfos(numAttachments);
 
-    for (uint32_t i = 0; i < numAttachments; ++i) {
+    for (uint32_t i = 0; i < numAttachments; ++i)
+    {
         imageInfos[i] = VkDescriptorImageInfo{};
         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfos[i].imageView = m_framebufferAttachments[i].imageView;
@@ -555,11 +569,11 @@ void SubpassApp::createCommandBuffers()
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr;  // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
 
     VkClearValue clearValue;
-    clearValue.color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValue.depthStencil = { 1.0f, 0 };
+    clearValue.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    clearValue.depthStencil = {1.0f, 0};
     std::vector<VkClearValue> clearValues(c_totalAttachmentCount, clearValue);
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -572,7 +586,8 @@ void SubpassApp::createCommandBuffers()
 
     VkDeviceSize offsets[] = {0};
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i) {
+    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    {
         VkCommandBuffer cb = commandBuffers[i];
 
         VK_CHECK(vkBeginCommandBuffer(cb, &beginInfo));
@@ -584,18 +599,27 @@ void SubpassApp::createCommandBuffers()
         // G-Buffer
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipeline);
 
-        for (const RenderObject& ro : m_renderObjects) {
+        for (const RenderObject& ro : m_renderObjects)
+        {
             VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(
+                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
             vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 
         // Composite
         vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipeline);
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipelineLayout, 0, 1, &m_composite.descriptorSets[0], 0, nullptr);
+        vkCmdBindDescriptorSets(cb,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_composite.pipelineLayout,
+                                0,
+                                1,
+                                &m_composite.descriptorSets[0],
+                                0,
+                                nullptr);
         vkCmdDraw(cb, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);

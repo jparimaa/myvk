@@ -5,11 +5,10 @@
 
 namespace fw
 {
-
 class Instance
 {
 public:
-    Instance() {};
+    Instance(){};
     ~Instance();
     Instance(const Instance&) = delete;
     Instance(Instance&&) = delete;

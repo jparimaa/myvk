@@ -1,19 +1,18 @@
 #pragma once
 
-#include "Instance.h"
-#include "Window.h"
+#include "Application.h"
 #include "Device.h"
+#include "GUI.h"
+#include "Input.h"
+#include "Instance.h"
 #include "SwapChain.h"
 #include "Time.h"
-#include "Input.h"
-#include "GUI.h"
-#include "Application.h"
+#include "Window.h"
 
 #include <vulkan/vulkan.h>
 
 namespace fw
 {
-
 class Framework
 {
 public:

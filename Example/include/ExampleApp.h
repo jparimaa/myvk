@@ -1,12 +1,12 @@
 #pragma once
 
 #include "fw/Application.h"
-#include "fw/Texture.h"
-#include "fw/Sampler.h"
 #include "fw/Buffer.h"
-#include "fw/Transformation.h"
 #include "fw/Camera.h"
 #include "fw/CameraController.h"
+#include "fw/Sampler.h"
+#include "fw/Texture.h"
+#include "fw/Transformation.h"
 
 #include <glm/glm.hpp>
 
@@ -31,7 +31,7 @@ public:
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
 
-    ExampleApp() {};
+    ExampleApp(){};
     virtual ~ExampleApp();
     ExampleApp(const ExampleApp&) = delete;
     ExampleApp(ExampleApp&&) = delete;

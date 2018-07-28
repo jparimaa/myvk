@@ -1,12 +1,12 @@
 #include "RenderObject.h"
 #include "Helpers.h"
 
-#include "fw/RenderPass.h"
-#include "fw/Context.h"
 #include "fw/Common.h"
-#include "fw/Pipeline.h"
-#include "fw/Model.h"
+#include "fw/Context.h"
 #include "fw/Macros.h"
+#include "fw/Model.h"
+#include "fw/Pipeline.h"
+#include "fw/RenderPass.h"
 
 RenderObject::~RenderObject()
 {
@@ -17,20 +17,16 @@ RenderObject::~RenderObject()
 
 void RenderObject::initialize(VkRenderPass pass, VkDescriptorPool pool, VkSampler textureSampler)
 {
-    textures =
-    {
-        {aiTextureType_DIFFUSE, fw::Texture(), 1, VK_NULL_HANDLE},
-        {aiTextureType_DIFFUSE, fw::Texture(), 2, VK_NULL_HANDLE},
-        {aiTextureType_EMISSIVE, fw::Texture(), 3, VK_NULL_HANDLE},
-        {aiTextureType_NORMALS, fw::Texture(), 4, VK_NULL_HANDLE},
-        {aiTextureType_LIGHTMAP, fw::Texture(), 5, VK_NULL_HANDLE}
-    };
+    textures = {{aiTextureType_DIFFUSE, fw::Texture(), 1, VK_NULL_HANDLE},
+                {aiTextureType_DIFFUSE, fw::Texture(), 2, VK_NULL_HANDLE},
+                {aiTextureType_EMISSIVE, fw::Texture(), 3, VK_NULL_HANDLE},
+                {aiTextureType_NORMALS, fw::Texture(), 4, VK_NULL_HANDLE},
+                {aiTextureType_LIGHTMAP, fw::Texture(), 5, VK_NULL_HANDLE}};
 
-    images =
-    {
+    images = {
         {aiTextureType_UNKNOWN, fw::Texture(), 6, VK_NULL_HANDLE}, // irradiance
         {aiTextureType_UNKNOWN, fw::Texture(), 7, VK_NULL_HANDLE}, // prefilter
-        {aiTextureType_UNKNOWN, fw::Texture(), 8, VK_NULL_HANDLE}  // brdf
+        {aiTextureType_UNKNOWN, fw::Texture(), 8, VK_NULL_HANDLE} // brdf
     };
 
     renderPass = pass;
@@ -87,7 +83,7 @@ void RenderObject::createDescriptorSetLayout()
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings{ uboLayoutBinding };
+    std::vector<VkDescriptorSetLayoutBinding> bindings{uboLayoutBinding};
 
     for (const TextureInfo& info : textures)
     {
@@ -116,25 +112,27 @@ void RenderObject::createDescriptorSetLayout()
     layoutInfo.bindingCount = fw::ui32size(bindings);
     layoutInfo.pBindings = bindings.data();
 
-
     VK_CHECK(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
 }
 
 void RenderObject::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages = fw::Pipeline::getShaderStageInfos(shaderFolder + "pbr.vert.spv", shaderFolder + "pbr.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(shaderFolder + "pbr.vert.spv", shaderFolder + "pbr.frag.spv");
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState
+        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -186,23 +184,27 @@ void RenderObject::createRenderObject()
     const fw::Mesh& mesh = meshes[0];
     numIndices = fw::ui32size(mesh.indices);
 
-    success =
-        vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)  &&
-        indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    success = vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+        && indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
     CHECK(success);
 
     allocateDescriptorSet();
 
-    for (const auto& kv : mesh.materials) {
-        for (unsigned int i = 0; i < kv.second.size(); ++i) {
+    for (const auto& kv : mesh.materials)
+    {
+        for (unsigned int i = 0; i < kv.second.size(); ++i)
+        {
             std::string indexStr = kv.second[i];
             indexStr = indexStr.substr(1);
             int index = std::stoi(indexStr);
             const std::vector<unsigned char>& textureData = model.getTextureData(index + i);
-            for (TextureInfo& info : textures) {
-                if (info.imageView == VK_NULL_HANDLE && info.type == kv.first) {
+            for (TextureInfo& info : textures)
+            {
+                if (info.imageView == VK_NULL_HANDLE && info.type == kv.first)
+                {
                     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
-                    if (info.type == aiTextureType_DIFFUSE || info.type == aiTextureType_EMISSIVE) {
+                    if (info.type == aiTextureType_DIFFUSE || info.type == aiTextureType_EMISSIVE)
+                    {
                         format = VK_FORMAT_R8G8B8A8_SRGB;
                     }
                     info.texture.load(textureData.data(), textureData.size(), format);

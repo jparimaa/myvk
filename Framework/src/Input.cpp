@@ -2,7 +2,6 @@
 
 namespace
 {
-
 bool isKeyTrueInMap(const std::unordered_map<int, bool>& container, int key)
 {
     auto it = container.find(key);
@@ -13,10 +12,10 @@ bool isKeyTrueInMap(const std::unordered_map<int, bool>& container, int key)
 
 namespace fw
 {
-
 bool Input::initialize(GLFWwindow* window)
 {
-    if (!window) {
+    if (!window)
+    {
         return false;
     }
     m_window = window;
@@ -75,15 +74,18 @@ void Input::clearKeyStatus()
 
 void Input::handleKey(GLFWwindow* /*window*/, int key, int /*scancode*/, int action, int /*mods*/)
 {
-    if (action == GLFW_PRESS) {
+    if (action == GLFW_PRESS)
+    {
         m_pressed[key] = true;
         m_down[key] = true;
     }
-    if (action == GLFW_RELEASE) {
+    if (action == GLFW_RELEASE)
+    {
         m_released[key] = true;
         m_down[key] = false;
     }
-    if (action == GLFW_REPEAT) {
+    if (action == GLFW_REPEAT)
+    {
         m_down[key] = true;
     }
 }

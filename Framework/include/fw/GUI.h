@@ -1,24 +1,23 @@
 #pragma once
 
 #ifndef WIN32
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wuseless-cast"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw_vulkan.h"
 #ifndef WIN32
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 
 #include <vulkan/vulkan.h>
 
 namespace fw
 {
-
 class GUI
 {
 public:
-    GUI() {};
+    GUI(){};
     ~GUI();
     GUI(const GUI&) = delete;
     GUI(GUI&&) = delete;

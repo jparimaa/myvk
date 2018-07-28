@@ -1,19 +1,19 @@
 #include "PBRApp.h"
-#include "fw/RenderPass.h"
-#include "fw/Context.h"
-#include "fw/Common.h"
-#include "fw/Pipeline.h"
-#include "fw/Command.h"
 #include "fw/API.h"
-#include "fw/Model.h"
-#include "fw/Mesh.h"
+#include "fw/Command.h"
+#include "fw/Common.h"
+#include "fw/Context.h"
 #include "fw/Macros.h"
+#include "fw/Mesh.h"
+#include "fw/Model.h"
+#include "fw/Pipeline.h"
+#include "fw/RenderPass.h"
 
-#include <vulkan/vulkan.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vulkan/vulkan.h>
 
-#include <iostream>
 #include <array>
+#include <iostream>
 
 PBRApp::~PBRApp()
 {
@@ -63,16 +63,16 @@ void PBRApp::update()
 void PBRApp::onGUI()
 {
 #ifndef WIN32
-	#pragma GCC diagnostic push
-	#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#endif
 
     glm::vec3 p = camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 #ifndef WIN32
-	#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 }
 
@@ -150,7 +150,7 @@ void PBRApp::createCommandBuffers()
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr;  // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
 
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
@@ -164,7 +164,8 @@ void PBRApp::createCommandBuffers()
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i) {
+    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    {
         VkCommandBuffer cb = commandBuffers[i];
 
         vkBeginCommandBuffer(cb, &beginInfo);

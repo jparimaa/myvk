@@ -1,18 +1,19 @@
 #include "Image.h"
-#include "Context.h"
-#include "Common.h"
 #include "Command.h"
+#include "Common.h"
+#include "Context.h"
 
 namespace fw
 {
-
 Image::~Image()
 {
-    if (m_image != VK_NULL_HANDLE) {
+    if (m_image != VK_NULL_HANDLE)
+    {
         vkDestroyImage(m_logicalDevice, m_image, nullptr);
     }
 
-    if (m_memory != VK_NULL_HANDLE) {
+    if (m_memory != VK_NULL_HANDLE)
+    {
         vkFreeMemory(m_logicalDevice, m_memory, nullptr);
     }
 }
@@ -28,12 +29,23 @@ bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCrea
     return create(width, height, format, flags, usage, 1, 1);
 }
 
-bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage, uint32_t arrayLayers)
+bool Image::create(uint32_t width,
+                   uint32_t height,
+                   VkFormat format,
+                   VkImageCreateFlags flags,
+                   VkImageUsageFlags usage,
+                   uint32_t arrayLayers)
 {
     return create(width, height, format, flags, usage, arrayLayers, 1);
 }
 
-bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage, uint32_t arrayLayers, uint32_t mipLevels)
+bool Image::create(uint32_t width,
+                   uint32_t height,
+                   VkFormat format,
+                   VkImageCreateFlags flags,
+                   VkImageUsageFlags usage,
+                   uint32_t arrayLayers,
+                   uint32_t mipLevels)
 {
     m_logicalDevice = Context::getLogicalDevice();
 
@@ -69,8 +81,8 @@ bool Image::createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageV
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (VkResult r = vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, imageView);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, imageView); r != VK_SUCCESS)
+    {
         printError("Failed to create image view", &r);
         return false;
     }
@@ -86,9 +98,12 @@ bool Image::transitLayout(VkImageLayout newLayout)
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = m_image;
-    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-    } else {
+    }
+    else
+    {
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     }
     barrier.subresourceRange.baseMipLevel = 0;
@@ -99,22 +114,30 @@ bool Image::transitLayout(VkImageLayout newLayout)
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
 
-    if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    } else if (m_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+    }
+    else if (m_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    } else if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+    }
+    else if (m_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
         barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask
+            = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    } else {
+    }
+    else
+    {
         printError("Unsupported image layout transition");
         return false;
     }
@@ -137,8 +160,8 @@ VkImage Image::getHandle() const
 
 bool Image::allocate(const VkImageCreateInfo& imageInfo)
 {
-    if (VkResult r = vkCreateImage(m_logicalDevice, &imageInfo, nullptr, &m_image);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateImage(m_logicalDevice, &imageInfo, nullptr, &m_image); r != VK_SUCCESS)
+    {
         printError("Failed to create image", &r);
         return false;
     }
@@ -149,12 +172,13 @@ bool Image::allocate(const VkImageCreateInfo& imageInfo)
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    if (!findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocInfo.memoryTypeIndex)) {
+    if (!findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocInfo.memoryTypeIndex))
+    {
         return false;
     }
 
-    if (VkResult r = vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_memory);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &m_memory); r != VK_SUCCESS)
+    {
         printError("Failed to allocate image memory", &r);
     }
 

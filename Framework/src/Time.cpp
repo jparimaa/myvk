@@ -4,7 +4,6 @@
 
 namespace fw
 {
-
 void Time::update()
 {
     float t = static_cast<float>(glfwGetTime());
@@ -22,4 +21,4 @@ float Time::getDelta() const
     return m_delta;
 }
 
-}  // namespace fw
+} // namespace fw

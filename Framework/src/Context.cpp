@@ -2,7 +2,6 @@
 
 namespace fw
 {
-
 VkInstance Context::s_instance = VK_NULL_HANDLE;
 VkSurfaceKHR Context::s_surface = VK_NULL_HANDLE;
 VkPhysicalDevice Context::s_physicalDevice = VK_NULL_HANDLE;

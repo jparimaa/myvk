@@ -2,11 +2,10 @@
 
 namespace fw
 {
-
 class Time
 {
 public:
-    Time() {};
+    Time(){};
     Time(const Time&) = delete;
     Time(Time&&) = delete;
     Time& operator=(const Time&) = delete;

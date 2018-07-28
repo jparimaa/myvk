@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Helpers.h"
-#include "EnvironmentImages.h"
-#include "Skybox.h"
 #include "BRDFLUT.h"
+#include "EnvironmentImages.h"
+#include "Helpers.h"
 #include "RenderObject.h"
+#include "Skybox.h"
 
 #include "fw/Application.h"
-#include "fw/Texture.h"
-#include "fw/Sampler.h"
 #include "fw/Buffer.h"
-#include "fw/Transformation.h"
 #include "fw/Camera.h"
 #include "fw/CameraController.h"
+#include "fw/Sampler.h"
+#include "fw/Texture.h"
+#include "fw/Transformation.h"
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
@@ -22,7 +22,7 @@
 class PBRApp : public fw::Application
 {
 public:
-    PBRApp() {};
+    PBRApp(){};
     virtual ~PBRApp();
     PBRApp(const PBRApp&) = delete;
     PBRApp(PBRApp&&) = delete;

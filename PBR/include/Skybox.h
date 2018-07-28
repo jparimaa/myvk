@@ -2,17 +2,17 @@
 
 #include "Helpers.h"
 
-#include "fw/Sampler.h"
 #include "fw/Buffer.h"
-#include "fw/Transformation.h"
 #include "fw/Camera.h"
+#include "fw/Sampler.h"
+#include "fw/Transformation.h"
 
 #include <vulkan/vulkan.h>
 
 class Skybox
 {
 public:
-    Skybox() {};
+    Skybox(){};
     ~Skybox();
     Skybox(const Skybox&) = delete;
     Skybox(Skybox&&) = delete;

@@ -1,13 +1,10 @@
 #include "Sampler.h"
-#include "Context.h"
 #include "Common.h"
+#include "Context.h"
 
 namespace fw
 {
-
-Sampler::Sampler()
-{
-}
+Sampler::Sampler() {}
 
 Sampler::~Sampler()
 {
@@ -34,8 +31,8 @@ bool Sampler::create(VkCompareOp compareOp)
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 512.0f;
 
-    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &m_sampler);
-        r != VK_SUCCESS) {
+    if (VkResult r = vkCreateSampler(Context::getLogicalDevice(), &samplerInfo, nullptr, &m_sampler); r != VK_SUCCESS)
+    {
         printError("Failed to create a sampler");
         return false;
     }

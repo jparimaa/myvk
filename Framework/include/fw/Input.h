@@ -6,11 +6,10 @@
 
 namespace fw
 {
-
 class Input
 {
 public:
-    Input() {};
+    Input(){};
     Input(const Input&) = delete;
     Input(Input&&) = delete;
     Input& operator=(const Input&) = delete;

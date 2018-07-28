@@ -1,12 +1,12 @@
 #include "Skybox.h"
 #include "Helpers.h"
 
-#include "fw/RenderPass.h"
-#include "fw/Context.h"
 #include "fw/Common.h"
-#include "fw/Pipeline.h"
-#include "fw/Model.h"
+#include "fw/Context.h"
 #include "fw/Macros.h"
+#include "fw/Model.h"
+#include "fw/Pipeline.h"
+#include "fw/RenderPass.h"
 
 #include <array>
 
@@ -59,7 +59,7 @@ void Skybox::createDescriptorSetLayout()
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;  // Optional
+    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
@@ -79,16 +79,17 @@ void Skybox::createDescriptorSetLayout()
 
 void Skybox::createPipeline()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages =
-        fw::Pipeline::getShaderStageInfos(shaderFolder + "skybox.vert.spv", shaderFolder + "skybox.frag.spv");
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
+        = fw::Pipeline::getShaderStageInfos(shaderFolder + "skybox.vert.spv", shaderFolder + "skybox.frag.spv");
 
     CHECK(!shaderStages.empty());
 
     fw::Cleaner cleaner([&shaderStages, this]() {
-            for (const auto& info : shaderStages) {
-                vkDestroyShaderModule(logicalDevice, info.module, nullptr);
-            }
-        });
+        for (const auto& info : shaderStages)
+        {
+            vkDestroyShaderModule(logicalDevice, info.module, nullptr);
+        }
+    });
 
     VkVertexInputBindingDescription vertexBinding{};
     vertexBinding.binding = 0;
@@ -156,9 +157,8 @@ void Skybox::createSkybox()
 
     const fw::Mesh& mesh = meshes[0];
 
-    bool success =
-        vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) &&
-        indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    bool success = vertexBuffer.createForDevice<glm::vec3>(mesh.positions, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+        && indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
     numIndices = fw::ui32size(mesh.indices);
 
@@ -172,8 +172,8 @@ void Skybox::createSkybox()
     VK_CHECK(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet));
 
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    success = success &&
-        transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    success = success
+        && transformationBuffer.create(transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
     CHECK(success);
 

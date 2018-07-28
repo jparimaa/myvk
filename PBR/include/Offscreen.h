@@ -10,7 +10,7 @@ public:
     static VkRenderPass renderPass;
     static VkFormat format;
 
-    Offscreen() {};
+    Offscreen(){};
     ~Offscreen();
     void createFramebuffer(uint32_t size);
 
