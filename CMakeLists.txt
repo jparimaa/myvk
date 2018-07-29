@@ -7,9 +7,10 @@ endif()
 
 set(VULKAN_SDK_PATH $ENV{VULKAN_SDK} CACHE PATH "Path to Vulkan SDK")
 set(GLFW_PATH CACHE PATH "Path to GLFW")
-set(GLM_PATH CACHE PATH "Path to glm")
 set(ASSIMP_PATH CACHE PATH "Path to assimp")
-set(STB_PATH CACHE PATH "Path to stb image")
+
+set(STB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/External/stb/")
+set(GLM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/External/glm/")
 
 add_definitions(-DASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/")
 
