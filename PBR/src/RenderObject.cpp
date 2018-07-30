@@ -246,47 +246,44 @@ void RenderObject::updateDescriptorSet()
 
     vkUpdateDescriptorSets(logicalDevice, 1, &bufferWrite, 0, nullptr);
 
-    for (const TextureInfo& texture : textures)
+    size_t numDescriptors = textures.size() + images.size();
+    std::vector<VkDescriptorImageInfo> imageInfos(numDescriptors);
+    std::vector<VkWriteDescriptorSet> descWrites(numDescriptors);
+    for (size_t i = 0; i < textures.size(); ++i)
     {
-        VkDescriptorImageInfo imageInfo{};
+        VkDescriptorImageInfo& imageInfo = imageInfos[i];
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = texture.imageView;
+        imageInfo.imageView = textures[i].imageView;
         imageInfo.sampler = sampler;
 
-        VkWriteDescriptorSet imageWrite{};
+        VkWriteDescriptorSet& imageWrite = descWrites[i];
         imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         imageWrite.pNext = nullptr;
         imageWrite.dstSet = descriptorSet;
-        imageWrite.dstBinding = texture.binding;
+        imageWrite.dstBinding = textures[i].binding;
         imageWrite.dstArrayElement = 0;
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         imageWrite.descriptorCount = 1;
         imageWrite.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
     }
 
-    for (const TextureInfo& image : images)
+    size_t offset = textures.size();
+    for (size_t i = 0; i < images.size(); ++i)
     {
-        VkDescriptorImageInfo imageInfo{};
+        VkDescriptorImageInfo& imageInfo = imageInfos[offset + i];
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = image.imageView;
+        imageInfo.imageView = images[i].imageView;
         imageInfo.sampler = sampler;
 
-        VkWriteDescriptorSet imageWrite{};
+        VkWriteDescriptorSet& imageWrite = descWrites[offset + i];
         imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         imageWrite.pNext = nullptr;
         imageWrite.dstSet = descriptorSet;
-        imageWrite.dstBinding = image.binding;
+        imageWrite.dstBinding = images[i].binding;
         imageWrite.dstArrayElement = 0;
         imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         imageWrite.descriptorCount = 1;
         imageWrite.pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(logicalDevice, 1, &imageWrite, 0, nullptr);
     }
-
-    // Todo: for some reason could not create an array of
-    // VkWriteDescriptorSet and update all the bindings with a single
-    // vkUpdateDescriptorSets command
+    vkUpdateDescriptorSets(logicalDevice, fw::ui32size(descWrites), descWrites.data(), 0, nullptr);
 }
