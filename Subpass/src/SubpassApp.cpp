@@ -151,8 +151,8 @@ void SubpassApp::createRenderPass()
     dependencies[0].dstSubpass = 0;
     dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[0].srcAccessMask = 0;
+    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
     dependencies[1].srcSubpass = 0;
@@ -160,14 +160,14 @@ void SubpassApp::createRenderPass()
     dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-    dependencies[2].srcSubpass = 0;
+    dependencies[2].srcSubpass = 1;
     dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
     dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
     dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -315,8 +315,7 @@ void SubpassApp::createGBufferPipeline()
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState
-        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -327,11 +326,9 @@ void SubpassApp::createGBufferPipeline()
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
-    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo
-        = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
+    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_colorAttachmentCount,
-                                                                           colorBlendAttachmentState);
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_colorAttachmentCount, colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
     colorBlendState.pAttachments = blendAttachmentStates.data();
     colorBlendState.attachmentCount = c_colorAttachmentCount;
@@ -356,8 +353,7 @@ void SubpassApp::createGBufferPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(
-        vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbuffer.pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbuffer.pipeline));
 }
 
 void SubpassApp::createCompositePipeline()
@@ -531,7 +527,7 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, m_composite.descriptorSets.data()));
 
-    uint32_t numAttachments = static_cast<uint32_t>(m_framebufferAttachments.size());
+    uint32_t numAttachments = fw::ui32size(m_framebufferAttachments);
     std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
     std::vector<VkDescriptorImageInfo> imageInfos(numAttachments);
 
@@ -540,7 +536,7 @@ void SubpassApp::createAndUpdateCompositeDescriptorSet()
         imageInfos[i] = VkDescriptorImageInfo{};
         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfos[i].imageView = m_framebufferAttachments[i].imageView;
-        imageInfos[i].sampler = m_sampler.getSampler();
+        imageInfos[i].sampler = VK_NULL_HANDLE;
 
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[i].dstSet = m_composite.descriptorSets[0];
