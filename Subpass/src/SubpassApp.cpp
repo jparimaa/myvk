@@ -572,9 +572,10 @@ void SubpassApp::createCommandBuffers()
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
     VkClearValue clearValue;
-    clearValue.color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    clearValue.color = {{0.0f, 0.0f, 0.5f, 0.0f}};
+    std::vector<VkClearValue> clearValues(c_colorAttachmentCount, clearValue);
     clearValue.depthStencil = {1.0f, 0};
-    std::vector<VkClearValue> clearValues(c_totalAttachmentCount, clearValue);
+    clearValues.push_back(clearValue);
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

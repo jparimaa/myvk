@@ -9,18 +9,22 @@ endif()
 
 add_library(myvk
     include/fw/API.h
+    include/fw/Application.h
     include/fw/Buffer.h
     include/fw/Camera.h
     include/fw/CameraController.h
     include/fw/Command.h
     include/fw/Common.h
+    include/fw/Constants.h
     include/fw/Context.h
     include/fw/Device.h
+    include/fw/Execute.h
     include/fw/Framework.h
     include/fw/GUI.h
     include/fw/Image.h
     include/fw/Input.h
     include/fw/Instance.h
+    include/fw/Macros.h
     include/fw/Mesh.h
     include/fw/Model.h
     include/fw/Pipeline.h
