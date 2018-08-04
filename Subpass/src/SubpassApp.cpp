@@ -117,15 +117,14 @@ void SubpassApp::createRenderPass()
     std::array<VkSubpassDescription, 2> subpassDescriptions{};
 
     // First subpass for creating the G-Buffer
-    VkAttachmentReference colorReferences[c_colorAttachmentCount];
-    colorReferences[0] = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    colorReferences[1] = {1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    colorReferences[2] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    colorReferences[3] = {3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    VkAttachmentReference colorReferences[c_gbufferTextureCount];
+    colorReferences[0] = {1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    colorReferences[1] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    colorReferences[2] = {3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
     VkAttachmentReference depthReference = {4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
     subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescriptions[0].colorAttachmentCount = c_colorAttachmentCount;
+    subpassDescriptions[0].colorAttachmentCount = c_gbufferTextureCount;
     subpassDescriptions[0].pColorAttachments = colorReferences;
     subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
 
@@ -328,10 +327,10 @@ void SubpassApp::createGBufferPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_colorAttachmentCount, colorBlendAttachmentState);
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_gbufferTextureCount, colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
     colorBlendState.pAttachments = blendAttachmentStates.data();
-    colorBlendState.attachmentCount = c_colorAttachmentCount;
+    colorBlendState.attachmentCount = c_gbufferTextureCount;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &m_pipelineLayoutInfo, nullptr, &m_gbuffer.pipelineLayout));
 
