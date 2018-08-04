@@ -57,7 +57,7 @@ std::vector<const char*> getRequiredExtensions()
     }
 
     return extensions;
-};
+}
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugReportFlagsEXT /*flags*/,
                                                     VkDebugReportObjectTypeEXT /*objType*/,

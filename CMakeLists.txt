@@ -16,8 +16,10 @@ add_definitions(-DASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/Assets/")
 
 if(WIN32)
     set(VULKAN_LIB_PATH "${VULKAN_SDK_PATH}/Lib")
+    set(GLSL_VALIDATOR "${VULKAN_SDK_PATH}/Bin/glslangValidator.exe")
 elseif(UNIX)
-    message(FATAL_ERROR "Unix support is insufficient")
+    set(VULKAN_LIB_PATH "${VULKAN_SDK_PATH}/lib")
+    set(GLSL_VALIDATOR "${VULKAN_SDK_PATH}/bin/glslangValidator")
 else()
     message(FATAL_ERROR "Invalid operating system")
 endif()
@@ -27,7 +29,7 @@ function(ADD_PROJECT_WITH_DEFAULT_SETTINGS PROJECT_NAME)
 
     add_executable(${PROJECT_NAME} ${SOURCES})
 
-    target_link_libraries(${PROJECT_NAME} 
+    target_link_libraries(${PROJECT_NAME}
         PRIVATE
             myvk
     )
@@ -44,11 +46,13 @@ function(ADD_PROJECT_WITH_DEFAULT_SETTINGS PROJECT_NAME)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
     endif()
 
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${ASSIMP_PATH}/bin/x64/assimp-vc140-mt.dll"
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
+    if(WIN32)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${ASSIMP_PATH}/bin/x64/assimp-vc140-mt.dll"
+                $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        )
+    endif()
 endfunction()
 
 function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
@@ -56,8 +60,6 @@ function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
         "shaders/*.frag"
         "shaders/*.vert"
     )
-
-    set(GLSL_VALIDATOR "${VULKAN_SDK_PATH}/Bin/glslangValidator.exe")
 
     foreach(GLSL ${GLSL_SOURCE_FILES})
         get_filename_component(FILE_NAME ${GLSL} NAME)
@@ -72,7 +74,7 @@ function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
     endforeach()
 
     add_custom_target(
-        ${SHADER_PROJECT} 
+        ${SHADER_PROJECT}
         DEPENDS ${SPIRV_BINARY_FILES}
     )
 

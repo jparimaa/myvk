@@ -10,6 +10,7 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wduplicated-branches"
 #pragma GCC diagnostic ignored "-Wuseless-cast"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 #include <stb_image.h>
 #ifndef WIN32

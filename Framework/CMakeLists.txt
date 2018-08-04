@@ -64,12 +64,25 @@ add_library(myvk
 	imgui/imgui_impl_glfw_vulkan.cpp
 )
 
-target_link_libraries(myvk
-    PUBLIC
-        "${VULKAN_LIB_PATH}/vulkan-1.lib"
-        "${GLFW_PATH}/lib-vc2015/glfw3.lib"
-        "${ASSIMP_PATH}/lib/x64/assimp-vc140-mt.lib"
-)
+if (WIN32)
+    target_link_libraries(myvk
+        PUBLIC
+            "${VULKAN_LIB_PATH}/vulkan"
+            "${GLFW_PATH}/lib-vc2015/glfw3.lib"
+            "${ASSIMP_PATH}/lib/x64/assimp-vc140-mt.lib"
+    )
+elseif (UNIX)
+    target_link_libraries(myvk
+        PUBLIC
+            "${GLFW_PATH}/src/libglfw3.a"
+            "${VULKAN_LIB_PATH}/libvulkan.so"
+            "${ASSIMP_PATH}/lib/libassimp.so"
+            "rt" "m" "dl" "Xrandr" "Xinerama" "Xxf86vm" "Xext" "Xcursor" "Xrender" "Xfixes" "X11" "pthread" "xcb" "Xau" "Xdmcp"
+    )
+else()
+    message(FATAL_ERROR "Invalid operating system")
+endif()
+
 
 target_include_directories(myvk
     PUBLIC
