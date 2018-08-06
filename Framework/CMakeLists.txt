@@ -67,7 +67,7 @@ add_library(myvk
 if (WIN32)
     target_link_libraries(myvk
         PUBLIC
-            "${VULKAN_LIB_PATH}/vulkan"
+            "${VULKAN_LIB_PATH}/vulkan-1.lib"
             "${GLFW_PATH}/lib-vc2015/glfw3.lib"
             "${ASSIMP_PATH}/lib/x64/assimp-vc140-mt.lib"
     )
