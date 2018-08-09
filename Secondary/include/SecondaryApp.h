@@ -15,13 +15,6 @@
 class SecondaryApp : public fw::Application
 {
 public:
-    struct MatrixUBO
-    {
-        glm::mat4 world;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
     struct RenderObject
     {
         fw::Buffer vertexBuffer;
@@ -29,6 +22,7 @@ public:
         uint32_t numIndices;
         fw::Texture texture;
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        fw::Transformation trans;
     };
 
     SecondaryApp(){};
@@ -43,31 +37,28 @@ public:
     virtual void onGUI() final;
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+    VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
-    fw::Sampler sampler;
-    fw::Camera camera;
-    fw::CameraController cameraController;
-    fw::Transformation trans;
-    MatrixUBO ubo;
-    fw::Buffer uniformBuffer;
-    std::vector<RenderObject> renderObjects;
+    fw::Sampler m_sampler;
+    fw::Camera m_camera;
+    fw::CameraController m_cameraController;
+    fw::Buffer m_uniformBuffer;
+    RenderObject m_renderObject;
 
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> descriptorSets;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
-    VkExtent2D extent;
+    VkExtent2D m_extent;
 
     void createRenderPass();
     void createDescriptorSetLayout();
     void createPipeline();
     void createDescriptorPool();
-    void createRenderObjects();
-    void createDescriptorSets(uint32_t setCount);
+    void createRenderObject();
+    void createDescriptorSet();
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     void createCommandBuffers();
 };

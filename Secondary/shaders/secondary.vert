@@ -3,9 +3,7 @@
 
 layout(binding = 0) uniform TransformationMatrices
 {
-    mat4 world;
-    mat4 view;
-    mat4 proj;
+    mat4 wvp;
 }
 ubo;
 
@@ -23,6 +21,6 @@ out gl_PerVertex
 
 void main()
 {
-    gl_Position = ubo.proj * ubo.view * ubo.world * vec4(inPosition, 1.0);
+    gl_Position = ubo.wvp * vec4(inPosition, 1.0);
     outUv = inUv;
 }

@@ -7,7 +7,7 @@
 
 namespace fw::Constants
 {
-//#define NDEBUG
+#define NDEBUG
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
