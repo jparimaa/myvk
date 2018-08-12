@@ -20,8 +20,14 @@ namespace
 const std::size_t c_uboSize = sizeof(glm::mat4x4);
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
+const size_t c_numRenderObjects = 3;
 
 } // unnamed
+
+SecondaryApp::SecondaryApp()
+{
+    m_bufferObjects.resize(c_numRenderObjects);
+}
 
 SecondaryApp::~SecondaryApp()
 {
@@ -43,6 +49,7 @@ bool SecondaryApp::initialize()
     success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
     createRenderObject();
+    createDescriptorSets();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
 
@@ -53,7 +60,6 @@ bool SecondaryApp::initialize()
     glm::vec3 initPos(0.0f, 0.0f, 10.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
-    m_renderObject.trans.setPosition(0.0f, 0.0f, 0.0f);
 
     return true;
 }
@@ -61,12 +67,19 @@ bool SecondaryApp::initialize()
 void SecondaryApp::update()
 {
     m_cameraController.update();
-    const glm::mat4& world = m_renderObject.trans.getWorldMatrix();
     const glm::mat4& view = m_camera.getViewMatrix();
     const glm::mat4& proj = m_camera.getProjectionMatrix();
-    glm::mat4 wvp = proj * view * world;
 
-    m_uniformBuffer.setData(c_uboSize, &wvp);
+    for (size_t i = 0; i < c_numRenderObjects; ++i)
+    {
+        BufferObject& bo = m_bufferObjects[i];
+        float floatIndex = static_cast<float>(i);
+        bo.trans.setPosition(floatIndex * 3.0f, 0.0f, 0.0f);
+        bo.trans.rotate(glm::vec3(0.0f, 1.0f, 0.0f), (floatIndex + 0.2f) * 0.1f * fw::API::getTimeDelta());
+        const glm::mat4& world = bo.trans.getWorldMatrix();
+        glm::mat4 wvp = proj * view * world;
+        bo.uniformBuffer.setData(c_uboSize, &wvp);
+    }
 }
 
 void SecondaryApp::onGUI()
@@ -225,9 +238,6 @@ void SecondaryApp::createDescriptorPool()
 
 void SecondaryApp::createRenderObject()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-
     fw::Model model;
     CHECK(model.loadModel(c_assetsFolder + "monkey.3ds"));
 
@@ -235,8 +245,6 @@ void SecondaryApp::createRenderObject()
     uint32_t numMeshes = fw::ui32size(meshes);
     CHECK(numMeshes == 1);
     const fw::Mesh& mesh = meshes[0];
-
-    createDescriptorSet();
 
     bool vertexBufferCreated = m_renderObject.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
     bool indexBufferCreated = m_renderObject.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
@@ -247,52 +255,56 @@ void SecondaryApp::createRenderObject()
 
     std::string textureFile = c_assetsFolder + "checker.png";
     m_renderObject.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-
-    updateDescriptorSet(m_renderObject.descriptorSet, m_renderObject.texture.getImageView());
 }
 
-void SecondaryApp::createDescriptorSet()
+void SecondaryApp::createDescriptorSets()
 {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_descriptorSetLayout;
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    for (BufferObject& bo : m_bufferObjects)
+    {
+        CHECK(bo.uniformBuffer.create(c_uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    }
 
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_renderObject.descriptorSet));
-}
+    for (BufferObject& bo : m_bufferObjects)
+    {
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-void SecondaryApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
-{
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
-    bufferInfo.offset = 0;
-    bufferInfo.range = c_uboSize;
+        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &bo.descriptorSet));
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = bo.uniformBuffer.getBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = c_uboSize;
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = m_renderObject.texture.getImageView();
+        imageInfo.sampler = m_sampler.getSampler();
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = bo.descriptorSet;
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = bo.descriptorSet;
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
+
+        vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    }
 }
 
 void SecondaryApp::createCommandBuffers()
@@ -341,9 +353,11 @@ void SecondaryApp::createCommandBuffers()
         VkBuffer vb = m_renderObject.vertexBuffer.getBuffer();
         vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
         vkCmdBindIndexBuffer(cb, m_renderObject.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(
-            cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_renderObject.descriptorSet, 0, nullptr);
-        vkCmdDrawIndexed(cb, m_renderObject.numIndices, 1, 0, 0, 0);
+        for (BufferObject& bo : m_bufferObjects)
+        {
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &bo.descriptorSet, 0, nullptr);
+            vkCmdDrawIndexed(cb, m_renderObject.numIndices, 1, 0, 0, 0);
+        }
 
         vkCmdEndRenderPass(cb);
 

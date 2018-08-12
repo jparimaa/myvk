@@ -21,11 +21,16 @@ public:
         fw::Buffer indexBuffer;
         uint32_t numIndices;
         fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-        fw::Transformation trans;
     };
 
-    SecondaryApp(){};
+    struct BufferObject
+    {
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        fw::Transformation trans;
+        fw::Buffer uniformBuffer;
+    };
+
+    SecondaryApp();
     virtual ~SecondaryApp();
     SecondaryApp(const SecondaryApp&) = delete;
     SecondaryApp(SecondaryApp&&) = delete;
@@ -46,8 +51,8 @@ private:
     fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
-    fw::Buffer m_uniformBuffer;
     RenderObject m_renderObject;
+    std::vector<BufferObject> m_bufferObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
@@ -58,7 +63,6 @@ private:
     void createPipeline();
     void createDescriptorPool();
     void createRenderObject();
-    void createDescriptorSet();
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void createDescriptorSets();
     void createCommandBuffers();
 };
