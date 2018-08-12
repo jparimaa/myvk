@@ -95,8 +95,7 @@ bool Framework::render()
     uint32_t imageIndex;
     uint64_t timeout = std::numeric_limits<uint64_t>::max();
 
-    if (VkResult r = vkAcquireNextImageKHR(
-            m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &imageIndex);
+    if (VkResult r = vkAcquireNextImageKHR(m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &imageIndex);
         r != VK_SUCCESS)
     {
         printError("Failed to acquire swap chain image");

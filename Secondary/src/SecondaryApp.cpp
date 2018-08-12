@@ -52,6 +52,7 @@ bool SecondaryApp::initialize()
     createDescriptorSets();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
+    updateCommandBuffers();
 
     CHECK(success);
 
@@ -309,21 +310,26 @@ void SecondaryApp::createDescriptorSets()
 
 void SecondaryApp::createCommandBuffers()
 {
-    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
-
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = fw::API::getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
+    allocInfo.commandBufferCount = 1;
 
-    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, commandBuffers.data()));
+    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_primaryCommandBuffer));
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr; // Optional
+    m_secondaryCommandBuffers.resize(c_numRenderObjects);
+    allocInfo.commandBufferCount = c_numRenderObjects;
+    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, m_secondaryCommandBuffers.data()));
+}
+
+void SecondaryApp::updateCommandBuffers()
+{
+    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
+
+    VkCommandBufferBeginInfo primaryCommandBufferBeginInfo{};
+    primaryCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    primaryCommandBufferBeginInfo.pInheritanceInfo = nullptr; // Optional
 
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
@@ -336,33 +342,49 @@ void SecondaryApp::createCommandBuffers()
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.framebuffer = swapChainFramebuffers[0];
+
+    VK_CHECK(vkBeginCommandBuffer(m_primaryCommandBuffer, &primaryCommandBufferBeginInfo));
+    vkCmdBeginRenderPass(m_primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkCommandBufferInheritanceInfo inheritanceInfo{};
+    inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    inheritanceInfo.renderPass = m_renderPass;
+    inheritanceInfo.framebuffer = swapChainFramebuffers[0];
 
     VkDeviceSize offsets[] = {0};
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    std::vector<VkCommandBuffer> secondaryCommands;
+
+    for (size_t i = 0; i < m_secondaryCommandBuffers.size(); ++i)
     {
-        VkCommandBuffer cb = commandBuffers[i];
+        VkCommandBufferBeginInfo secondaryCommandBufferBeginInfo{};
+        secondaryCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        secondaryCommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+        secondaryCommandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-        vkBeginCommandBuffer(cb, &beginInfo);
+        VkCommandBuffer cmdBuffer = m_secondaryCommandBuffers[i];
 
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-
-        vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
+        VK_CHECK(vkBeginCommandBuffer(cmdBuffer, &secondaryCommandBufferBeginInfo));
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
         VkBuffer vb = m_renderObject.vertexBuffer.getBuffer();
-        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(cb, m_renderObject.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        for (BufferObject& bo : m_bufferObjects)
-        {
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &bo.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, m_renderObject.numIndices, 1, 0, 0, 0);
-        }
-
-        vkCmdEndRenderPass(cb);
-
-        VK_CHECK(vkEndCommandBuffer(cb));
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(cmdBuffer, m_renderObject.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        BufferObject& bo = m_bufferObjects[i];
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &bo.descriptorSet, 0, nullptr);
+        vkCmdDrawIndexed(cmdBuffer, m_renderObject.numIndices, 1, 0, 0, 0);
+        vkEndCommandBuffer(cmdBuffer);
+        secondaryCommands.push_back(cmdBuffer);
     }
 
-    fw::API::setCommandBuffers(commandBuffers);
+    vkCmdExecuteCommands(m_primaryCommandBuffer, fw::ui32size(secondaryCommands), secondaryCommands.data());
+    vkCmdEndRenderPass(m_primaryCommandBuffer);
+    VK_CHECK(vkEndCommandBuffer(m_primaryCommandBuffer));
+
+    std::vector<VkCommandBuffer> finalCommandBuffers{
+        m_primaryCommandBuffer,
+        VkCommandBuffer(),
+        VkCommandBuffer(),
+    };
+    fw::API::setCommandBuffers(finalCommandBuffers);
 }

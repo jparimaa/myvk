@@ -56,6 +56,10 @@ private:
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
+    VkCommandBuffer m_primaryCommandBuffer;
+    std::vector<VkCommandBuffer> m_secondaryCommandBuffers;
+    size_t m_currentFrameIndex = 0;
+
     VkExtent2D m_extent;
 
     void createRenderPass();
@@ -65,4 +69,5 @@ private:
     void createRenderObject();
     void createDescriptorSets();
     void createCommandBuffers();
+    void updateCommandBuffers();
 };
