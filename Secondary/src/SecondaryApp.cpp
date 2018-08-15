@@ -52,7 +52,6 @@ bool SecondaryApp::initialize()
     createDescriptorSets();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
-    updateCommandBuffers();
 
     CHECK(success);
 
@@ -81,6 +80,8 @@ void SecondaryApp::update()
         glm::mat4 wvp = proj * view * world;
         bo.uniformBuffer.setData(c_uboSize, &wvp);
     }
+
+    updateCommandBuffers();
 }
 
 void SecondaryApp::onGUI()
@@ -326,6 +327,7 @@ void SecondaryApp::createCommandBuffers()
 void SecondaryApp::updateCommandBuffers()
 {
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
+    uint32_t currentIndex = fw::API::getCurrentSwapChainImageIndex();
 
     VkCommandBufferBeginInfo primaryCommandBufferBeginInfo{};
     primaryCommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -342,7 +344,7 @@ void SecondaryApp::updateCommandBuffers()
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
-    renderPassInfo.framebuffer = swapChainFramebuffers[0];
+    renderPassInfo.framebuffer = swapChainFramebuffers[currentIndex];
 
     VK_CHECK(vkBeginCommandBuffer(m_primaryCommandBuffer, &primaryCommandBufferBeginInfo));
     vkCmdBeginRenderPass(m_primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -350,12 +352,13 @@ void SecondaryApp::updateCommandBuffers()
     VkCommandBufferInheritanceInfo inheritanceInfo{};
     inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
     inheritanceInfo.renderPass = m_renderPass;
-    inheritanceInfo.framebuffer = swapChainFramebuffers[0];
+    inheritanceInfo.framebuffer = swapChainFramebuffers[currentIndex];
 
     VkDeviceSize offsets[] = {0};
 
     std::vector<VkCommandBuffer> secondaryCommands;
 
+    // Secondary command buffers could be created in parallel (i.e. multithreaded command buffer generation)
     for (size_t i = 0; i < m_secondaryCommandBuffers.size(); ++i)
     {
         VkCommandBufferBeginInfo secondaryCommandBufferBeginInfo{};
@@ -381,10 +384,5 @@ void SecondaryApp::updateCommandBuffers()
     vkCmdEndRenderPass(m_primaryCommandBuffer);
     VK_CHECK(vkEndCommandBuffer(m_primaryCommandBuffer));
 
-    std::vector<VkCommandBuffer> finalCommandBuffers{
-        m_primaryCommandBuffer,
-        VkCommandBuffer(),
-        VkCommandBuffer(),
-    };
-    fw::API::setCommandBuffers(finalCommandBuffers);
+    fw::API::setNextCommandBuffer(m_primaryCommandBuffer);
 }

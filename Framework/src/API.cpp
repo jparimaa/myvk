@@ -1,4 +1,5 @@
 #include "API.h"
+#include "Common.h"
 
 namespace fw
 {
@@ -32,6 +33,11 @@ VkExtent2D API::getSwapChainExtent()
 uint32_t API::getSwapChainImageCount()
 {
     return s_framework->m_swapChain.getImageCount();
+}
+
+uint32_t API::getCurrentSwapChainImageIndex()
+{
+    return s_framework->m_currentImageIndex;
 }
 
 const std::vector<VkFramebuffer>& API::getSwapChainFramebuffers()
@@ -91,7 +97,16 @@ float API::getMouseDeltaY()
 
 void API::setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers)
 {
+    if (commandBuffers.size() != getSwapChainImageCount())
+    {
+        printError("Setting all command buffers but the size does not match swap chain image count");
+    }
     s_framework->m_commandBuffers = commandBuffers;
+}
+
+void API::setNextCommandBuffer(VkCommandBuffer commandBuffer)
+{
+    s_framework->m_nextCommandBuffer = commandBuffer;
 }
 
 GLFWwindow* API::getGLFWwindow()

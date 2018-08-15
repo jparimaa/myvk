@@ -49,22 +49,19 @@ void Framework::execute()
         m_window.pollEvents();
         m_input.update();
         m_time.update();
+        if (!acquireNextSwapChainImage())
+        {
+            break;
+        }
         m_app->update();
         if (m_gui.isInitialized())
         {
             m_gui.beginPass();
             m_app->onGUI();
         }
-        if (!m_commandBuffers.empty())
+        if (!render())
         {
-            if (!render())
-            {
-                break;
-            }
-        }
-        else
-        {
-            printWarning("Empty command buffer");
+            break;
         }
     }
     vkDeviceWaitIdle(m_logicalDevice);
@@ -92,20 +89,25 @@ bool Framework::render()
 {
     vkQueueWaitIdle(m_presentQueue); // Optional sync for validation layers
 
-    uint32_t imageIndex;
-    uint64_t timeout = std::numeric_limits<uint64_t>::max();
-
-    if (VkResult r = vkAcquireNextImageKHR(m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &imageIndex);
-        r != VK_SUCCESS)
+    VkCommandBuffer commandBuffer;
+    if (m_nextCommandBuffer != nullptr)
     {
-        printError("Failed to acquire swap chain image");
+        commandBuffer = m_nextCommandBuffer;
+    }
+    else if (m_currentImageIndex < m_commandBuffers.size())
+    {
+        commandBuffer = m_commandBuffers[m_currentImageIndex];
+    }
+    else
+    {
+        printError("No command buffer set for rendering");
         return false;
     }
 
-    std::vector<VkCommandBuffer> renderCommandBuffers{m_commandBuffers[imageIndex]};
+    std::vector<VkCommandBuffer> renderCommandBuffers{commandBuffer};
     if (m_gui.isInitialized())
     {
-        m_gui.render(API::getSwapChainFramebuffers().at(imageIndex));
+        m_gui.render(API::getSwapChainFramebuffers().at(m_currentImageIndex));
         renderCommandBuffers.push_back(m_gui.getCommandBuffer());
     }
 
@@ -137,7 +139,7 @@ bool Framework::render()
     presentInfo.pWaitSemaphores = signalSemaphores;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pImageIndices = &m_currentImageIndex;
     presentInfo.pResults = nullptr; // Optional
 
     if (VkResult r = vkQueuePresentKHR(m_presentQueue, &presentInfo); r != VK_SUCCESS)
@@ -146,6 +148,19 @@ bool Framework::render()
         return false;
     }
 
+    return true;
+}
+
+bool Framework::acquireNextSwapChainImage()
+{
+    static uint64_t timeout = std::numeric_limits<uint64_t>::max();
+
+    if (VkResult r = vkAcquireNextImageKHR(m_logicalDevice, m_swapChainHandle, timeout, m_imageAvailable, VK_NULL_HANDLE, &m_currentImageIndex);
+        r != VK_SUCCESS)
+    {
+        printError("Failed to acquire swap chain image");
+        return false;
+    }
     return true;
 }
 

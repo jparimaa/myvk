@@ -21,6 +21,7 @@ public:
     static VkFormat getSwapChainImageFormat();
     static VkExtent2D getSwapChainExtent();
     static uint32_t getSwapChainImageCount();
+    static uint32_t getCurrentSwapChainImageIndex();
     static const std::vector<VkFramebuffer>& getSwapChainFramebuffers();
     static const std::vector<VkImageView>& getSwapChainImageViews();
     static const VkImageView& getSwapChainDepthImageView();
@@ -37,6 +38,7 @@ public:
     static float getMouseDeltaY();
 
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
+    static void setNextCommandBuffer(VkCommandBuffer commandBuffer);
 
     static GLFWwindow* getGLFWwindow();
 
