@@ -37,7 +37,7 @@ function(ADD_PROJECT_WITH_DEFAULT_SETTINGS PROJECT_NAME)
     target_include_directories(${PROJECT_NAME}
         PRIVATE
             "${CMAKE_CURRENT_SOURCE_DIR}/include"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../Framework/include"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../Framework/include"
     )
 
     if(MSVC)
@@ -91,7 +91,7 @@ function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
 endfunction()
 
 add_subdirectory(Framework)
-add_subdirectory(Example)
-add_subdirectory(PBR)
-add_subdirectory(Subpass)
-add_subdirectory(Secondary)
+add_subdirectory(Examples/Minimal)
+add_subdirectory(Examples/PBR)
+add_subdirectory(Examples/Subpass)
+add_subdirectory(Examples/Secondary)
