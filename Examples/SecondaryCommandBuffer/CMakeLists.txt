@@ -1,0 +1,2 @@
+ADD_PROJECT_WITH_DEFAULT_SETTINGS(SecondaryCommandBuffer)
+COMPILE_SHADERS(SecondaryCommandBuffer SecondaryCommandBufferShaders)

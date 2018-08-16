@@ -1,2 +1,0 @@
-ADD_PROJECT_WITH_DEFAULT_SETTINGS(Secondary)
-COMPILE_SHADERS(Secondary SecondaryShaders)
