@@ -25,6 +25,10 @@ VkShaderModule createShaderModule(const std::string& filename);
 
 bool findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& typeIndex);
 
+void* alignedAlloc(size_t size, size_t alignment);
+
+void alignedFree(void* data);
+
 class Cleaner
 {
 public:
