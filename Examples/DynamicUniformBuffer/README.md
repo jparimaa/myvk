@@ -1,5 +1,3 @@
-# Example
+# Dynamic uniform buffers
 
-An example project to show basic the configuration and framework usage.
-
-![example](example.png?raw=true "example")
+Demonstrates the use of dynamic uniform buffers. Instead of creating a descriptor set or extending an existing descriptor set, it is possible to use dynamic uniform buffer. Dynamic uniform buffer can be bound with an offset so that different descriptor sets may bind the same buffer but with a different offset. This way it's possible to, for example, update all the rotation matrices with a single buffer update. In this example view and projection matrices are stored in a uniform buffer but the world matrix are stored in a dynamic uniform buffer and offset is used to match each object. Dynamic uniform buffers must aligned according to `minUniformBufferOffsetAlignment`, i.e. each offset must be at least that size even though the required data is less.
