@@ -18,7 +18,7 @@
 
 namespace
 {
-const std::size_t c_uboSize = 2 * sizeof(glm::mat4x4);
+const std::size_t c_globalMatricesSize = sizeof(DynamicApp::GlobalMatrices);
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const size_t c_numRenderObjects = 3;
@@ -31,9 +31,9 @@ DynamicApp::~DynamicApp()
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
-    if (m_dynamicBufferData)
+    if (m_bufferData.dynamicBufferData)
     {
-        fw::alignedFree(m_dynamicBufferData);
+        fw::alignedFree(m_bufferData.dynamicBufferData);
     }
 }
 
@@ -67,6 +67,7 @@ bool DynamicApp::initialize()
     glm::vec3 initPos(3.0f, 0.0f, 8.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
+    m_transformations.resize(c_numRenderObjects);
 
     return true;
 }
@@ -78,17 +79,16 @@ void DynamicApp::update()
     globalMatrices.view = m_camera.getViewMatrix();
     globalMatrices.proj = m_camera.getProjectionMatrix();
 
+    m_bufferData.uniformBuffer.setData(c_globalMatricesSize, &globalMatrices);
+
     for (size_t i = 0; i < c_numRenderObjects; ++i)
     {
-        BufferObject& bo = m_bufferObjects[i];
-        bo.uniformBuffer.setData(c_uboSize, &globalMatrices);
-
         float floatIndex = static_cast<float>(i);
-        bo.trans.setPosition(floatIndex * 3.0f, 0.0f, 0.0f);
-        bo.trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-        m_dynamicBufferData[m_dynamicAlignment / sizeof(glm::mat4) * i] = bo.trans.getWorldMatrix();
+        m_transformations[i].setPosition(floatIndex * 3.0f, 0.0f, 0.0f);
+        m_transformations[i].rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+        m_bufferData.dynamicBufferData[m_bufferData.dynamicAlignment / sizeof(glm::mat4) * i] = m_transformations[i].getWorldMatrix();
     }
-    m_dynamicBuffer.setData(m_dynamicBufferSize, m_dynamicBufferData);
+    m_bufferData.dynamicBuffer.setData(m_bufferData.dynamicBufferSize, m_bufferData.dynamicBufferData);
 }
 
 void DynamicApp::onGUI()
@@ -277,77 +277,71 @@ void DynamicApp::createRenderObject()
 
 void DynamicApp::createDescriptorSets()
 {
-    m_dynamicAlignment = c_uboSize;
+    m_bufferData.dynamicAlignment = c_globalMatricesSize;
+    size_t& alignment = m_bufferData.dynamicAlignment;
     if (m_minUniformBufferOffsetAlignment > 0)
     {
-        m_dynamicAlignment = (m_dynamicAlignment + m_minUniformBufferOffsetAlignment - 1) & ~(m_minUniformBufferOffsetAlignment - 1);
+        alignment = (alignment + m_minUniformBufferOffsetAlignment - 1) & ~(m_minUniformBufferOffsetAlignment - 1);
     }
-    std::cout << "m_dynamicAlignment: " << m_dynamicAlignment << "\n";
-    m_dynamicBufferSize = c_numRenderObjects * m_dynamicAlignment;
-    m_dynamicBufferData = static_cast<glm::mat4*>(fw::alignedAlloc(m_dynamicBufferSize, m_dynamicAlignment));
-    assert(m_dynamicBufferData);
+    std::cout << "m_dynamicAlignment: " << alignment << "\n";
+    m_bufferData.dynamicBufferSize = c_numRenderObjects * alignment;
+    m_bufferData.dynamicBufferData = static_cast<glm::mat4*>(fw::alignedAlloc(m_bufferData.dynamicBufferSize, alignment));
+    assert(m_bufferData.dynamicBufferData);
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    m_dynamicBuffer.create(m_dynamicBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+    m_bufferData.dynamicBuffer.create(m_bufferData.dynamicBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
 
-    m_bufferObjects.resize(c_numRenderObjects);
-    for (BufferObject& bo : m_bufferObjects)
-    {
-        CHECK(bo.uniformBuffer.create(c_uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-    }
+    CHECK(m_bufferData.uniformBuffer.create(c_globalMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
-    for (BufferObject& bo : m_bufferObjects)
-    {
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_descriptorSetLayout;
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &bo.descriptorSet));
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_bufferData.descriptorSet));
 
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = bo.uniformBuffer.getBuffer();
-        bufferInfo.offset = 0;
-        bufferInfo.range = c_uboSize;
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_bufferData.uniformBuffer.getBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = c_globalMatricesSize;
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_renderObject.texture.getImageView();
-        imageInfo.sampler = m_sampler.getSampler();
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_renderObject.texture.getImageView();
+    imageInfo.sampler = m_sampler.getSampler();
 
-        VkDescriptorBufferInfo dynamicBufferInfo{};
-        dynamicBufferInfo.buffer = m_dynamicBuffer.getBuffer();
-        dynamicBufferInfo.offset = 0;
-        dynamicBufferInfo.range = VK_WHOLE_SIZE;
+    VkDescriptorBufferInfo dynamicBufferInfo{};
+    dynamicBufferInfo.buffer = m_bufferData.dynamicBuffer.getBuffer();
+    dynamicBufferInfo.offset = 0;
+    dynamicBufferInfo.range = VK_WHOLE_SIZE;
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = bo.descriptorSet;
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = m_bufferData.descriptorSet;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = bo.descriptorSet;
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = m_bufferData.descriptorSet;
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
 
-        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = bo.descriptorSet;
-        descriptorWrites[2].dstBinding = 2;
-        descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pBufferInfo = &dynamicBufferInfo;
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = m_bufferData.descriptorSet;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = &dynamicBufferInfo;
 
-        vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
-    }
+    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
 void DynamicApp::createCommandBuffers()
@@ -397,11 +391,10 @@ void DynamicApp::createCommandBuffers()
         vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
         vkCmdBindIndexBuffer(cb, m_renderObject.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-        for (size_t j = 0; j < m_bufferObjects.size(); ++j)
+        for (size_t j = 0; j < c_numRenderObjects; ++j)
         {
-            uint32_t dynamicOffset = static_cast<uint32_t>(j * m_dynamicAlignment);
-            const BufferObject& bo = m_bufferObjects[j];
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &bo.descriptorSet, 1, &dynamicOffset);
+            uint32_t dynamicOffset = static_cast<uint32_t>(j * m_bufferData.dynamicAlignment);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_bufferData.descriptorSet, 1, &dynamicOffset);
             vkCmdDrawIndexed(cb, m_renderObject.numIndices, 1, 0, 0, 0);
         }
 

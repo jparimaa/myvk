@@ -21,19 +21,22 @@ public:
         glm::mat4 proj;
     };
 
+    struct BufferData
+    {
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+        fw::Buffer uniformBuffer;
+        size_t dynamicAlignment = 0;
+        size_t dynamicBufferSize = 0;
+        glm::mat4* dynamicBufferData = nullptr;
+        fw::Buffer dynamicBuffer;
+    };
+
     struct RenderObject
     {
         fw::Buffer vertexBuffer;
         fw::Buffer indexBuffer;
         uint32_t numIndices;
         fw::Texture texture;
-    };
-
-    struct BufferObject
-    {
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-        fw::Transformation trans;
-        fw::Buffer uniformBuffer;
     };
 
     DynamicApp(){};
@@ -59,12 +62,9 @@ private:
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
     RenderObject m_renderObject;
-    std::vector<BufferObject> m_bufferObjects;
-    size_t m_dynamicAlignment = 0;
-    size_t m_dynamicBufferSize = 0;
-    glm::mat4* m_dynamicBufferData = nullptr;
-    fw::Buffer m_dynamicBuffer;
+    std::vector<fw::Transformation> m_transformations;
 
+    BufferData m_bufferData;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
     VkExtent2D m_extent;
