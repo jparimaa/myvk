@@ -88,7 +88,14 @@ void DynamicApp::update()
         m_transformations[i].rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
         m_bufferData.dynamicBufferData[m_bufferData.dynamicAlignment / sizeof(glm::mat4) * i] = m_transformations[i].getWorldMatrix();
     }
-    m_bufferData.dynamicBuffer.setData(m_bufferData.dynamicBufferSize, m_bufferData.dynamicBufferData);
+
+    // Implicitly flush non-coherent memory. With VkMappedMemoryRange it is possible to do partial update.
+    memcpy(m_bufferData.mappedDynamicMemory, m_bufferData.dynamicBufferData, m_bufferData.dynamicBufferSize);
+    VkMappedMemoryRange mappedMemoryRange{};
+    mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    mappedMemoryRange.memory = m_bufferData.dynamicBuffer.getMemory();
+    mappedMemoryRange.size = m_bufferData.dynamicBufferSize;
+    vkFlushMappedMemoryRanges(m_logicalDevice, 1, &mappedMemoryRange);
 }
 
 void DynamicApp::onGUI()
@@ -287,8 +294,11 @@ void DynamicApp::createDescriptorSets()
     m_bufferData.dynamicBufferSize = c_numRenderObjects * alignment;
     m_bufferData.dynamicBufferData = static_cast<glm::mat4*>(fw::alignedAlloc(m_bufferData.dynamicBufferSize, alignment));
     assert(m_bufferData.dynamicBufferData);
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
     m_bufferData.dynamicBuffer.create(m_bufferData.dynamicBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties);
+
+    VkDeviceMemory dynamicMemory = m_bufferData.dynamicBuffer.getMemory();
+    VK_CHECK(vkMapMemory(m_logicalDevice, dynamicMemory, 0, m_bufferData.dynamicBufferSize, 0, &m_bufferData.mappedDynamicMemory));
 
     CHECK(m_bufferData.uniformBuffer.create(c_globalMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 

@@ -100,4 +100,9 @@ VkBuffer Buffer::getBuffer() const
     return m_buffer;
 }
 
+VkDeviceMemory Buffer::getMemory() const
+{
+    return m_memory;
+}
+
 } // namespace fw

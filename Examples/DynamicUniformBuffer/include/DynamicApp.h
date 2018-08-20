@@ -29,6 +29,7 @@ public:
         size_t dynamicBufferSize = 0;
         glm::mat4* dynamicBufferData = nullptr;
         fw::Buffer dynamicBuffer;
+        void* mappedDynamicMemory = nullptr;
     };
 
     struct RenderObject

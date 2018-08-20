@@ -22,6 +22,7 @@ public:
     void copyToImage(VkImage image, uint32_t width, uint32_t height) const;
 
     VkBuffer getBuffer() const;
+    VkDeviceMemory getMemory() const;
 
     template<typename T>
     bool setData(VkDeviceSize size, const T* src);
@@ -39,7 +40,8 @@ template<typename T>
 bool Buffer::setData(VkDeviceSize size, const T* src)
 {
     void* dst;
-    if (VkResult r = vkMapMemory(m_logicalDevice, m_memory, 0, size, 0, &dst); r != VK_SUCCESS)
+    if (VkResult r = vkMapMemory(m_logicalDevice, m_memory, 0, size, 0, &dst);
+        r != VK_SUCCESS)
     {
         printError("Failed to map memory");
         return false;
