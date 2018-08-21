@@ -43,22 +43,22 @@ public:
     virtual void onGUI() final;
 
 private:
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+    VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
-    fw::Sampler sampler;
-    fw::Camera camera;
-    fw::CameraController cameraController;
-    fw::Transformation trans;
-    MatrixUBO ubo;
-    fw::Buffer uniformBuffer;
-    std::vector<RenderObject> renderObjects;
+    fw::Sampler m_sampler;
+    fw::Camera m_camera;
+    fw::CameraController m_cameraController;
+    fw::Transformation m_trans;
+    MatrixUBO m_ubo;
+    fw::Buffer m_uniformBuffer;
+    std::vector<RenderObject> m_renderObjects;
 
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> descriptorSets;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> m_descriptorSets;
 
     VkExtent2D extent;
 
