@@ -1,0 +1,2 @@
+ADD_PROJECT_WITH_DEFAULT_SETTINGS(PushConstant)
+COMPILE_SHADERS(PushConstant PushConstantShaders)
