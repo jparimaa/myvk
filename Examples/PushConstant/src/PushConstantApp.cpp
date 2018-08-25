@@ -20,6 +20,7 @@ namespace
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
+const size_t c_pushConstantsSize = sizeof(glm::vec4);
 } // unnamed
 
 PushConstantApp::~PushConstantApp()
@@ -33,6 +34,10 @@ PushConstantApp::~PushConstantApp()
 
 bool PushConstantApp::initialize()
 {
+    VkPhysicalDeviceProperties* physicalDeviceProperties = fw::Context::getPhysicalDeviceProperties();
+    std::cout << "maxPushConstantsSize: " << physicalDeviceProperties->limits.maxPushConstantsSize << " bytes\n";
+    CHECK(physicalDeviceProperties->limits.maxPushConstantsSize >= c_pushConstantsSize);
+
     m_logicalDevice = fw::Context::getLogicalDevice();
 
     createRenderPass();
@@ -154,7 +159,7 @@ void PushConstantApp::createDescriptorSetLayout()
 void PushConstantApp::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "push_constant.vert.spv", c_shaderFolder + "push_constant.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -181,7 +186,18 @@ void PushConstantApp::createPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
@@ -348,6 +364,8 @@ void PushConstantApp::createCommandBuffers()
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+        glm::vec4 color(0.0f, 1.0f, 0.0f, 1.0f);
+        vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
 
         for (const RenderObject& ro : m_renderObjects)
         {
