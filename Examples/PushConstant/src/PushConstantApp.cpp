@@ -48,7 +48,7 @@ bool PushConstantApp::initialize()
     createDescriptorPool();
     createRenderObjects();
     success = success && fw::API::initializeGUI(m_descriptorPool);
-    createCommandBuffers();
+    createCommandBuffer();
 
     CHECK(success);
 
@@ -72,6 +72,8 @@ void PushConstantApp::update()
     m_ubo.view = m_camera.getViewMatrix();
 
     m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+
+    updateCommandBuffer();
 }
 
 void PushConstantApp::onGUI()
@@ -322,19 +324,19 @@ void PushConstantApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImage
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
-void PushConstantApp::createCommandBuffers()
+void PushConstantApp::createCommandBuffer()
 {
-    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
-
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = fw::API::getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
+    allocInfo.commandBufferCount = 1;
 
-    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, commandBuffers.data()));
+    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer));
+}
 
+void PushConstantApp::updateCommandBuffer()
+{
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -344,6 +346,9 @@ void PushConstantApp::createCommandBuffers()
     clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
+    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
+    uint32_t currentIndex = fw::API::getCurrentSwapChainImageIndex();
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
@@ -351,36 +356,29 @@ void PushConstantApp::createCommandBuffers()
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
     renderPassInfo.clearValueCount = fw::ui32size(clearValues);
     renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.framebuffer = swapChainFramebuffers[currentIndex];
 
     VkDeviceSize offsets[] = {0};
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+    vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    glm::vec4 color(std::cos(fw::API::getTimeSinceStart()), 1.0f, std::sin(fw::API::getTimeSinceStart()), 1.0f);
+    vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
+
+    for (const RenderObject& ro : m_renderObjects)
     {
-        VkCommandBuffer cb = commandBuffers[i];
-
-        vkBeginCommandBuffer(cb, &beginInfo);
-
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-
-        vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-        glm::vec4 color(0.0f, 1.0f, 0.0f, 1.0f);
-        vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
-
-        for (const RenderObject& ro : m_renderObjects)
-        {
-            VkBuffer vb = ro.vertexBuffer.getBuffer();
-            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(
-                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-        }
-
-        vkCmdEndRenderPass(cb);
-
-        VK_CHECK(vkEndCommandBuffer(cb));
+        VkBuffer vb = ro.vertexBuffer.getBuffer();
+        vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(m_commandBuffer, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(
+            m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+        vkCmdDrawIndexed(m_commandBuffer, ro.numIndices, 1, 0, 0, 0);
     }
 
-    fw::API::setCommandBuffers(commandBuffers);
+    vkCmdEndRenderPass(m_commandBuffer);
+
+    VK_CHECK(vkEndCommandBuffer(m_commandBuffer));
+
+    fw::API::setNextCommandBuffer(m_commandBuffer);
 }

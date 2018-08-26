@@ -62,6 +62,8 @@ private:
 
     VkExtent2D extent;
 
+    VkCommandBuffer m_commandBuffer;
+
     void createRenderPass();
     void createDescriptorSetLayout();
     void createPipeline();
@@ -69,5 +71,6 @@ private:
     void createRenderObjects();
     void createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
-    void createCommandBuffers();
+    void createCommandBuffer();
+    void updateCommandBuffer();
 };
