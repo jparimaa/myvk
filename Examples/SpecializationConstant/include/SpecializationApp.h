@@ -47,7 +47,8 @@ private:
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    VkPipeline m_grayscalePipeline = VK_NULL_HANDLE;
+    VkPipeline m_colorPipeline = VK_NULL_HANDLE;
 
     fw::Sampler m_sampler;
     fw::Camera m_camera;

@@ -26,7 +26,8 @@ const std::string c_shaderFolder = SHADER_PATH;
 SpecializationApp::~SpecializationApp()
 {
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
-    vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_grayscalePipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_colorPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
@@ -204,7 +205,38 @@ void SpecializationApp::createPipeline()
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
+    struct SpecializationData
+    {
+        float enableGrayscale = 0.0f;
+        float colorMultiplier = 1.0f;
+    };
+
+    SpecializationData specializationData;
+
+    std::vector<VkSpecializationMapEntry> specializationEntries(2);
+
+    specializationEntries[0].constantID = 0;
+    specializationEntries[0].size = sizeof(specializationData.enableGrayscale);
+    specializationEntries[0].offset = 0;
+
+    specializationEntries[1].constantID = 1;
+    specializationEntries[1].size = sizeof(specializationData.colorMultiplier);
+    specializationEntries[1].offset = offsetof(SpecializationData, colorMultiplier);
+
+    VkSpecializationInfo specializationInfo{};
+    specializationInfo.mapEntryCount = static_cast<uint32_t>(specializationEntries.size());
+    specializationInfo.pMapEntries = specializationEntries.data();
+    specializationInfo.dataSize = sizeof(specializationData);
+    specializationInfo.pData = &specializationData;
+
+    shaderStages[1].pSpecializationInfo = &specializationInfo;
+
+    specializationData.enableGrayscale = 2.0f;
+    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_grayscalePipeline));
+
+    specializationData.enableGrayscale = 0.0f;
+    specializationData.colorMultiplier = 3.0f;
+    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_colorPipeline));
 }
 
 void SpecializationApp::createDescriptorPool()
@@ -348,10 +380,19 @@ void SpecializationApp::createCommandBuffers()
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-        for (const RenderObject& ro : m_renderObjects)
+        for (size_t i = 0; i < m_renderObjects.size(); ++i)
         {
+            if (i % 2 == 0)
+            {
+                vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_grayscalePipeline);
+            }
+            else
+            {
+                vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_colorPipeline);
+            }
+
+            const RenderObject& ro = m_renderObjects[i];
             VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
             vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
