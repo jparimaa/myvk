@@ -1,0 +1,2 @@
+ADD_PROJECT_WITH_DEFAULT_SETTINGS(Triangle)
+COMPILE_SHADERS(Triangle TriangleShaders)
