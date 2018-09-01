@@ -26,8 +26,8 @@ public:
     TriangleApp& operator=(TriangleApp&&) = delete;
 
     virtual bool initialize() final;
-    virtual void update() final;
-    virtual void onGUI() final;
+    virtual void update() final{};
+    virtual void onGUI() final{};
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
@@ -37,7 +37,6 @@ private:
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
     fw::Sampler m_sampler;
-    fw::Buffer m_uniformBuffer;
     fw::Buffer m_vertexBuffer;
     fw::Buffer m_indexBuffer;
     uint32_t m_numIndices;
