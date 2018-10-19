@@ -1,0 +1,2 @@
+ADD_PROJECT_WITH_DEFAULT_SETTINGS(LightShaft)
+COMPILE_SHADERS(LightShaft LightShaftShaders)
