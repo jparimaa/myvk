@@ -4,7 +4,7 @@ Minimal Vulkan framework for testing Vulkan features and building small demos.
 
 ## Clone
 
-    git clone --recurse-submodules -j4 git@github.com:jparimaa/myvk.git
+    git clone --recurse-submodules -j4 https://github.com/jparimaa/myvk.git
 
 ## Tools
 - Vulkan 1.0.61 https://vulkan.lunarg.com/
