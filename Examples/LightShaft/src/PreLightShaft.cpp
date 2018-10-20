@@ -1,22 +1,20 @@
-#include "LightShaftApp.h"
+#include "PreLightShaft.h"
+
 #include "fw/API.h"
+#include "fw/Constants.h"
 #include "fw/Command.h"
 #include "fw/Common.h"
 #include "fw/Context.h"
-#include "fw/Macros.h"
-#include "fw/Mesh.h"
-#include "fw/Model.h"
-#include "fw/Pipeline.h"
 #include "fw/RenderPass.h"
-
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
+#include "fw/Macros.h"
+#include "fw/Pipeline.h"
 
 #include <array>
-#include <iostream>
 
-LightShaftApp::~LightShaftApp()
+PreLightShaft::~PreLightShaft()
 {
+    vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
+    vkDestroyFramebuffer(m_logicalDevice, m_framebuffer, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -24,65 +22,24 @@ LightShaftApp::~LightShaftApp()
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
-bool LightShaftApp::initialize()
+bool PreLightShaft::init(uint32_t width, uint32_t height)
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
-    m_extent = fw::API::getSwapChainExtent();
-
-    m_preLightShaft.init(m_extent.width, m_extent.height);
-
+    m_width = width;
+    m_height = height;
     createRenderPass();
-    bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
+    createFramebuffer();
     createDescriptorSetLayout();
     createPipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
-    createRenderObjects();
-    success = success && fw::API::initializeGUI(m_descriptorPool);
-    createCommandBuffers();
-
-    CHECK(success);
-
-    m_cameraController.setCamera(&m_camera);
-    glm::vec3 initPos(0.0f, 10.0f, 40.0f);
-    m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
-    m_camera.setPosition(initPos);
-
-    m_ubo.proj = m_camera.getProjectionMatrix();
-
+    createDescriptorSets();
     return true;
 }
 
-void LightShaftApp::update()
-{
-    m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_ubo.world = m_trans.getWorldMatrix();
-
-    m_cameraController.update();
-    m_ubo.view = m_camera.getViewMatrix();
-
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
-}
-
-void LightShaftApp::onGUI()
-{
-#ifndef WIN32
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
-    glm::vec3 p = m_camera.getTransformation().getPosition();
-    ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
-    ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-#ifndef WIN32
-#pragma GCC diagnostic pop
-#endif
-}
-
-void LightShaftApp::createRenderPass()
+void PreLightShaft::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -121,7 +78,64 @@ void LightShaftApp::createRenderPass()
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
 }
 
-void LightShaftApp::createDescriptorSetLayout()
+void PreLightShaft::createFramebuffer()
+{
+    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
+
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = c_format;
+    viewInfo.flags = 0;
+    viewInfo.subresourceRange = {};
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+    viewInfo.image = m_image.getHandle();
+
+    VK_CHECK(vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, &m_imageView));
+
+    VkFormat depthFormat = fw::Constants::depthFormat;
+    VkImageUsageFlags depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    CHECK(m_depthImage.create(m_width, m_height, depthFormat, 0, depthImageUsage, 1));
+    CHECK(m_depthImage.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depthImageView));
+    CHECK(m_depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+
+    std::array<VkImageView, 2> attachments = {m_imageView, m_depthImageView};
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = m_renderPass;
+    framebufferInfo.attachmentCount = fw::ui32size(attachments);
+    framebufferInfo.pAttachments = attachments.data();
+    framebufferInfo.width = m_width;
+    framebufferInfo.height = m_height;
+    framebufferInfo.layers = 1;
+
+    VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &m_framebuffer));
+
+    VkCommandBuffer commandBuffer = fw::Command::beginSingleTimeCommands();
+
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.image = m_image.getHandle();
+    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    imageMemoryBarrier.srcAccessMask = 0;
+    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+
+    fw::Command::endSingleTimeCommands(commandBuffer);
+}
+
+void PreLightShaft::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -130,14 +144,7 @@ void LightShaftApp::createDescriptorSetLayout()
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    std::array<VkDescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -146,10 +153,10 @@ void LightShaftApp::createDescriptorSetLayout()
     VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout));
 }
 
-void LightShaftApp::createPipeline()
+void PreLightShaft::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "pre_lightshaft.vert.spv", c_shaderFolder + "pre_lightshaft.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -162,8 +169,7 @@ void LightShaftApp::createPipeline()
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState
-        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -201,119 +207,54 @@ void LightShaftApp::createPipeline()
     VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
 }
 
-void LightShaftApp::createDescriptorPool()
+void PreLightShaft::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 1> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 2;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    poolSizes[0].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 3;
+    poolInfo.maxSets = 1;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void LightShaftApp::createRenderObjects()
+void PreLightShaft::createDescriptorSets()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
-
-    createDescriptorSets(numMeshes);
-
-    m_renderObjects.resize(numMeshes);
-
-    bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
-    {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
-
-        success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-        ro.numIndices = fw::ui32size(mesh.indices);
-
-        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = m_descriptorSets[i];
-    }
-
-    CHECK(success);
-}
-
-void LightShaftApp::createDescriptorSets(uint32_t setCount)
-{
-    m_descriptorSets.resize(setCount);
-
-    std::vector<VkDescriptorSetLayout> layouts(setCount, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = setCount;
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, m_descriptorSets.data()));
-}
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_descriptorSet));
 
-void LightShaftApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
-{
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = c_transformMatricesSize;
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
+    descriptorWrites[0].dstSet = m_descriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
-void LightShaftApp::createCommandBuffers()
+void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
 {
-    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = fw::API::getCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
-
-    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, commandBuffers.data()));
-
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -333,33 +274,19 @@ void LightShaftApp::createCommandBuffers()
 
     VkDeviceSize offsets[] = {0};
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i)
+    renderPassInfo.framebuffer = m_framebuffer;
+
+    vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+    for (const RenderObject& ro : renderObjects)
     {
-        VkCommandBuffer cb = commandBuffers[i];
-
-        vkBeginCommandBuffer(cb, &beginInfo);
-
-        m_preLightShaft.writeRenderCommands(cb, m_renderObjects);
-
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-
-        vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-        for (const RenderObject& ro : m_renderObjects)
-        {
-            VkBuffer vb = ro.vertexBuffer.getBuffer();
-            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(
-                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-        }
-
-        vkCmdEndRenderPass(cb);
-
-        VK_CHECK(vkEndCommandBuffer(cb));
+        VkBuffer vb = ro.vertexBuffer.getBuffer();
+        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+        vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
     }
 
-    fw::API::setCommandBuffers(commandBuffers);
+    vkCmdEndRenderPass(cb);
 }

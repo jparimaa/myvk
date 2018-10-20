@@ -1,5 +1,8 @@
 #pragma once
 
+#include "LightShaftCommon.h"
+#include "PreLightShaft.h"
+
 #include "fw/Application.h"
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
@@ -22,15 +25,6 @@ public:
         glm::mat4 proj;
     };
 
-    struct RenderObject
-    {
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-    };
-
     LightShaftApp(){};
     virtual ~LightShaftApp();
     LightShaftApp(const LightShaftApp&) = delete;
@@ -44,6 +38,7 @@ public:
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
+    VkExtent2D m_extent;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -60,7 +55,7 @@ private:
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
-    VkExtent2D extent;
+    PreLightShaft m_preLightShaft;
 
     void createRenderPass();
     void createDescriptorSetLayout();
