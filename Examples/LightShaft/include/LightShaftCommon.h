@@ -19,5 +19,6 @@ struct RenderObject
     fw::Buffer indexBuffer;
     uint32_t numIndices;
     fw::Texture texture;
-    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSet matrixDescriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 };

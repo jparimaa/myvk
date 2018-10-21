@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(binding = 0) uniform TransformationMatrices
+layout(set = 0, binding = 0) uniform TransformationMatrices
 {
     mat4 world;
     mat4 view;

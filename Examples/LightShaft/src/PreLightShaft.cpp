@@ -284,7 +284,7 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
         VkBuffer vb = ro.vertexBuffer.getBuffer();
         vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
         vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.matrixDescriptorSet, 0, nullptr);
         vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
     }
 

@@ -40,7 +40,8 @@ private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkExtent2D m_extent;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
@@ -53,16 +54,17 @@ private:
     std::vector<RenderObject> m_renderObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkDescriptorSet> m_matrixDescriptorSets;
+    std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
     PreLightShaft m_preLightShaft;
 
     void createRenderPass();
-    void createDescriptorSetLayout();
+    void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
     void createRenderObjects();
     void createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView);
     void createCommandBuffers();
 };
