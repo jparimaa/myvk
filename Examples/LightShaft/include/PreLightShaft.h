@@ -25,18 +25,19 @@ private:
     fw::Image m_depthImage;
     VkImageView m_depthImageView = VK_NULL_HANDLE;
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_colorDescriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     uint32_t m_width = 0;
     uint32_t m_height = 0;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    VkDescriptorSet m_descriptorSet;
+    VkDescriptorSet m_colorDescriptorSet;
     fw::Buffer m_uniformBuffer;
 
     void createFramebuffer();
     void createRenderPass();
-    void createDescriptorSetLayout();
+    void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
     void createDescriptorSets();
