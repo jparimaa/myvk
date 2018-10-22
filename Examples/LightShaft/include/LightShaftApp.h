@@ -1,7 +1,7 @@
 #pragma once
 
-#include "LightShaftCommon.h"
 #include "PreLightShaft.h"
+#include "LightShaftCommon.h"
 
 #include "fw/Application.h"
 #include "fw/Buffer.h"
@@ -18,13 +18,6 @@
 class LightShaftApp : public fw::Application
 {
 public:
-    struct MatrixUBO
-    {
-        glm::mat4 world;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
     LightShaftApp(){};
     virtual ~LightShaftApp();
     LightShaftApp(const LightShaftApp&) = delete;

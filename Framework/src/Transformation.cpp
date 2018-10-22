@@ -7,6 +7,11 @@
 
 namespace fw
 {
+Transformation::Transformation()
+{
+    updateWorldMatrix();
+}
+
 void Transformation::setPosition(const glm::vec3& pos)
 {
     m_position = pos;

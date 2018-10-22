@@ -30,8 +30,6 @@ bool LightShaftApp::initialize()
     m_logicalDevice = fw::Context::getLogicalDevice();
     m_extent = fw::API::getSwapChainExtent();
 
-    m_preLightShaft.init(m_extent.width, m_extent.height);
-
     createRenderPass();
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayouts();
@@ -40,6 +38,9 @@ bool LightShaftApp::initialize()
     createDescriptorPool();
     createRenderObjects();
     success = success && fw::API::initializeGUI(m_descriptorPool);
+
+    m_preLightShaft.initialize(m_extent.width, m_extent.height, m_matrixDescriptorSetLayout);
+
     createCommandBuffers();
 
     CHECK(success);
@@ -63,6 +64,8 @@ void LightShaftApp::update()
     m_ubo.view = m_camera.getViewMatrix();
 
     m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+
+    m_preLightShaft.update(m_camera);
 }
 
 void LightShaftApp::onGUI()

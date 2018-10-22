@@ -22,3 +22,10 @@ struct RenderObject
     VkDescriptorSet matrixDescriptorSet = VK_NULL_HANDLE;
     VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
 };
+
+struct MatrixUBO
+{
+    glm::mat4 world;
+    glm::mat4 view;
+    glm::mat4 proj;
+};

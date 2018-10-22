@@ -9,6 +9,7 @@ namespace fw
 class Transformation
 {
 public:
+    Transformation();
     void setPosition(const glm::vec3& pos);
     void setPosition(float x, float y, float z);
     void setRotation(const glm::vec3& rot);

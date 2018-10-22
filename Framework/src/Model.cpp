@@ -97,10 +97,9 @@ bool Model::loadModel(const std::string& file)
             }
 
             size_t numVertices = mesh.positions.size();
-            if (mesh.normals.size() != numVertices || mesh.tangents.size() != numVertices
-                || mesh.uvs.size() != numVertices)
+            if (mesh.normals.size() != numVertices)
             {
-                printWarning("Invalid mesh (vertex attribute sizes do not match): " + file);
+                printWarning("Invalid mesh (number of vertices and normals do not match): " + file);
                 return false;
             }
             m_meshes.push_back(std::move(mesh));

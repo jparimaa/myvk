@@ -15,8 +15,16 @@ Mesh::Vertices Mesh::getVertices() const
         Vertex v;
         v.position = positions[i];
         v.normal = normals[i];
-        v.tangent = tangents[i];
-        v.uv = uvs[i];
+
+        if (!tangents.empty())
+        {
+            v.tangent = tangents[i];
+        }
+
+        if (!uvs.empty())
+        {
+            v.uv = uvs[i];
+        }
         vertices.push_back(std::move(v));
     }
     return vertices;
