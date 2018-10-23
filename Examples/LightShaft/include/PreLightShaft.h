@@ -34,9 +34,6 @@ private:
     VkImageView m_depthImageView = VK_NULL_HANDLE;
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
-    VkDescriptorSetLayout m_colorDescriptorSetLayout = VK_NULL_HANDLE;
-    VkDescriptorSet m_colorDescriptorSet;
-    fw::Buffer m_colorBuffer;
     VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
     fw::Buffer m_sphereMatrixBuffer;
 
@@ -46,9 +43,8 @@ private:
 
     void createFramebuffer();
     void createRenderPass();
-    void createDescriptorSetLayout();
     void createPipeline();
     void createDescriptorPool();
-    void createDescriptorSets();
+    void createDescriptorSet();
     void createRenderObject();
 };

@@ -14,7 +14,6 @@
 
 namespace
 {
-const VkDeviceSize c_colorBufferSize = sizeof(float) * 4;
 const size_t c_pushConstantsSize = sizeof(float) * 4;
 } // unnamed
 
@@ -26,7 +25,6 @@ PreLightShaft::~PreLightShaft()
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_logicalDevice, m_colorDescriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
@@ -38,10 +36,9 @@ bool PreLightShaft::initialize(uint32_t width, uint32_t height, VkDescriptorSetL
     m_height = height;
     createRenderPass();
     createFramebuffer();
-    createDescriptorSetLayout();
     createPipeline();
     createDescriptorPool();
-    createDescriptorSets();
+    createDescriptorSet();
     createRenderObject();
     return true;
 }
@@ -153,24 +150,6 @@ void PreLightShaft::createFramebuffer()
     fw::Command::endSingleTimeCommands(commandBuffer);
 }
 
-void PreLightShaft::createDescriptorSetLayout()
-{
-    VkDescriptorSetLayoutBinding colorLayoutBinding{};
-    colorLayoutBinding.binding = 0;
-    colorLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    colorLayoutBinding.descriptorCount = 1;
-    colorLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    colorLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    std::array<VkDescriptorSetLayoutBinding, 1> colorBindings = {colorLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo colorLayoutInfo{};
-    colorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    colorLayoutInfo.bindingCount = fw::ui32size(colorBindings);
-    colorLayoutInfo.pBindings = colorBindings.data();
-
-    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &colorLayoutInfo, nullptr, &m_colorDescriptorSetLayout));
-}
-
 void PreLightShaft::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
@@ -207,7 +186,7 @@ void PreLightShaft::createPipeline()
     pushConstantRange.size = c_pushConstantsSize;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_colorDescriptorSetLayout};
+    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
@@ -241,51 +220,46 @@ void PreLightShaft::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 1> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 16;
+    poolSizes[0].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 16;
+    poolInfo.maxSets = 1;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void PreLightShaft::createDescriptorSets()
+void PreLightShaft::createDescriptorSet()
 {
-    auto createDescriptorSet = [this](VkDescriptorSetLayout layout, VkDescriptorSet& set, fw::Buffer& buffer, VkDeviceSize size) {
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &layout;
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_matrixDescriptorSetLayout;
 
-        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &set));
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_sphere.matrixDescriptorSet));
 
-        VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        CHECK(buffer.create(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CHECK(m_sphereMatrixBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = buffer.getBuffer();
-        bufferInfo.offset = 0;
-        bufferInfo.range = size;
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_sphereMatrixBuffer.getBuffer();
+    bufferInfo.offset = 0;
+    bufferInfo.range = c_transformMatricesSize;
 
-        std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = set;
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = m_sphere.matrixDescriptorSet;
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-        vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
-    };
-
-    createDescriptorSet(m_colorDescriptorSetLayout, m_colorDescriptorSet, m_colorBuffer, c_colorBufferSize);
-    createDescriptorSet(m_matrixDescriptorSetLayout, m_sphere.matrixDescriptorSet, m_sphereMatrixBuffer, c_transformMatricesSize);
+    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
 void PreLightShaft::createRenderObject()
@@ -340,11 +314,11 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
     VkBuffer vb = m_sphere.vertexBuffer.getBuffer();
     vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
     vkCmdBindIndexBuffer(cb, m_sphere.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-    std::vector<VkDescriptorSet> sets{m_sphere.matrixDescriptorSet, m_colorDescriptorSet};
+    std::vector<VkDescriptorSet> sets{m_sphere.matrixDescriptorSet};
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
     vkCmdDrawIndexed(cb, m_sphere.numIndices, 1, 0, 0, 0);
 
-    color = {1.0, 0.0f, 0.0f, 0.0f};
+    color = {0.0, 0.0f, 0.0f, 0.0f};
     vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
 
     for (const RenderObject& ro : renderObjects)
@@ -352,7 +326,7 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
         VkBuffer vb = ro.vertexBuffer.getBuffer();
         vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
         vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet, m_colorDescriptorSet};
+        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet};
         vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
         vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
     }
