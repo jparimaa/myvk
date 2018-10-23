@@ -15,6 +15,7 @@
 namespace
 {
 const VkDeviceSize c_colorBufferSize = sizeof(float) * 4;
+const size_t c_pushConstantsSize = sizeof(float) * 4;
 } // unnamed
 
 PreLightShaft::~PreLightShaft()
@@ -200,11 +201,18 @@ void PreLightShaft::createPipeline()
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
 
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_colorDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
@@ -326,8 +334,8 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
     vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-    float sphereColor[4] = {1.0f, 1.0f, 1.0f, 0.0f};
-    m_colorBuffer.setData(c_colorBufferSize, sphereColor);
+    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
 
     VkBuffer vb = m_sphere.vertexBuffer.getBuffer();
     vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
@@ -336,8 +344,8 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
     vkCmdDrawIndexed(cb, m_sphere.numIndices, 1, 0, 0, 0);
 
-    //float meshColor[4] = {1.0f, 0.0f, 1.0f, 0.0f};
-    //m_colorBuffer.setData(c_colorBufferSize, meshColor);
+    color = {1.0, 0.0f, 0.0f, 0.0f};
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
 
     for (const RenderObject& ro : renderObjects)
     {

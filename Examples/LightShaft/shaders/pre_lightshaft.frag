@@ -7,9 +7,13 @@ layout(set = 1, binding = 0) uniform ColorData
 }
 colorData;
 
+layout(push_constant) uniform PushConsts {
+	vec4 color;
+} pushConsts;
+
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    outColor = colorData.color;
+    outColor = pushConsts.color;
 }
