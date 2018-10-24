@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PreLightShaft.h"
+#include "LightShaftCreator.h"
 #include "LightShaftCommon.h"
 
 #include "fw/Application.h"
@@ -50,7 +50,7 @@ private:
     std::vector<VkDescriptorSet> m_matrixDescriptorSets;
     std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
-    PreLightShaft m_preLightShaft;
+    LightShaftCreator m_lightShaftCreator;
 
     void createRenderPass();
     void createDescriptorSetLayouts();

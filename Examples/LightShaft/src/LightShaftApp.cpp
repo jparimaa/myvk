@@ -39,7 +39,7 @@ bool LightShaftApp::initialize()
     createRenderObjects();
     success = success && fw::API::initializeGUI(m_descriptorPool);
 
-    m_preLightShaft.initialize(m_extent.width, m_extent.height, m_matrixDescriptorSetLayout);
+    m_lightShaftCreator.initialize(m_extent.width, m_extent.height, m_matrixDescriptorSetLayout);
 
     createCommandBuffers();
 
@@ -65,7 +65,7 @@ void LightShaftApp::update()
 
     m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
 
-    m_preLightShaft.update(m_camera);
+    m_lightShaftCreator.update(m_camera);
 }
 
 void LightShaftApp::onGUI()
@@ -359,7 +359,7 @@ void LightShaftApp::createCommandBuffers()
 
         vkBeginCommandBuffer(cb, &beginInfo);
 
-        m_preLightShaft.writeRenderCommands(cb, m_renderObjects);
+        m_lightShaftCreator.writeRenderCommands(cb, m_renderObjects);
 
         renderPassInfo.framebuffer = swapChainFramebuffers[i];
 
