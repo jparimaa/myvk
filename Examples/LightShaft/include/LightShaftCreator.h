@@ -20,4 +20,5 @@ public:
 
 private:
     PreLightShaft m_preLightShaft;
+    PostLightShaft m_postLightShaft;
 };

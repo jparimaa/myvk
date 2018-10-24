@@ -19,6 +19,8 @@ public:
     void update(const fw::Camera& camera);
     void writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects);
 
+    VkImageView getOutputImageView() const;
+
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;

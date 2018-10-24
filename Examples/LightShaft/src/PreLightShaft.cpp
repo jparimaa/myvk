@@ -51,6 +51,57 @@ void PreLightShaft::update(const fw::Camera& camera)
     m_sphereMatrixBuffer.setData(sizeof(m_ubo), &m_ubo);
 }
 
+void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
+{
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_renderPass;
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
+    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
+    renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.framebuffer = m_framebuffer;
+
+    vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
+
+    VkDeviceSize offsets[] = {0};
+
+    VkBuffer vb = m_sphere.vertexBuffer.getBuffer();
+    vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+    vkCmdBindIndexBuffer(cb, m_sphere.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    std::vector<VkDescriptorSet> sets{m_sphere.matrixDescriptorSet};
+    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
+    vkCmdDrawIndexed(cb, m_sphere.numIndices, 1, 0, 0, 0);
+
+    color = {0.0, 0.0f, 0.0f, 0.0f};
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
+
+    for (const RenderObject& ro : renderObjects)
+    {
+        VkBuffer vb = ro.vertexBuffer.getBuffer();
+        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet};
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
+        vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
+    }
+
+    vkCmdEndRenderPass(cb);
+}
+
+VkImageView PreLightShaft::getOutputImageView() const
+{
+    return m_imageView;
+}
+
 void PreLightShaft::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
@@ -280,56 +331,4 @@ void PreLightShaft::createRenderObject()
     m_sphere.numIndices = fw::ui32size(mesh.indices);
 
     CHECK(success);
-}
-
-void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
-{
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr; // Optional
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
-    renderPassInfo.pClearValues = clearValues.data();
-
-    VkDeviceSize offsets[] = {0};
-
-    renderPassInfo.framebuffer = m_framebuffer;
-
-    vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
-
-    VkBuffer vb = m_sphere.vertexBuffer.getBuffer();
-    vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-    vkCmdBindIndexBuffer(cb, m_sphere.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-    std::vector<VkDescriptorSet> sets{m_sphere.matrixDescriptorSet};
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
-    vkCmdDrawIndexed(cb, m_sphere.numIndices, 1, 0, 0, 0);
-
-    color = {0.0, 0.0f, 0.0f, 0.0f};
-    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
-
-    for (const RenderObject& ro : renderObjects)
-    {
-        VkBuffer vb = ro.vertexBuffer.getBuffer();
-        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet};
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
-        vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-    }
-
-    vkCmdEndRenderPass(cb);
 }

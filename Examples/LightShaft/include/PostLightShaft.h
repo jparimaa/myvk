@@ -2,6 +2,7 @@
 
 #include "fw/Image.h"
 #include "fw/Buffer.h"
+#include "fw/Sampler.h"
 
 #include <vulkan/vulkan.h>
 
@@ -10,7 +11,7 @@ class PostLightShaft
 public:
     PostLightShaft(){};
     ~PostLightShaft();
-    bool initialize(uint32_t width, uint32_t height);
+    bool initialize(uint32_t width, uint32_t height, VkImageView inputImageView);
     void writeRenderCommands(VkCommandBuffer cb);
 
 private:
@@ -24,12 +25,16 @@ private:
 
     uint32_t m_width = 0;
     uint32_t m_height = 0;
+    fw::Sampler m_sampler;
     fw::Image m_image;
     VkImageView m_imageView = VK_NULL_HANDLE;
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
-    void createFramebuffer();
+    VkImageView m_inputImageView = VK_NULL_HANDLE;
+
     void createRenderPass();
+    void createFramebuffer();
+    void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
     void createDescriptorSet();

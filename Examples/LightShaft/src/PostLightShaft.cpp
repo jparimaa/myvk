@@ -23,13 +23,16 @@ PostLightShaft::~PostLightShaft()
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
-bool PostLightShaft::initialize(uint32_t width, uint32_t height)
+bool PostLightShaft::initialize(uint32_t width, uint32_t height, VkImageView inputImageView)
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
+    m_inputImageView = inputImageView;
+    m_sampler.create(VK_COMPARE_OP_NEVER);
     m_width = width;
     m_height = height;
     createRenderPass();
     createFramebuffer();
+    createDescriptorSetLayouts();
     createPipeline();
     createDescriptorPool();
     createDescriptorSet();
@@ -44,13 +47,13 @@ void PostLightShaft::createRenderPass()
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
+    /*
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
+	*/
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -63,7 +66,7 @@ void PostLightShaft::createRenderPass()
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::vector<VkAttachmentDescription> attachments = {colorAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -129,8 +132,33 @@ void PostLightShaft::createFramebuffer()
     fw::Command::endSingleTimeCommands(commandBuffer);
 }
 
+void PostLightShaft::createDescriptorSetLayouts()
+{
+    VkDescriptorSetLayoutBinding textureLayoutBinding{};
+    textureLayoutBinding.binding = 0;
+    textureLayoutBinding.descriptorCount = 1;
+    textureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    textureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    textureLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
+    textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    textureLayoutInfo.bindingCount = 1;
+    textureLayoutInfo.pBindings = &textureLayoutBinding;
+
+    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &textureLayoutInfo, nullptr, &m_textureDescriptorSetLayout));
+}
+
 void PostLightShaft::createPipeline()
 {
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "post_lightshaft.vert.spv", c_shaderFolder + "post_lightshaft.frag.spv");
 
@@ -143,9 +171,8 @@ void PostLightShaft::createPipeline()
         }
     });
 
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState{};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -153,21 +180,18 @@ void PostLightShaft::createPipeline()
     VkRect2D scissor = fw::Pipeline::getScissorRect();
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
+    VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilState.depthTestEnable = VK_FALSE;
+    depthStencilState.depthWriteEnable = VK_FALSE;
+    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencilState.front = depthStencilState.back;
+    depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    /*
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
-    pipelineLayoutInfo.pSetLayouts = layouts.data();
-	*/
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -193,7 +217,7 @@ void PostLightShaft::createPipeline()
 void PostLightShaft::createDescriptorPool()
 {
     VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSize.descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
@@ -214,46 +238,44 @@ void PostLightShaft::createDescriptorSet()
     allocInfo.pSetLayouts = &m_textureDescriptorSetLayout;
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_textureDescriptorSet));
-    /*
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = m_inputImageView;
+    imageInfo.sampler = m_sampler.getSampler();
+
     std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = m_sphere.matrixDescriptorSet;
+    descriptorWrites[0].dstSet = m_textureDescriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrites[0].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
-	*/
 }
 
 void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
 {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr; // Optional
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
+    VkClearValue clearValues{0.0f, 0.0f, 0.2f, 1.0f};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
-    renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearValues;
+    renderPassInfo.framebuffer = m_framebuffer;
 
     VkDeviceSize offsets[] = {0};
 
-    renderPassInfo.framebuffer = m_framebuffer;
-
     vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_textureDescriptorSet, 0, nullptr);
+    vkCmdDraw(cb, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(cb);
 }
