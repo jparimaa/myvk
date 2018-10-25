@@ -21,4 +21,5 @@ void LightShaftCreator::update(const fw::Camera& camera)
 void LightShaftCreator::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
 {
     m_preLightShaft.writeRenderCommands(cb, renderObjects);
+    m_postLightShaft.writeRenderCommands(cb);
 }

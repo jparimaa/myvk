@@ -106,6 +106,7 @@ void PreLightShaft::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
     colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -146,7 +147,7 @@ void PreLightShaft::createRenderPass()
 
 void PreLightShaft::createFramebuffer()
 {
-    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
 
     VkImageViewCreateInfo viewInfo{};

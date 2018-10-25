@@ -43,17 +43,12 @@ void PostLightShaft::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
     colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    /*
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	*/
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -66,7 +61,6 @@ void PostLightShaft::createRenderPass()
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
-    //subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::vector<VkAttachmentDescription> attachments = {colorAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -189,6 +183,8 @@ void PostLightShaft::createPipeline()
     depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
+    rasterizationState.cullMode = VK_CULL_MODE_NONE;
+
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
