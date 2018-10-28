@@ -62,6 +62,16 @@ const glm::mat4x4& Camera::getProjectionMatrix() const
     return m_projectionMatrix;
 }
 
+float Camera::getNearClipDistance() const
+{
+    return m_nearClipDistance;
+}
+
+float Camera::getFarClipDistance() const
+{
+    return m_farClipDistance;
+}
+
 void Camera::updateViewMatrix()
 {
     glm::vec3 p = m_transformation.getPosition();

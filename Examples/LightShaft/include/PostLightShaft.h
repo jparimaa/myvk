@@ -3,6 +3,8 @@
 #include "fw/Image.h"
 #include "fw/Buffer.h"
 #include "fw/Sampler.h"
+#include "fw/Camera.h"
+#include "fw/Transformation.h"
 
 #include <vulkan/vulkan.h>
 
@@ -12,6 +14,7 @@ public:
     PostLightShaft(){};
     ~PostLightShaft();
     bool initialize(uint32_t width, uint32_t height, VkImageView inputImageView);
+    void update(const fw::Camera& camera, const fw::Transformation& light);
     void writeRenderCommands(VkCommandBuffer cb);
 
 private:

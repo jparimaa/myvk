@@ -5,6 +5,7 @@
 #include "fw/Image.h"
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
+#include "fw/Transformation.h"
 
 #include <vulkan/vulkan.h>
 
@@ -20,6 +21,7 @@ public:
     void writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects);
 
     VkImageView getOutputImageView() const;
+    const fw::Transformation& getLightTransformation() const;
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;

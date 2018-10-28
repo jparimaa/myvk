@@ -17,6 +17,7 @@ PostLightShaft::~PostLightShaft()
 {
     vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
     vkDestroyFramebuffer(m_logicalDevice, m_framebuffer, nullptr);
+    vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -37,6 +38,46 @@ bool PostLightShaft::initialize(uint32_t width, uint32_t height, VkImageView inp
     createDescriptorPool();
     createDescriptorSet();
     return true;
+}
+
+void PostLightShaft::update(const fw::Camera& camera, const fw::Transformation& light)
+{
+    glm::vec4 pos(light.getPosition(), 1.0f);
+    const glm::mat4& world = light.getWorldMatrix();
+    const glm::mat4& view = camera.getViewMatrix();
+    const glm::mat4& proj = camera.getProjectionMatrix();
+
+    pos = proj * view * world * pos;
+
+    VkExtent2D size = fw::API::getSwapChainExtent();
+    glm::vec2 halfSize{size.width / 2.0f, size.height / 2.0f};
+    glm::vec2 ndc{pos.x / pos.w, pos.y / pos.w};
+    // Viewport transform
+    glm::vec2 screen{(halfSize.x * ndc.x) + (halfSize.x), (halfSize.y * ndc.y) + (halfSize.y)};
+    glm::vec2 uv{screen.x / size.width, screen.y / size.height};
+}
+
+void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
+{
+    VkClearValue clearValues{0.0f, 0.0f, 0.2f, 1.0f};
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_renderPass;
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearValues;
+    renderPassInfo.framebuffer = m_framebuffer;
+
+    VkDeviceSize offsets[] = {0};
+
+    vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_textureDescriptorSet, 0, nullptr);
+    vkCmdDraw(cb, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(cb);
 }
 
 void PostLightShaft::createRenderPass()
@@ -251,27 +292,4 @@ void PostLightShaft::createDescriptorSet()
     descriptorWrites[0].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
-}
-
-void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
-{
-    VkClearValue clearValues{0.0f, 0.0f, 0.2f, 1.0f};
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearValues;
-    renderPassInfo.framebuffer = m_framebuffer;
-
-    VkDeviceSize offsets[] = {0};
-
-    vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_textureDescriptorSet, 0, nullptr);
-    vkCmdDraw(cb, 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(cb);
 }

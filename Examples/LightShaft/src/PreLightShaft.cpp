@@ -102,6 +102,11 @@ VkImageView PreLightShaft::getOutputImageView() const
     return m_imageView;
 }
 
+const fw::Transformation& PreLightShaft::getLightTransformation() const
+{
+    return m_sphereTransformation;
+}
+
 void PreLightShaft::createRenderPass()
 {
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();

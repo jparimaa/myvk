@@ -23,6 +23,9 @@ public:
     const glm::mat4x4& getViewMatrix() const;
     const glm::mat4x4& getProjectionMatrix() const;
 
+    float getNearClipDistance() const;
+    float getFarClipDistance() const;
+
 private:
     float m_FOV = 45.0f;
     float m_ratio = 1.33333f;
