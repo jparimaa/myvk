@@ -50,6 +50,7 @@ private:
     std::vector<VkDescriptorSet> m_matrixDescriptorSets;
     std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
+    VkCommandBuffer m_commandBuffer;
     LightShaftCreator m_lightShaftCreator;
 
     void createRenderPass();
@@ -59,5 +60,6 @@ private:
     void createRenderObjects();
     void createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView);
-    void createCommandBuffers();
+    void createCommandBuffer();
+    void updateCommandBuffers();
 };

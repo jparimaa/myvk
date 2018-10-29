@@ -6,6 +6,7 @@
 #include "fw/Camera.h"
 #include "fw/Transformation.h"
 
+#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
 class PostLightShaft
@@ -34,6 +35,7 @@ private:
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
     VkImageView m_inputImageView = VK_NULL_HANDLE;
+    glm::vec2 m_lightPosScreen;
 
     void createRenderPass();
     void createFramebuffer();

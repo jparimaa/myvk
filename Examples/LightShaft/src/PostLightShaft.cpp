@@ -13,6 +13,11 @@
 
 #include <array>
 
+namespace
+{
+const size_t c_pushConstantsSize = sizeof(float) * 2;
+}
+
 PostLightShaft::~PostLightShaft()
 {
     vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
@@ -55,6 +60,7 @@ void PostLightShaft::update(const fw::Camera& camera, const fw::Transformation& 
     // Viewport transform
     glm::vec2 screen{(halfSize.x * ndc.x) + (halfSize.x), (halfSize.y * ndc.y) + (halfSize.y)};
     glm::vec2 uv{screen.x / size.width, screen.y / size.height};
+    m_lightPosScreen = uv;
 }
 
 void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
@@ -71,6 +77,8 @@ void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
     renderPassInfo.framebuffer = m_framebuffer;
 
     VkDeviceSize offsets[] = {0};
+
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &m_lightPosScreen);
 
     vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
@@ -186,11 +194,18 @@ void PostLightShaft::createDescriptorSetLayouts()
 
 void PostLightShaft::createPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
