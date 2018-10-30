@@ -20,8 +20,6 @@ const size_t c_pushConstantsSize = sizeof(float) * 2;
 
 PostLightShaft::~PostLightShaft()
 {
-    vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
-    vkDestroyFramebuffer(m_logicalDevice, m_framebuffer, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
@@ -29,15 +27,12 @@ PostLightShaft::~PostLightShaft()
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
-bool PostLightShaft::initialize(uint32_t width, uint32_t height, VkImageView inputImageView)
+bool PostLightShaft::initialize(VkImageView inputImageView)
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
     m_inputImageView = inputImageView;
     m_sampler.create(VK_COMPARE_OP_NEVER);
-    m_width = width;
-    m_height = height;
     createRenderPass();
-    createFramebuffer();
     createDescriptorSetLayouts();
     createPipeline();
     createDescriptorPool();
@@ -63,18 +58,20 @@ void PostLightShaft::update(const fw::Camera& camera, const fw::Transformation& 
     m_lightPosScreen = uv;
 }
 
-void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
+void PostLightShaft::writeRenderCommands(VkCommandBuffer cb, VkFramebuffer finalFramebuffer)
 {
-    VkClearValue clearValues{0.0f, 0.0f, 0.2f, 1.0f};
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearValues;
-    renderPassInfo.framebuffer = m_framebuffer;
+    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
+    renderPassInfo.pClearValues = clearValues.data();
+    renderPassInfo.framebuffer = finalFramebuffer;
 
     VkDeviceSize offsets[] = {0};
 
@@ -90,14 +87,6 @@ void PostLightShaft::writeRenderCommands(VkCommandBuffer cb)
 
 void PostLightShaft::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -106,12 +95,24 @@ void PostLightShaft::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    std::vector<VkAttachmentDescription> attachments = {colorAttachment};
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
+
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
@@ -122,57 +123,6 @@ void PostLightShaft::createRenderPass()
     renderPassInfo.pDependencies = &dependency;
 
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
-}
-
-void PostLightShaft::createFramebuffer()
-{
-    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
-
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = c_format;
-    viewInfo.flags = 0;
-    viewInfo.subresourceRange = {};
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-    viewInfo.image = m_image.getHandle();
-
-    VK_CHECK(vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, &m_imageView));
-
-    std::vector<VkImageView> attachments = {m_imageView};
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = m_renderPass;
-    framebufferInfo.attachmentCount = fw::ui32size(attachments);
-    framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = m_width;
-    framebufferInfo.height = m_height;
-    framebufferInfo.layers = 1;
-
-    VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &m_framebuffer));
-
-    VkCommandBuffer commandBuffer = fw::Command::beginSingleTimeCommands();
-
-    VkImageMemoryBarrier imageMemoryBarrier{};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.image = m_image.getHandle();
-    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    imageMemoryBarrier.srcAccessMask = 0;
-    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-
-    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-    fw::Command::endSingleTimeCommands(commandBuffer);
 }
 
 void PostLightShaft::createDescriptorSetLayouts()

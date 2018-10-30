@@ -56,7 +56,6 @@ bool LightShaftApp::initialize()
 
 void LightShaftApp::update()
 {
-    m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     m_ubo.world = m_trans.getWorldMatrix();
 
     m_cameraController.update();
@@ -86,18 +85,6 @@ void LightShaftApp::onGUI()
 
 void LightShaftApp::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -106,11 +93,26 @@ void LightShaftApp::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -336,30 +338,27 @@ void LightShaftApp::updateCommandBuffers()
 {
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     uint32_t currentIndex = fw::API::getCurrentSwapChainImageIndex();
+    VkFramebuffer framebuffer = swapChainFramebuffers[currentIndex];
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
-
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
-    renderPassInfo.pClearValues = clearValues.data();
-    renderPassInfo.framebuffer = swapChainFramebuffers[currentIndex];
+    renderPassInfo.clearValueCount = 0;
+    renderPassInfo.pClearValues = nullptr;
+    renderPassInfo.framebuffer = framebuffer;
 
     VkDeviceSize offsets[] = {0};
 
     vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
 
-    m_lightShaftCreator.writeRenderCommands(m_commandBuffer, m_renderObjects);
+    m_lightShaftCreator.writeRenderCommands(m_commandBuffer, m_renderObjects, framebuffer);
 
     vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);

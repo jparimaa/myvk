@@ -14,9 +14,9 @@ class PostLightShaft
 public:
     PostLightShaft(){};
     ~PostLightShaft();
-    bool initialize(uint32_t width, uint32_t height, VkImageView inputImageView);
+    bool initialize(VkImageView inputImageView);
     void update(const fw::Camera& camera, const fw::Transformation& light);
-    void writeRenderCommands(VkCommandBuffer cb);
+    void writeRenderCommands(VkCommandBuffer cb, VkFramebuffer finalFramebuffer);
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
@@ -27,18 +27,12 @@ private:
     VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
 
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
     fw::Sampler m_sampler;
-    fw::Image m_image;
-    VkImageView m_imageView = VK_NULL_HANDLE;
-    VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
     VkImageView m_inputImageView = VK_NULL_HANDLE;
     glm::vec2 m_lightPosScreen;
 
     void createRenderPass();
-    void createFramebuffer();
     void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
