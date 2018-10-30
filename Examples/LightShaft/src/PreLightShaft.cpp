@@ -45,6 +45,7 @@ bool PreLightShaft::initialize(uint32_t width, uint32_t height, VkDescriptorSetL
 
 void PreLightShaft::update(const fw::Camera& camera)
 {
+    m_sphereTransformation.setScale(3.0f);
     m_ubo.world = m_sphereTransformation.getWorldMatrix();
     m_ubo.view = camera.getViewMatrix();
     m_ubo.proj = camera.getProjectionMatrix();

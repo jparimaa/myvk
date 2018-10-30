@@ -10,16 +10,16 @@ layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
 
 int c_numSamples = 100;
-float c_density = 0.2;
-float c_weight = 0.8;
-float c_decay = 0.98;
-float c_exposure = 0.15;
+float c_density = 1.0;
+float c_weight = 0.02;
+float c_decay = 0.99;
+float c_exposure = 1.0;
 
 void main()
 {
     vec2 deltaTexCoord = inUv - pushConsts.lightPosScreen;  
     deltaTexCoord *= 1.0f / c_numSamples * c_density;
-
+    
     vec2 texCoord = inUv;
     vec3 color = texture(preLightShaft, texCoord).rgb;
 
@@ -35,5 +35,6 @@ void main()
         color += colorSample;
         illuminationDecay *= c_decay;
     }
-    outColor = vec4(color * c_exposure, 1.0);
+    //outColor = vec4(color * c_exposure, 1.0);
+    outColor = vec4(color, 1.0);
 }
