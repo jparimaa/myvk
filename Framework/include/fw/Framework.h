@@ -50,6 +50,7 @@ private:
     Application* m_app = nullptr;
     std::vector<VkCommandBuffer> m_commandBuffers;
     VkCommandBuffer m_nextCommandBuffer = nullptr;
+    VkFence m_renderBufferFence = VK_NULL_HANDLE;
 
     uint32_t m_currentImageIndex = std::numeric_limits<uint32_t>::max();
 

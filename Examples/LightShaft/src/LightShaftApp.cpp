@@ -17,6 +17,7 @@
 
 LightShaftApp::~LightShaftApp()
 {
+    vkDestroyFence(m_logicalDevice, m_renderBufferFence, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -38,6 +39,7 @@ bool LightShaftApp::initialize()
     createDescriptorPool();
     createRenderObjects();
     success = success && fw::API::initializeGUI(m_descriptorPool);
+    createFence();
     createCommandBuffer();
 
     m_lightShaftCreator.initialize(m_extent.width, m_extent.height, m_matrixDescriptorSetLayout);
@@ -334,6 +336,15 @@ void LightShaftApp::createCommandBuffer()
     VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer));
 }
 
+void LightShaftApp::createFence()
+{
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VK_CHECK(vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_renderBufferFence));
+    fw::API::setRenderBufferFence(m_renderBufferFence);
+}
+
 void LightShaftApp::updateCommandBuffers()
 {
     const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
@@ -355,6 +366,9 @@ void LightShaftApp::updateCommandBuffers()
     renderPassInfo.framebuffer = framebuffer;
 
     VkDeviceSize offsets[] = {0};
+
+    vkWaitForFences(m_logicalDevice, 1, &m_renderBufferFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_logicalDevice, 1, &m_renderBufferFence);
 
     vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
 

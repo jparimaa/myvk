@@ -109,6 +109,11 @@ void API::setNextCommandBuffer(VkCommandBuffer commandBuffer)
     s_framework->m_nextCommandBuffer = commandBuffer;
 }
 
+void API::setRenderBufferFence(VkFence fence)
+{
+    s_framework->m_renderBufferFence = fence;
+}
+
 GLFWwindow* API::getGLFWwindow()
 {
     return s_framework->m_window.getWindow();

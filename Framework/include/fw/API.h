@@ -39,6 +39,7 @@ public:
 
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
     static void setNextCommandBuffer(VkCommandBuffer commandBuffer);
+    static void setRenderBufferFence(VkFence fence);
 
     static GLFWwindow* getGLFWwindow();
 

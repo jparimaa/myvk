@@ -126,7 +126,7 @@ bool Framework::render()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (VkResult r = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE); r != VK_SUCCESS)
+    if (VkResult r = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_renderBufferFence); r != VK_SUCCESS)
     {
         printError("Failed to submit a draw command buffer", &r);
         return false;
