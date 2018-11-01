@@ -63,10 +63,11 @@ function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
 
     foreach(GLSL ${GLSL_SOURCE_FILES})
         get_filename_component(FILE_NAME ${GLSL} NAME)
-        set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
+        set(SHADER_FOLDER "${PROJECT_BINARY_DIR}/Shaders/${MAIN_PROJECT}")
+        set(SPIRV "${SHADER_FOLDER}/${FILE_NAME}.spv")
         add_custom_command(
             OUTPUT ${SPIRV}
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_FOLDER}"
             COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
             DEPENDS ${GLSL}
         )
@@ -79,15 +80,8 @@ function(COMPILE_SHADERS MAIN_PROJECT SHADER_PROJECT)
     )
 
     add_dependencies(${MAIN_PROJECT} ${SHADER_PROJECT} )
-
-    add_custom_command(TARGET ${MAIN_PROJECT} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders/"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${PROJECT_BINARY_DIR}/shaders"
-            "$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders"
-    )
-
-    add_definitions(-DSHADER_PATH="$<TARGET_FILE_DIR:${MAIN_PROJECT}>/shaders/")
+    
+    add_definitions(-DSHADER_PATH="${SHADER_FOLDER}/")
 endfunction()
 
 add_subdirectory(Framework)
