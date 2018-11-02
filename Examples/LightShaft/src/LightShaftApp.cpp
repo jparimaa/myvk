@@ -110,11 +110,13 @@ void LightShaftApp::createRenderPass()
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
