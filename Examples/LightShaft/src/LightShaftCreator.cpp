@@ -19,6 +19,11 @@ void LightShaftCreator::update(const fw::Camera& camera)
     m_postLightShaft.update(camera, m_preLightShaft.getLightTransformation());
 }
 
+void LightShaftCreator::onGUI()
+{
+    m_postLightShaft.onGUI();
+}
+
 void LightShaftCreator::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects, VkFramebuffer finalFramebuffer)
 {
     m_preLightShaft.writeRenderCommands(cb, renderObjects);

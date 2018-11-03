@@ -16,6 +16,7 @@ public:
     ~LightShaftCreator();
     bool initialize(uint32_t width, uint32_t height, VkDescriptorSetLayout matrixDescriptorSetLayout);
     void update(const fw::Camera& camera);
+    void onGUI();
     void writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects, VkFramebuffer finalFramebuffer);
 
 private:

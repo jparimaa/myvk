@@ -79,6 +79,7 @@ void LightShaftApp::onGUI()
     glm::vec3 p = m_camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    m_lightShaftCreator.onGUI();
 
 #ifndef WIN32
 #pragma GCC diagnostic pop

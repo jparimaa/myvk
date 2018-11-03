@@ -16,9 +16,20 @@ public:
     ~PostLightShaft();
     bool initialize(VkImageView inputImageView);
     void update(const fw::Camera& camera, const fw::Transformation& light);
+    void onGUI();
     void writeRenderCommands(VkCommandBuffer cb, VkFramebuffer finalFramebuffer);
 
 private:
+    struct ShaderParameters
+    {
+        glm::vec2 lightPosScreen;
+        int numSamples = 100;
+        float density = 1.0f;
+        float weight = 0.02f;
+        float decay = 0.99f;
+        float exposure = 1.0f;
+    };
+
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -30,7 +41,7 @@ private:
     fw::Sampler m_sampler;
 
     VkImageView m_inputImageView = VK_NULL_HANDLE;
-    glm::vec2 m_lightPosScreen;
+    ShaderParameters m_shaderParameters;
 
     void createRenderPass();
     void createDescriptorSetLayouts();

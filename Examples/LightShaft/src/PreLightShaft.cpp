@@ -15,7 +15,7 @@
 namespace
 {
 const size_t c_pushConstantsSize = sizeof(float) * 4;
-} // unnamed
+} // namespace
 
 PreLightShaft::~PreLightShaft()
 {
@@ -40,12 +40,14 @@ bool PreLightShaft::initialize(uint32_t width, uint32_t height, VkDescriptorSetL
     createDescriptorPool();
     createDescriptorSet();
     createRenderObject();
+
+    m_sphereTransformation.setScale(3.0f);
+
     return true;
 }
 
 void PreLightShaft::update(const fw::Camera& camera)
 {
-    m_sphereTransformation.setScale(3.0f);
     m_ubo.world = m_sphereTransformation.getWorldMatrix();
     m_ubo.view = camera.getViewMatrix();
     m_ubo.proj = camera.getProjectionMatrix();
@@ -55,7 +57,7 @@ void PreLightShaft::update(const fw::Camera& camera)
 void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
 {
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
+    clearValues[0].color = {0.0f, 0.0f, 0.1f, 1.0f};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};

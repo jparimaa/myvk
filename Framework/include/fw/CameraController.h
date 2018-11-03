@@ -27,6 +27,7 @@ private:
     glm::vec3 m_resetPosition;
     glm::vec3 m_resetRotation;
     int m_resetKey = -1;
+    bool m_rotationEnabled = true;
 };
 
 } // fw

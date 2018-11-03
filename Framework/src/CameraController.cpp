@@ -59,20 +59,27 @@ void CameraController::update()
         m_camera->setPosition(m_resetPosition);
         m_camera->setRotation(m_resetRotation);
     }
-
-    m_camera->rotate(Constants::up, API::getMouseDeltaX() * m_sensitivity);
-    m_camera->rotate(Constants::left, -API::getMouseDeltaY() * m_sensitivity);
-
-    glm::vec3 r = t.getRotation();
-    if (r.x > Constants::rotationLimit)
+    if (API::isKeyReleased(GLFW_KEY_F))
     {
-        r.x = Constants::rotationLimit;
+        m_rotationEnabled = !m_rotationEnabled;
     }
-    if (r.x < -Constants::rotationLimit)
+
+    if (m_rotationEnabled)
     {
-        r.x = -Constants::rotationLimit;
+        m_camera->rotate(Constants::up, API::getMouseDeltaX() * m_sensitivity);
+        m_camera->rotate(Constants::left, -API::getMouseDeltaY() * m_sensitivity);
+
+        glm::vec3 r = t.getRotation();
+        if (r.x > Constants::rotationLimit)
+        {
+            r.x = Constants::rotationLimit;
+        }
+        if (r.x < -Constants::rotationLimit)
+        {
+            r.x = -Constants::rotationLimit;
+        }
+        m_camera->setRotation(r);
     }
-    m_camera->setRotation(r);
 }
 
 } // fw

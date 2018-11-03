@@ -2,6 +2,11 @@
 
 layout(push_constant) uniform PushConsts {
 	vec2 lightPosScreen;
+    int numSamples;
+    float density;
+    float weight;
+    float decay;
+    float exposure;
 } pushConsts;
 
 layout(set = 0, binding = 0) uniform sampler2D preLightShaft;
@@ -9,32 +14,25 @@ layout(set = 0, binding = 0) uniform sampler2D preLightShaft;
 layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
 
-int c_numSamples = 100;
-float c_density = 1.0;
-float c_weight = 0.02;
-float c_decay = 0.99;
-float c_exposure = 1.0;
-
 void main()
 {
     vec2 deltaTexCoord = inUv - pushConsts.lightPosScreen;  
-    deltaTexCoord *= 1.0f / c_numSamples * c_density;
+    deltaTexCoord *= 1.0f / pushConsts.numSamples * pushConsts.density;
     
     vec2 texCoord = inUv;
     vec3 color = texture(preLightShaft, texCoord).rgb;
 
     float illuminationDecay = 1.0f;
 
-    for (int i = 0; i < c_numSamples; ++i)
+    for (int i = 0; i < pushConsts.numSamples; ++i)
     {
         texCoord -= deltaTexCoord;
 
         vec3 colorSample = texture(preLightShaft, texCoord).rgb;
-        colorSample *= illuminationDecay * c_weight;
+        colorSample *= illuminationDecay * pushConsts.weight;
 
         color += colorSample;
-        illuminationDecay *= c_decay;
+        illuminationDecay *= pushConsts.decay;
     }
-    //outColor = vec4(color * c_exposure, 1.0);
-    outColor = vec4(color, 1.0);
+    outColor = vec4(color * pushConsts.exposure, 1.0);
 }

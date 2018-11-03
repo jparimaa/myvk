@@ -13,11 +13,6 @@
 
 #include <array>
 
-namespace
-{
-const size_t c_pushConstantsSize = sizeof(float) * 2;
-}
-
 PostLightShaft::~PostLightShaft()
 {
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
@@ -55,7 +50,16 @@ void PostLightShaft::update(const fw::Camera& camera, const fw::Transformation& 
     // Viewport transform
     glm::vec2 screen{(halfSize.x * ndc.x) + (halfSize.x), (halfSize.y * ndc.y) + (halfSize.y)};
     glm::vec2 uv{screen.x / size.width, screen.y / size.height};
-    m_lightPosScreen = uv;
+    m_shaderParameters.lightPosScreen = uv;
+}
+
+void PostLightShaft::onGUI()
+{
+    ImGui::SliderInt("Samples", &m_shaderParameters.numSamples, 10, 200);
+    ImGui::SliderFloat("Density", &m_shaderParameters.density, 0.0f, 1.0f);
+    ImGui::SliderFloat("Weight", &m_shaderParameters.weight, 0.0f, 0.5f);
+    ImGui::SliderFloat("Decay", &m_shaderParameters.decay, 0.9f, 1.0f);
+    ImGui::SliderFloat("Exposure", &m_shaderParameters.exposure, 0.0f, 1.0f);
 }
 
 void PostLightShaft::writeRenderCommands(VkCommandBuffer cb, VkFramebuffer finalFramebuffer)
@@ -75,7 +79,7 @@ void PostLightShaft::writeRenderCommands(VkCommandBuffer cb, VkFramebuffer final
 
     VkDeviceSize offsets[] = {0};
 
-    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &m_lightPosScreen);
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderParameters), &m_shaderParameters);
 
     vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
@@ -147,7 +151,7 @@ void PostLightShaft::createPipeline()
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = c_pushConstantsSize;
+    pushConstantRange.size = sizeof(ShaderParameters);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
