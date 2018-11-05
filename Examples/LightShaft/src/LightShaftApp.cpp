@@ -21,7 +21,6 @@ LightShaftApp::~LightShaftApp()
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_logicalDevice, m_matrixDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
@@ -31,41 +30,51 @@ bool LightShaftApp::initialize()
     m_logicalDevice = fw::Context::getLogicalDevice();
     m_extent = fw::API::getSwapChainExtent();
 
+    m_objectRenderPass.initialize(&m_camera);
+    m_lightShaftPrepass.initialize(m_extent.width, m_extent.height, m_objectRenderPass.getMatrixDescriptorSetLayout(), &m_lightTransformation);
+
     createRenderPass();
-    bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
+    CHECK(fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass));
     createDescriptorSetLayouts();
     createPipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
+    CHECK(m_sampler.create(VK_COMPARE_OP_NEVER));
     createDescriptorPool();
-    createRenderObjects();
-    success = success && fw::API::initializeGUI(m_descriptorPool);
-    createFence();
+    createDescriptorSets();
     createCommandBuffer();
-
-    m_lightShaftCreator.initialize(m_extent.width, m_extent.height, m_matrixDescriptorSetLayout);
-
-    CHECK(success);
+    createFence();
+    CHECK(fw::API::initializeGUI(m_descriptorPool));
 
     m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
-    m_ubo.proj = m_camera.getProjectionMatrix();
+    m_lightTransformation.setScale(3.0f);
 
     return true;
 }
 
 void LightShaftApp::update()
 {
-    m_ubo.world = m_trans.getWorldMatrix();
-
     m_cameraController.update();
-    m_ubo.view = m_camera.getViewMatrix();
+    m_objectRenderPass.update();
+    m_lightShaftPrepass.update(m_camera);
 
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+    glm::vec4 pos(m_lightTransformation.getPosition(), 1.0f);
+    const glm::mat4& world = m_lightTransformation.getWorldMatrix();
+    const glm::mat4& view = m_camera.getViewMatrix();
+    const glm::mat4& proj = m_camera.getProjectionMatrix();
 
-    m_lightShaftCreator.update(m_camera);
+    pos = proj * view * world * pos;
+
+    VkExtent2D size = fw::API::getSwapChainExtent();
+    glm::vec2 halfSize{size.width / 2.0f, size.height / 2.0f};
+    glm::vec2 ndc{pos.x / pos.w, pos.y / pos.w};
+    // Viewport transform
+    glm::vec2 screen{(halfSize.x * ndc.x) + (halfSize.x), (halfSize.y * ndc.y) + (halfSize.y)};
+    glm::vec2 uv{screen.x / size.width, screen.y / size.height};
+    m_shaderParameters.lightPosScreen = uv;
+
     updateCommandBuffers();
 }
 
@@ -79,7 +88,12 @@ void LightShaftApp::onGUI()
     glm::vec3 p = m_camera.getTransformation().getPosition();
     ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
     ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    m_lightShaftCreator.onGUI();
+
+    ImGui::SliderInt("Samples", &m_shaderParameters.numSamples, 10, 200);
+    ImGui::SliderFloat("Density", &m_shaderParameters.density, 0.0f, 1.0f);
+    ImGui::SliderFloat("Weight", &m_shaderParameters.weight, 0.0f, 0.5f);
+    ImGui::SliderFloat("Decay", &m_shaderParameters.decay, 0.9f, 1.0f);
+    ImGui::SliderFloat("Exposure", &m_shaderParameters.exposure, 0.0f, 1.0f);
 
 #ifndef WIN32
 #pragma GCC diagnostic pop
@@ -134,20 +148,6 @@ void LightShaftApp::createRenderPass()
 
 void LightShaftApp::createDescriptorSetLayouts()
 {
-    VkDescriptorSetLayoutBinding matrixLayoutBinding{};
-    matrixLayoutBinding.binding = 0;
-    matrixLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    matrixLayoutBinding.descriptorCount = 1;
-    matrixLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    matrixLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutCreateInfo matrixLayoutInfo{};
-    matrixLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    matrixLayoutInfo.bindingCount = 1;
-    matrixLayoutInfo.pBindings = &matrixLayoutBinding;
-
-    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &matrixLayoutInfo, nullptr, &m_matrixDescriptorSetLayout));
-
     VkDescriptorSetLayoutBinding textureLayoutBinding{};
     textureLayoutBinding.binding = 0;
     textureLayoutBinding.descriptorCount = 1;
@@ -165,8 +165,23 @@ void LightShaftApp::createDescriptorSetLayouts()
 
 void LightShaftApp::createPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(ShaderParameters);
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "lightshaft.vert.spv", c_shaderFolder + "lightshaft.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -177,10 +192,8 @@ void LightShaftApp::createPipeline()
         }
     });
 
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState
-        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState{};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -188,19 +201,20 @@ void LightShaftApp::createPipeline()
     VkRect2D scissor = fw::Pipeline::getScissorRect();
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
+    VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilState.depthTestEnable = VK_FALSE;
+    depthStencilState.depthWriteEnable = VK_FALSE;
+    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencilState.front = depthStencilState.back;
+    depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
+    rasterizationState.cullMode = VK_CULL_MODE_NONE;
+
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_textureDescriptorSetLayout};
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
-    pipelineLayoutInfo.pSetLayouts = layouts.data();
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -225,105 +239,43 @@ void LightShaftApp::createPipeline()
 
 void LightShaftApp::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 16;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 16;
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolSize.descriptorCount = 16;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = fw::ui32size(poolSizes);
-    poolInfo.pPoolSizes = poolSizes.data();
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
     poolInfo.maxSets = 16;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void LightShaftApp::createRenderObjects()
+void LightShaftApp::createDescriptorSets()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_textureDescriptorSetLayout;
 
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
-
-    createDescriptorSets(numMeshes);
-
-    m_renderObjects.resize(numMeshes);
-
-    bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
-    {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
-
-        success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-        ro.numIndices = fw::ui32size(mesh.indices);
-
-        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_matrixDescriptorSets[i], m_textureDescriptorSets[i], ro.texture.getImageView());
-        ro.matrixDescriptorSet = m_matrixDescriptorSets[i];
-        ro.textureDescriptorSet = m_textureDescriptorSets[i];
-    }
-
-    CHECK(success);
-}
-
-void LightShaftApp::createDescriptorSets(uint32_t setCount)
-{
-    auto allocateDescriptorSets = [this, setCount](std::vector<VkDescriptorSet>& sets, VkDescriptorSetLayout layout) {
-        sets.resize(setCount);
-        std::vector<VkDescriptorSetLayout> layouts(setCount, layout);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = setCount;
-        allocInfo.pSetLayouts = layouts.data();
-
-        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, sets.data()));
-    };
-
-    allocateDescriptorSets(m_matrixDescriptorSets, m_matrixDescriptorSetLayout);
-    allocateDescriptorSets(m_textureDescriptorSets, m_textureDescriptorSetLayout);
-}
-
-void LightShaftApp::updateDescriptorSet(VkDescriptorSet matrixDescriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView)
-{
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
-    bufferInfo.offset = 0;
-    bufferInfo.range = c_transformMatricesSize;
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_textureDescriptorSet));
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
+    imageInfo.imageView = m_lightShaftPrepass.getOutputImageView();
     imageInfo.sampler = m_sampler.getSampler();
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = matrixDescriptorSet;
+    descriptorWrites[0].dstSet = m_textureDescriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = textureDescriptorSet;
-    descriptorWrites[1].dstBinding = 0;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
+    descriptorWrites[0].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
@@ -359,6 +311,14 @@ void LightShaftApp::updateCommandBuffers()
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
+    vkWaitForFences(m_logicalDevice, 1, &m_renderBufferFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_logicalDevice, 1, &m_renderBufferFence);
+
+    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+
+    m_objectRenderPass.writeRenderCommands(m_commandBuffer, framebuffer);
+    m_lightShaftPrepass.writeRenderCommands(m_commandBuffer, m_objectRenderPass.getRenderObjects());
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
@@ -368,27 +328,12 @@ void LightShaftApp::updateCommandBuffers()
     renderPassInfo.pClearValues = nullptr;
     renderPassInfo.framebuffer = framebuffer;
 
-    VkDeviceSize offsets[] = {0};
-
-    vkWaitForFences(m_logicalDevice, 1, &m_renderBufferFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(m_logicalDevice, 1, &m_renderBufferFence);
-
-    vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
-
-    m_lightShaftCreator.writeRenderCommands(m_commandBuffer, m_renderObjects, framebuffer);
+    vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderParameters), &m_shaderParameters);
 
     vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-    for (const RenderObject& ro : m_renderObjects)
-    {
-        VkBuffer vb = ro.vertexBuffer.getBuffer();
-        vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffer, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet, ro.textureDescriptorSet};
-        vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
-        vkCmdDrawIndexed(m_commandBuffer, ro.numIndices, 1, 0, 0, 0);
-    }
+    vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_textureDescriptorSet, 0, nullptr);
+    vkCmdDraw(m_commandBuffer, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(m_commandBuffer);
 
