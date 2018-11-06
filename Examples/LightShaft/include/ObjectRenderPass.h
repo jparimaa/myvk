@@ -18,7 +18,7 @@ public:
 
     void initialize(const fw::Camera* camera);
     void update();
-    void writeRenderCommands(VkCommandBuffer cb, VkFramebuffer framebuffer);
+    void writeRenderCommands(VkCommandBuffer cb);
 
     VkDescriptorSetLayout getMatrixDescriptorSetLayout();
     const std::vector<RenderObject>& getRenderObjects();
@@ -44,7 +44,16 @@ private:
     std::vector<VkDescriptorSet> m_matrixDescriptorSets;
     std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
+    uint32_t m_width = 0;
+    uint32_t m_height = 0;
+    fw::Image m_image;
+    VkImageView m_imageView = VK_NULL_HANDLE;
+    fw::Image m_depthImage;
+    VkImageView m_depthImageView = VK_NULL_HANDLE;
+    VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
+
     void createRenderPass();
+    void createFramebuffer();
     void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();

@@ -28,10 +28,9 @@ LightShaftApp::~LightShaftApp()
 bool LightShaftApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
-    m_extent = fw::API::getSwapChainExtent();
 
     m_objectRenderPass.initialize(&m_camera);
-    m_lightShaftPrepass.initialize(m_extent.width, m_extent.height, m_objectRenderPass.getMatrixDescriptorSetLayout(), &m_lightTransformation);
+    m_lightShaftPrepass.initialize(m_objectRenderPass.getMatrixDescriptorSetLayout(), &m_lightTransformation);
 
     createRenderPass();
     CHECK(fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass));
@@ -125,13 +124,7 @@ void LightShaftApp::createRenderPass()
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -148,17 +141,24 @@ void LightShaftApp::createRenderPass()
 
 void LightShaftApp::createDescriptorSetLayouts()
 {
-    VkDescriptorSetLayoutBinding textureLayoutBinding{};
-    textureLayoutBinding.binding = 0;
-    textureLayoutBinding.descriptorCount = 1;
-    textureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    textureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    textureLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    std::vector<VkDescriptorSetLayoutBinding> bindings(2);
+
+    bindings[0].binding = 0;
+    bindings[0].descriptorCount = 1;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[0].pImmutableSamplers = nullptr; // Optional
+
+    bindings[1].binding = 1;
+    bindings[1].descriptorCount = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[1].pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
     textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    textureLayoutInfo.bindingCount = 1;
-    textureLayoutInfo.pBindings = &textureLayoutBinding;
+    textureLayoutInfo.bindingCount = fw::ui32size(bindings);
+    textureLayoutInfo.pBindings = bindings.data();
 
     VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &textureLayoutInfo, nullptr, &m_textureDescriptorSetLayout));
 }
@@ -262,12 +262,12 @@ void LightShaftApp::createDescriptorSets()
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_textureDescriptorSet));
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = m_lightShaftPrepass.getOutputImageView();
-    imageInfo.sampler = m_sampler.getSampler();
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
-    std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+    VkDescriptorImageInfo preLightShaftimageInfo{};
+    preLightShaftimageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    preLightShaftimageInfo.imageView = m_lightShaftPrepass.getOutputImageView();
+    preLightShaftimageInfo.sampler = m_sampler.getSampler();
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = m_textureDescriptorSet;
@@ -275,7 +275,20 @@ void LightShaftApp::createDescriptorSets()
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pImageInfo = &imageInfo;
+    descriptorWrites[0].pImageInfo = &preLightShaftimageInfo;
+
+    VkDescriptorImageInfo objectPassImageInfo{};
+    objectPassImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    objectPassImageInfo.imageView = m_objectRenderPass.getOutputImageView();
+    objectPassImageInfo.sampler = m_sampler.getSampler();
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = m_textureDescriptorSet;
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &objectPassImageInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
@@ -316,16 +329,20 @@ void LightShaftApp::updateCommandBuffers()
 
     vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
 
-    m_objectRenderPass.writeRenderCommands(m_commandBuffer, framebuffer);
+    m_objectRenderPass.writeRenderCommands(m_commandBuffer);
     m_lightShaftPrepass.writeRenderCommands(m_commandBuffer, m_objectRenderPass.getRenderObjects());
+
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = 0;
-    renderPassInfo.pClearValues = nullptr;
+    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
+    renderPassInfo.pClearValues = clearValues.data();
     renderPassInfo.framebuffer = framebuffer;
 
     vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShaderParameters), &m_shaderParameters);

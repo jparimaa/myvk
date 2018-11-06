@@ -16,7 +16,7 @@ class LightShaftPrepass
 public:
     LightShaftPrepass(){};
     ~LightShaftPrepass();
-    bool initialize(uint32_t width, uint32_t height, VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light);
+    bool initialize(VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light);
     void update(const fw::Camera& camera);
     void writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects);
 
@@ -45,8 +45,8 @@ private:
     MatrixUBO m_ubo;
     RenderObject m_sphere;
 
-    void createFramebuffer();
     void createRenderPass();
+    void createFramebuffer();
     void createPipeline();
     void createDescriptorPool();
     void createDescriptorSet();

@@ -28,13 +28,14 @@ LightShaftPrepass::~LightShaftPrepass()
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
-bool LightShaftPrepass::initialize(uint32_t width, uint32_t height, VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light)
+bool LightShaftPrepass::initialize(VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light)
 {
     m_sphereTransformation = light;
     m_matrixDescriptorSetLayout = matrixDescriptorSetLayout;
     m_logicalDevice = fw::Context::getLogicalDevice();
-    m_width = width;
-    m_height = height;
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    m_width = extent.width;
+    m_height = extent.height;
     createRenderPass();
     createFramebuffer();
     createPipeline();
@@ -106,19 +107,24 @@ VkImageView LightShaftPrepass::getOutputImageView() const
 
 void LightShaftPrepass::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -127,12 +133,6 @@ void LightShaftPrepass::createRenderPass()
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
