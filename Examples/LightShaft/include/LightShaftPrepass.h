@@ -11,17 +11,16 @@
 
 #include <vector>
 
-class PreLightShaft
+class LightShaftPrepass
 {
 public:
-    PreLightShaft(){};
-    ~PreLightShaft();
-    bool initialize(uint32_t width, uint32_t height, VkDescriptorSetLayout matrixDescriptorSetLayout);
+    LightShaftPrepass(){};
+    ~LightShaftPrepass();
+    bool initialize(VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light);
     void update(const fw::Camera& camera);
     void writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects);
 
     VkImageView getOutputImageView() const;
-    const fw::Transformation& getLightTransformation() const;
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
@@ -41,12 +40,13 @@ private:
     VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
     fw::Buffer m_sphereMatrixBuffer;
 
-    fw::Transformation m_sphereTransformation;
+    const fw::Transformation* m_sphereTransformation = nullptr;
+
     MatrixUBO m_ubo;
     RenderObject m_sphere;
 
-    void createFramebuffer();
     void createRenderPass();
+    void createFramebuffer();
     void createPipeline();
     void createDescriptorPool();
     void createDescriptorSet();

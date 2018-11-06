@@ -1,7 +1,8 @@
 #pragma once
 
-#include "LightShaftCreator.h"
 #include "LightShaftCommon.h"
+#include "LightShaftPrepass.h"
+#include "ObjectRenderPass.h"
 
 #include "fw/Application.h"
 #include "fw/Buffer.h"
@@ -30,37 +31,46 @@ public:
     virtual void onGUI() final;
 
 private:
+    struct ShaderParameters
+    {
+        glm::vec2 lightPosScreen;
+        int numSamples = 100;
+        float density = 1.0f;
+        float weight = 0.02f;
+        float decay = 0.99f;
+        float exposure = 1.0f;
+    };
+
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkExtent2D m_extent;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+
+    VkCommandBuffer m_commandBuffer;
+    VkFence m_renderBufferFence;
 
     fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
-    fw::Transformation m_trans;
-    MatrixUBO m_ubo;
-    fw::Buffer m_uniformBuffer;
-    std::vector<RenderObject> m_renderObjects;
 
-    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_matrixDescriptorSets;
-    std::vector<VkDescriptorSet> m_textureDescriptorSets;
+    fw::Transformation m_lightTransformation;
 
-    VkCommandBuffer m_commandBuffer;
-    VkFence m_renderBufferFence;
-    LightShaftCreator m_lightShaftCreator;
+    VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
+
+    VkImageView m_inputImageView = VK_NULL_HANDLE;
+    ShaderParameters m_shaderParameters;
+
+    ObjectRenderPass m_objectRenderPass;
+    LightShaftPrepass m_lightShaftPrepass;
 
     void createRenderPass();
     void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
-    void createRenderObjects();
-    void createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView);
+    void createDescriptorSets();
     void createCommandBuffer();
     void createFence();
     void updateCommandBuffers();

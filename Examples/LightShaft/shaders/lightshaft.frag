@@ -10,6 +10,7 @@ layout(push_constant) uniform PushConsts {
 } pushConsts;
 
 layout(set = 0, binding = 0) uniform sampler2D preLightShaft;
+layout(set = 0, binding = 1) uniform sampler2D objectTexture;
 
 layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
@@ -35,4 +36,5 @@ void main()
         illuminationDecay *= pushConsts.decay;
     }
     outColor = vec4(color * pushConsts.exposure, 1.0);
+    outColor += texture(objectTexture, inUv);
 }

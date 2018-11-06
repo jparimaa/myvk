@@ -1,4 +1,4 @@
-#include "PreLightShaft.h"
+#include "LightShaftPrepass.h"
 
 #include "fw/Model.h"
 #include "fw/API.h"
@@ -17,7 +17,7 @@ namespace
 const size_t c_pushConstantsSize = sizeof(float) * 4;
 } // namespace
 
-PreLightShaft::~PreLightShaft()
+LightShaftPrepass::~LightShaftPrepass()
 {
     vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
     vkDestroyImageView(m_logicalDevice, m_depthImageView, nullptr);
@@ -28,12 +28,14 @@ PreLightShaft::~PreLightShaft()
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
-bool PreLightShaft::initialize(uint32_t width, uint32_t height, VkDescriptorSetLayout matrixDescriptorSetLayout)
+bool LightShaftPrepass::initialize(VkDescriptorSetLayout matrixDescriptorSetLayout, const fw::Transformation* light)
 {
+    m_sphereTransformation = light;
     m_matrixDescriptorSetLayout = matrixDescriptorSetLayout;
     m_logicalDevice = fw::Context::getLogicalDevice();
-    m_width = width;
-    m_height = height;
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    m_width = extent.width;
+    m_height = extent.height;
     createRenderPass();
     createFramebuffer();
     createPipeline();
@@ -41,20 +43,18 @@ bool PreLightShaft::initialize(uint32_t width, uint32_t height, VkDescriptorSetL
     createDescriptorSet();
     createRenderObject();
 
-    m_sphereTransformation.setScale(3.0f);
-
     return true;
 }
 
-void PreLightShaft::update(const fw::Camera& camera)
+void LightShaftPrepass::update(const fw::Camera& camera)
 {
-    m_ubo.world = m_sphereTransformation.getWorldMatrix();
+    m_ubo.world = m_sphereTransformation->getWorldMatrix();
     m_ubo.view = camera.getViewMatrix();
     m_ubo.proj = camera.getProjectionMatrix();
     m_sphereMatrixBuffer.setData(sizeof(m_ubo), &m_ubo);
 }
 
-void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
+void LightShaftPrepass::writeRenderCommands(VkCommandBuffer cb, const std::vector<RenderObject>& renderObjects)
 {
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.1f, 1.0f};
@@ -100,31 +100,31 @@ void PreLightShaft::writeRenderCommands(VkCommandBuffer cb, const std::vector<Re
     vkCmdEndRenderPass(cb);
 }
 
-VkImageView PreLightShaft::getOutputImageView() const
+VkImageView LightShaftPrepass::getOutputImageView() const
 {
     return m_imageView;
 }
 
-const fw::Transformation& PreLightShaft::getLightTransformation() const
+void LightShaftPrepass::createRenderPass()
 {
-    return m_sphereTransformation;
-}
-
-void PreLightShaft::createRenderPass()
-{
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -133,12 +133,6 @@ void PreLightShaft::createRenderPass()
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -153,7 +147,7 @@ void PreLightShaft::createRenderPass()
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
 }
 
-void PreLightShaft::createFramebuffer()
+void LightShaftPrepass::createFramebuffer()
 {
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
@@ -210,7 +204,7 @@ void PreLightShaft::createFramebuffer()
     fw::Command::endSingleTimeCommands(commandBuffer);
 }
 
-void PreLightShaft::createPipeline()
+void LightShaftPrepass::createPipeline()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "pre_lightshaft.vert.spv", c_shaderFolder + "pre_lightshaft.frag.spv");
@@ -276,7 +270,7 @@ void PreLightShaft::createPipeline()
     VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
 }
 
-void PreLightShaft::createDescriptorPool()
+void LightShaftPrepass::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 1> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -291,7 +285,7 @@ void PreLightShaft::createDescriptorPool()
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void PreLightShaft::createDescriptorSet()
+void LightShaftPrepass::createDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -322,7 +316,7 @@ void PreLightShaft::createDescriptorSet()
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
 
-void PreLightShaft::createRenderObject()
+void LightShaftPrepass::createRenderObject()
 {
     fw::Model model;
     CHECK(model.loadModel(c_assetsFolder + "lowpoly_sphere.obj"));
