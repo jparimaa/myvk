@@ -327,6 +327,7 @@ void LightShaftPrepass::createRenderObject()
 
     fw::Model::Meshes meshes = model.getMeshes();
     uint32_t numMeshes = fw::ui32size(meshes);
+    CHECK(numMeshes == 1);
 
     bool success = true;
     const fw::Mesh& mesh = meshes[0];
