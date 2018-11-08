@@ -1,19 +1,15 @@
 #include "LightShaftApp.h"
+#include "LightShaftCommon.h"
+
 #include "fw/API.h"
 #include "fw/Command.h"
 #include "fw/Common.h"
 #include "fw/Context.h"
 #include "fw/Macros.h"
-#include "fw/Mesh.h"
-#include "fw/Model.h"
 #include "fw/Pipeline.h"
 #include "fw/RenderPass.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
-
 #include <array>
-#include <iostream>
 
 LightShaftApp::~LightShaftApp()
 {
@@ -241,13 +237,13 @@ void LightShaftApp::createDescriptorPool()
 {
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSize.descriptorCount = 16;
+    poolSize.descriptorCount = 3;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = 16;
+    poolInfo.maxSets = 3;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }

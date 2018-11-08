@@ -1,20 +1,17 @@
 #pragma once
 
-#include "LightShaftCommon.h"
 #include "LightShaftPrepass.h"
 #include "ObjectRenderPass.h"
 
 #include "fw/Application.h"
-#include "fw/Buffer.h"
 #include "fw/Camera.h"
 #include "fw/CameraController.h"
 #include "fw/Sampler.h"
-#include "fw/Texture.h"
 #include "fw/Transformation.h"
 
 #include <glm/glm.hpp>
 
-#include <vector>
+#include <vulkan/vulkan.h>
 
 class LightShaftApp : public fw::Application
 {
@@ -42,7 +39,6 @@ private:
     };
 
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
-    VkExtent2D m_extent;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;

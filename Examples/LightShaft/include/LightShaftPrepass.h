@@ -29,8 +29,6 @@ private:
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
     fw::Image m_image;
     VkImageView m_imageView = VK_NULL_HANDLE;
     fw::Image m_depthImage;

@@ -33,9 +33,7 @@ bool LightShaftPrepass::initialize(VkDescriptorSetLayout matrixDescriptorSetLayo
     m_sphereTransformation = light;
     m_matrixDescriptorSetLayout = matrixDescriptorSetLayout;
     m_logicalDevice = fw::Context::getLogicalDevice();
-    VkExtent2D extent = fw::API::getSwapChainExtent();
-    m_width = extent.width;
-    m_height = extent.height;
+
     createRenderPass();
     createFramebuffer();
     createPipeline();
@@ -77,6 +75,7 @@ void LightShaftPrepass::writeRenderCommands(VkCommandBuffer cb, const std::vecto
 
     VkDeviceSize offsets[] = {0};
 
+    // Sphere
     VkBuffer vb = m_sphere.vertexBuffer.getBuffer();
     vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
     vkCmdBindIndexBuffer(cb, m_sphere.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
@@ -84,6 +83,7 @@ void LightShaftPrepass::writeRenderCommands(VkCommandBuffer cb, const std::vecto
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
     vkCmdDrawIndexed(cb, m_sphere.numIndices, 1, 0, 0, 0);
 
+    // Objects
     color = {0.0, 0.0f, 0.0f, 0.0f};
     vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &color);
 
@@ -149,8 +149,12 @@ void LightShaftPrepass::createRenderPass()
 
 void LightShaftPrepass::createFramebuffer()
 {
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    uint32_t width = extent.width;
+    uint32_t height = extent.height;
+
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
+    CHECK(m_image.create(width, height, c_format, 0, usage, 1));
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -169,7 +173,7 @@ void LightShaftPrepass::createFramebuffer()
 
     VkFormat depthFormat = fw::Constants::depthFormat;
     VkImageUsageFlags depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    CHECK(m_depthImage.create(m_width, m_height, depthFormat, 0, depthImageUsage, 1));
+    CHECK(m_depthImage.create(width, height, depthFormat, 0, depthImageUsage, 1));
     CHECK(m_depthImage.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depthImageView));
     CHECK(m_depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
 
@@ -180,8 +184,8 @@ void LightShaftPrepass::createFramebuffer()
     framebufferInfo.renderPass = m_renderPass;
     framebufferInfo.attachmentCount = fw::ui32size(attachments);
     framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = m_width;
-    framebufferInfo.height = m_height;
+    framebufferInfo.width = width;
+    framebufferInfo.height = height;
     framebufferInfo.layers = 1;
 
     VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &m_framebuffer));
@@ -206,6 +210,21 @@ void LightShaftPrepass::createFramebuffer()
 
 void LightShaftPrepass::createPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "pre_lightshaft.vert.spv", c_shaderFolder + "pre_lightshaft.frag.spv");
 
@@ -233,21 +252,6 @@ void LightShaftPrepass::createPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = c_pushConstantsSize;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
-    pipelineLayoutInfo.pSetLayouts = layouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

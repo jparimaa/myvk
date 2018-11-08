@@ -10,10 +10,8 @@
 #include "fw/RenderPass.h"
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
 
 #include <array>
-#include <iostream>
 
 ObjectRenderPass::~ObjectRenderPass()
 {
@@ -31,10 +29,6 @@ ObjectRenderPass::~ObjectRenderPass()
 void ObjectRenderPass::initialize(const fw::Camera* camera)
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
-
-    VkExtent2D extent = fw::API::getSwapChainExtent();
-    m_width = extent.width;
-    m_height = extent.height;
 
     createRenderPass();
     createFramebuffer();
@@ -147,8 +141,12 @@ void ObjectRenderPass::createRenderPass()
 
 void ObjectRenderPass::createFramebuffer()
 {
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    uint32_t width = extent.width;
+    uint32_t height = extent.height;
+
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    CHECK(m_image.create(m_width, m_height, c_format, 0, usage, 1));
+    CHECK(m_image.create(width, height, c_format, 0, usage, 1));
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -167,7 +165,7 @@ void ObjectRenderPass::createFramebuffer()
 
     VkFormat depthFormat = fw::Constants::depthFormat;
     VkImageUsageFlags depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    CHECK(m_depthImage.create(m_width, m_height, depthFormat, 0, depthImageUsage, 1));
+    CHECK(m_depthImage.create(width, height, depthFormat, 0, depthImageUsage, 1));
     CHECK(m_depthImage.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depthImageView));
     CHECK(m_depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
 
@@ -178,8 +176,8 @@ void ObjectRenderPass::createFramebuffer()
     framebufferInfo.renderPass = m_renderPass;
     framebufferInfo.attachmentCount = fw::ui32size(attachments);
     framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = m_width;
-    framebufferInfo.height = m_height;
+    framebufferInfo.width = width;
+    framebufferInfo.height = height;
     framebufferInfo.layers = 1;
 
     VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &m_framebuffer));
@@ -235,6 +233,14 @@ void ObjectRenderPass::createDescriptorSetLayouts()
 
 void ObjectRenderPass::createPipeline()
 {
+    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_textureDescriptorSetLayout};
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "object.vert.spv", c_shaderFolder + "object.frag.spv");
 
@@ -249,8 +255,7 @@ void ObjectRenderPass::createPipeline()
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState
-        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -263,14 +268,6 @@ void ObjectRenderPass::createPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_textureDescriptorSetLayout};
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
-    pipelineLayoutInfo.pSetLayouts = layouts.data();
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -297,15 +294,15 @@ void ObjectRenderPass::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 16;
+    poolSizes[0].descriptorCount = 2;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 16;
+    poolSizes[1].descriptorCount = 2;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 16;
+    poolInfo.maxSets = 4;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
@@ -367,17 +364,12 @@ void ObjectRenderPass::createDescriptorSets(uint32_t setCount)
 
 void ObjectRenderPass::updateDescriptorSet(VkDescriptorSet matrixDescriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView)
 {
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = c_transformMatricesSize;
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = matrixDescriptorSet;
@@ -386,6 +378,11 @@ void ObjectRenderPass::updateDescriptorSet(VkDescriptorSet matrixDescriptorSet, 
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = imageView;
+    imageInfo.sampler = m_sampler.getSampler();
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = textureDescriptorSet;

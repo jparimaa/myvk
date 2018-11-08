@@ -5,8 +5,9 @@
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
 #include "fw/Sampler.h"
-#include "fw/Texture.h"
 #include "fw/Transformation.h"
+
+#include <vulkan/vulkan.h>
 
 #include <vector>
 
@@ -44,8 +45,6 @@ private:
     std::vector<VkDescriptorSet> m_matrixDescriptorSets;
     std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
     fw::Image m_image;
     VkImageView m_imageView = VK_NULL_HANDLE;
     fw::Image m_depthImage;
