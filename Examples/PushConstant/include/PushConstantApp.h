@@ -62,6 +62,7 @@ private:
 
     VkExtent2D extent;
 
+    VkFence m_renderBufferFence;
     VkCommandBuffer m_commandBuffer;
 
     void createRenderPass();
@@ -72,5 +73,6 @@ private:
     void createDescriptorSets(uint32_t setCount);
     void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
     void createCommandBuffer();
+    void createFence();
     void updateCommandBuffer();
 };

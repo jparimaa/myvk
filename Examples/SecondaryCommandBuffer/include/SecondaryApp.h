@@ -56,6 +56,7 @@ private:
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
+    VkFence m_renderBufferFence;
     VkCommandBuffer m_primaryCommandBuffer;
     std::vector<VkCommandBuffer> m_secondaryCommandBuffers;
     size_t m_currentFrameIndex = 0;
@@ -69,5 +70,6 @@ private:
     void createRenderObject();
     void createDescriptorSets();
     void createCommandBuffers();
+    void createFence();
     void updateCommandBuffers();
 };

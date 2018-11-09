@@ -31,6 +31,7 @@ SecondaryApp::SecondaryApp()
 
 SecondaryApp::~SecondaryApp()
 {
+    vkDestroyFence(m_logicalDevice, m_renderBufferFence, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -52,6 +53,7 @@ bool SecondaryApp::initialize()
     createDescriptorSets();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
+    createFence();
 
     CHECK(success);
 
@@ -321,7 +323,17 @@ void SecondaryApp::createCommandBuffers()
 
     m_secondaryCommandBuffers.resize(c_numRenderObjects);
     allocInfo.commandBufferCount = c_numRenderObjects;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
     VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, m_secondaryCommandBuffers.data()));
+}
+
+void SecondaryApp::createFence()
+{
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VK_CHECK(vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_renderBufferFence));
+    fw::API::setRenderBufferFence(m_renderBufferFence);
 }
 
 void SecondaryApp::updateCommandBuffers()
@@ -346,8 +358,11 @@ void SecondaryApp::updateCommandBuffers()
     renderPassInfo.pClearValues = clearValues.data();
     renderPassInfo.framebuffer = swapChainFramebuffers[currentIndex];
 
+    vkWaitForFences(m_logicalDevice, 1, &m_renderBufferFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_logicalDevice, 1, &m_renderBufferFence);
+
     VK_CHECK(vkBeginCommandBuffer(m_primaryCommandBuffer, &primaryCommandBufferBeginInfo));
-    vkCmdBeginRenderPass(m_primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(m_primaryCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
     VkCommandBufferInheritanceInfo inheritanceInfo{};
     inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;

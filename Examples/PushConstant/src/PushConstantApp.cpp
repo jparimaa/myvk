@@ -25,6 +25,7 @@ const size_t c_pushConstantsSize = sizeof(glm::vec4);
 
 PushConstantApp::~PushConstantApp()
 {
+    vkDestroyFence(m_logicalDevice, m_renderBufferFence, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -49,7 +50,7 @@ bool PushConstantApp::initialize()
     createRenderObjects();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffer();
-
+    createFence();
     CHECK(success);
 
     extent = fw::API::getSwapChainExtent();
@@ -335,6 +336,15 @@ void PushConstantApp::createCommandBuffer()
     VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, &m_commandBuffer));
 }
 
+void PushConstantApp::createFence()
+{
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VK_CHECK(vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_renderBufferFence));
+    fw::API::setRenderBufferFence(m_renderBufferFence);
+}
+
 void PushConstantApp::updateCommandBuffer()
 {
     VkCommandBufferBeginInfo beginInfo{};
@@ -359,6 +369,9 @@ void PushConstantApp::updateCommandBuffer()
     renderPassInfo.framebuffer = swapChainFramebuffers[currentIndex];
 
     VkDeviceSize offsets[] = {0};
+
+    vkWaitForFences(m_logicalDevice, 1, &m_renderBufferFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_logicalDevice, 1, &m_renderBufferFence);
 
     vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
     vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
