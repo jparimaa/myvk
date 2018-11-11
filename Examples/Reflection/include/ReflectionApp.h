@@ -35,7 +35,7 @@ private:
         glm::mat4 proj;
     };
 
-    struct RenderObject
+    struct ObjectData
     {
         fw::Buffer vertexBuffer;
         fw::Buffer indexBuffer;
@@ -44,13 +44,20 @@ private:
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
 
+    struct RenderObject
+    {
+        fw::Transformation transformation;
+        MatrixUBO matrices;
+        fw::Buffer uniformBuffer;
+        std::vector<ObjectData> objectData;
+    };
+
     struct Subpass
     {
         ~Subpass();
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-        std::vector<VkDescriptorSet> descriptorSets;
     };
 
     struct FramebufferAttachment
@@ -67,16 +74,16 @@ private:
 
     Subpass m_gbuffer;
     Subpass m_composite;
+    VkDescriptorSet m_compositeDescriptorSet;
 
     std::vector<FramebufferAttachment> m_framebufferAttachments;
 
     fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
-    fw::Transformation m_transformation;
-    MatrixUBO m_ubo;
-    fw::Buffer m_uniformBuffer;
-    std::vector<RenderObject> m_renderObjects;
+
+    RenderObject m_droid;
+    RenderObject m_cube;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
@@ -88,8 +95,8 @@ private:
     void createCompositePipeline();
     void createDescriptorPool();
     void createRenderObjects();
-    void createGBufferDescriptorSets(uint32_t setCount);
-    void updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void createGBufferDescriptorSets(RenderObject& renderObject);
+    void updateGBufferDescriptorSet(VkBuffer buffer, VkImageView imageView, VkDescriptorSet descriptorSet);
     void createAndUpdateCompositeDescriptorSet();
     void createCommandBuffers();
 };

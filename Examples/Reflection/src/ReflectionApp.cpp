@@ -74,20 +74,26 @@ bool ReflectionApp::initialize()
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
-    m_ubo.proj = m_camera.getProjectionMatrix();
+    m_droid.matrices.proj = m_camera.getProjectionMatrix();
+    m_cube.transformation.setScale(45.0f);
+    m_cube.transformation.setPosition(0.0f, -45.0f, 0.0f);
+    m_cube.matrices.proj = m_camera.getProjectionMatrix();
 
     return true;
 }
 
 void ReflectionApp::update()
 {
-    m_transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_ubo.world = m_transformation.getWorldMatrix();
+    m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    m_droid.matrices.world = m_droid.transformation.getWorldMatrix();
+    m_cube.matrices.world = m_cube.transformation.getWorldMatrix();
 
     m_cameraController.update();
-    m_ubo.view = m_camera.getViewMatrix();
+    m_droid.matrices.view = m_camera.getViewMatrix();
+    m_cube.matrices.view = m_camera.getViewMatrix();
 
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+    m_droid.uniformBuffer.setData(sizeof(m_droid.matrices), &m_droid.matrices);
+    m_cube.uniformBuffer.setData(sizeof(m_cube.matrices), &m_cube.matrices);
 }
 
 void ReflectionApp::createGBufferAttachments()
@@ -426,57 +432,83 @@ void ReflectionApp::createDescriptorPool()
 void ReflectionApp::createRenderObjects()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
+    auto loadModel = [this, uboProperties](const std::string modelName, RenderObject& renderObject, fw::Model::Meshes& meshes) {
+        CHECK(renderObject.uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+        fw::Model model;
+        CHECK(model.loadModel(c_assetsFolder + modelName));
+        meshes = model.getMeshes();
+        renderObject.objectData.resize(fw::ui32size(meshes));
+        createGBufferDescriptorSets(renderObject);
+    };
 
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
+    fw::Model::Meshes droidMeshes;
+    fw::Model::Meshes cubeMeshes;
+    loadModel("attack_droid.obj", m_droid, droidMeshes);
+    loadModel("cube.3ds", m_cube, cubeMeshes);
 
-    createGBufferDescriptorSets(numMeshes);
-
-    m_renderObjects.resize(numMeshes);
+    uint32_t numMeshes = fw::ui32size(droidMeshes) + fw::ui32size(cubeMeshes);
 
     bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
+    for (unsigned int i = 0; i < fw::ui32size(droidMeshes); ++i)
     {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
+        const fw::Mesh& mesh = droidMeshes[i];
+        ObjectData& data = m_droid.objectData[i];
 
         success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+            && data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+            && data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
-        ro.numIndices = fw::ui32size(mesh.indices);
+        data.numIndices = fw::ui32size(mesh.indices);
 
         std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateGBufferDescriptorSet(m_gbuffer.descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = m_gbuffer.descriptorSets[i];
+        data.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
+        updateGBufferDescriptorSet(m_droid.uniformBuffer.getBuffer(), m_droid.objectData[i].texture.getImageView(), m_droid.objectData[i].descriptorSet);
+    }
+
+    for (unsigned int i = 0; i < fw::ui32size(cubeMeshes); ++i)
+    {
+        const fw::Mesh& mesh = cubeMeshes[i];
+        ObjectData& data = m_cube.objectData[i];
+
+        success = success
+            && data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
+            && data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+        data.numIndices = fw::ui32size(mesh.indices);
+
+        std::string textureFile = c_assetsFolder + "checker.png";
+        data.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
+        updateGBufferDescriptorSet(m_cube.uniformBuffer.getBuffer(), m_cube.objectData[i].texture.getImageView(), m_cube.objectData[i].descriptorSet);
     }
 
     CHECK(success);
 }
 
-void ReflectionApp::createGBufferDescriptorSets(uint32_t setCount)
+void ReflectionApp::createGBufferDescriptorSets(RenderObject& renderObject)
 {
-    m_gbuffer.descriptorSets.resize(setCount);
+    uint32_t numSets = fw::ui32size(renderObject.objectData);
+    std::vector<VkDescriptorSet> descriptorSets(numSets);
 
-    std::vector<VkDescriptorSetLayout> gbufferLayouts(setCount, m_gbuffer.descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> gbufferLayouts(numSets, m_gbuffer.descriptorSetLayout);
     VkDescriptorSetAllocateInfo gbufferAllocInfo{};
     gbufferAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     gbufferAllocInfo.descriptorPool = m_descriptorPool;
-    gbufferAllocInfo.descriptorSetCount = setCount;
+    gbufferAllocInfo.descriptorSetCount = numSets;
     gbufferAllocInfo.pSetLayouts = gbufferLayouts.data();
 
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &gbufferAllocInfo, m_gbuffer.descriptorSets.data()));
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &gbufferAllocInfo, descriptorSets.data()));
+
+    for (uint32_t i = 0; i < numSets; ++i)
+    {
+        renderObject.objectData[i].descriptorSet = descriptorSets[i];
+    }
 }
 
-void ReflectionApp::updateGBufferDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
+void ReflectionApp::updateGBufferDescriptorSet(VkBuffer buffer, VkImageView imageView, VkDescriptorSet descriptorSet)
 {
     VkDescriptorBufferInfo matrixBufferInfo{};
-    matrixBufferInfo.buffer = m_uniformBuffer.getBuffer();
+    matrixBufferInfo.buffer = buffer;
     matrixBufferInfo.offset = 0;
     matrixBufferInfo.range = c_transformMatricesSize;
 
@@ -515,9 +547,7 @@ void ReflectionApp::createAndUpdateCompositeDescriptorSet()
     compositeAllocInfo.descriptorSetCount = fw::ui32size(compositeLayouts);
     compositeAllocInfo.pSetLayouts = compositeLayouts.data();
 
-    m_composite.descriptorSets.resize(1);
-
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, m_composite.descriptorSets.data()));
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, &m_compositeDescriptorSet));
 
     uint32_t numAttachments = fw::ui32size(m_framebufferAttachments);
     std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
@@ -531,7 +561,7 @@ void ReflectionApp::createAndUpdateCompositeDescriptorSet()
         imageInfos[i].sampler = VK_NULL_HANDLE;
 
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[i].dstSet = m_composite.descriptorSets[0];
+        descriptorWrites[i].dstSet = m_compositeDescriptorSet;
         descriptorWrites[i].dstBinding = i;
         descriptorWrites[i].dstArrayElement = 0;
         descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
@@ -588,20 +618,28 @@ void ReflectionApp::createCommandBuffers()
         // G-Buffer
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipeline);
 
-        for (const RenderObject& ro : m_renderObjects)
+        for (const ObjectData& data : m_droid.objectData)
         {
-            VkBuffer vb = ro.vertexBuffer.getBuffer();
+            VkBuffer vb = data.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(
-                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
+            vkCmdBindIndexBuffer(cb, data.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &data.descriptorSet, 0, nullptr);
+            vkCmdDrawIndexed(cb, data.numIndices, 1, 0, 0, 0);
+        }
+
+        for (const ObjectData& data : m_cube.objectData)
+        {
+            VkBuffer vb = data.vertexBuffer.getBuffer();
+            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+            vkCmdBindIndexBuffer(cb, data.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &data.descriptorSet, 0, nullptr);
+            vkCmdDrawIndexed(cb, data.numIndices, 1, 0, 0, 0);
         }
 
         // Composite
         vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipeline);
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipelineLayout, 0, 1, &m_composite.descriptorSets[0], 0, nullptr);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipelineLayout, 0, 1, &m_compositeDescriptorSet, 0, nullptr);
         vkCmdDraw(cb, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);
