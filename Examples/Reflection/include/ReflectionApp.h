@@ -95,8 +95,7 @@ private:
     void createCompositePipeline();
     void createDescriptorPool();
     void createRenderObjects();
-    void createGBufferDescriptorSets(RenderObject& renderObject);
-    void updateGBufferDescriptorSet(VkBuffer buffer, VkImageView imageView, VkDescriptorSet descriptorSet);
     void createAndUpdateCompositeDescriptorSet();
     void createCommandBuffers();
+    void renderObject(VkCommandBuffer cb, const RenderObject& object);
 };
