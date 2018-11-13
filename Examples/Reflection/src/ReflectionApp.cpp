@@ -70,6 +70,7 @@ bool ReflectionApp::initialize()
     createCommandBuffers();
 
     m_cameraController.setCamera(&m_camera);
+    m_cameraController.setMovementSpeed(20.0f);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
@@ -457,8 +458,8 @@ void ReflectionApp::createRenderObjects()
             ObjectData& data = renderObject.objectData[i];
 
             // Create buffers and textures
-            assert(data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
-            assert(data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
+            CHECK(data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
+            CHECK(data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
 
             data.numIndices = fw::ui32size(mesh.indices);
 
