@@ -23,6 +23,8 @@ const uint32_t c_colorAttachmentCount = 3 + 1;
 // + 2 = Depth & final composite
 const uint32_t c_totalAttachmentCount = c_gbufferTextureCount + 2;
 
+const size_t c_pushConstantsSize = sizeof(float);
+
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 
@@ -300,6 +302,21 @@ void ReflectionApp::createDescriptorSetLayouts()
 
 void ReflectionApp::createGBufferPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    std::vector<VkDescriptorSetLayout> layouts{m_gbuffer.descriptorSetLayout};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
+    pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_gbuffer.pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
 
@@ -325,14 +342,11 @@ void ReflectionApp::createGBufferPipeline()
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
-    VkPipelineLayoutCreateInfo m_pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_gbuffer.descriptorSetLayout);
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_gbufferTextureCount, colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
     colorBlendState.pAttachments = blendAttachmentStates.data();
     colorBlendState.attachmentCount = c_gbufferTextureCount;
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &m_pipelineLayoutInfo, nullptr, &m_gbuffer.pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -581,8 +595,8 @@ void ReflectionApp::createCommandBuffers()
         // G-Buffer
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipeline);
 
-        renderObject(cb, m_droid);
-        renderObject(cb, m_cube);
+        renderObject(cb, m_droid, 0.0f);
+        renderObject(cb, m_cube, 1.0f);
 
         // Composite
         vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
@@ -598,8 +612,10 @@ void ReflectionApp::createCommandBuffers()
     fw::API::setCommandBuffers(commandBuffers);
 }
 
-void ReflectionApp::renderObject(VkCommandBuffer cb, const RenderObject& object)
+void ReflectionApp::renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity)
 {
+    vkCmdPushConstants(cb, m_gbuffer.pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &reflectivity);
+
     VkDeviceSize offsets[] = {0};
     for (const ObjectData& data : object.objectData)
     {

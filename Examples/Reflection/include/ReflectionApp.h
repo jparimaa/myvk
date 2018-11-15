@@ -97,5 +97,5 @@ private:
     void createRenderObjects();
     void createAndUpdateCompositeDescriptorSet();
     void createCommandBuffers();
-    void renderObject(VkCommandBuffer cb, const RenderObject& object);
+    void renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity);
 };
