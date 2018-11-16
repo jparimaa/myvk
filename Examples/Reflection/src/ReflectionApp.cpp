@@ -69,7 +69,6 @@ bool ReflectionApp::initialize()
     createDescriptorPool();
     createRenderObjects();
     createAndUpdateCompositeDescriptorSet();
-    createCommandBuffers();
 
     m_cameraController.setCamera(&m_camera);
     m_cameraController.setMovementSpeed(20.0f);
@@ -81,6 +80,10 @@ bool ReflectionApp::initialize()
     m_cube.transformation.setScale(45.0f);
     m_cube.transformation.setPosition(0.0f, -45.0f, 0.0f);
     m_cube.matrices.proj = m_camera.getProjectionMatrix();
+
+    m_gbufferPass.initialize(&m_camera);
+
+    createCommandBuffers();
 
     return true;
 }
@@ -97,6 +100,8 @@ void ReflectionApp::update()
 
     m_droid.uniformBuffer.setData(sizeof(m_droid.matrices), &m_droid.matrices);
     m_cube.uniformBuffer.setData(sizeof(m_cube.matrices), &m_cube.matrices);
+
+    m_gbufferPass.update();
 }
 
 void ReflectionApp::createGBufferAttachments()
@@ -605,6 +610,8 @@ void ReflectionApp::createCommandBuffers()
         vkCmdDraw(cb, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);
+
+        m_gbufferPass.writeRenderCommands(cb);
 
         VK_CHECK(vkEndCommandBuffer(cb));
     }

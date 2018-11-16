@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GBufferPass.h"
 #include "fw/Application.h"
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
@@ -84,6 +85,8 @@ private:
 
     RenderObject m_droid;
     RenderObject m_cube;
+
+    GBufferPass m_gbufferPass;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
