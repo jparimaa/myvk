@@ -22,8 +22,10 @@ const VkFormat c_format = VK_FORMAT_R8G8B8A8_UNORM;
 
 GBufferPass::~GBufferPass()
 {
-    vkDestroyImageView(m_logicalDevice, m_imageView, nullptr);
-    vkDestroyImageView(m_logicalDevice, m_depthImageView, nullptr);
+    vkDestroyImageView(m_logicalDevice, m_albedo.imageView, nullptr);
+    vkDestroyImageView(m_logicalDevice, m_position.imageView, nullptr);
+    vkDestroyImageView(m_logicalDevice, m_normal.imageView, nullptr);
+    vkDestroyImageView(m_logicalDevice, m_depth.imageView, nullptr);
     vkDestroyFramebuffer(m_logicalDevice, m_framebuffer, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
@@ -58,9 +60,11 @@ void GBufferPass::update()
 
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 {
-    std::array<VkClearValue, 2> clearValues{};
+    std::array<VkClearValue, 4> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
+    clearValues[1].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[2].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[3].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -99,30 +103,40 @@ void GBufferPass::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference albedoAttachment{};
+    albedoAttachment.attachment = 0;
+    albedoAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference positionAttachment{};
+    positionAttachment.attachment = 1;
+    positionAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference normalAttachment{};
+    normalAttachment.attachment = 2;
+    normalAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    std::vector<VkAttachmentReference> colorAttachments{albedoAttachment, positionAttachment, normalAttachment};
 
     VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.attachment = 3;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.colorAttachmentCount = fw::ui32size(colorAttachments);
+    subpass.pColorAttachments = colorAttachments.data();
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkAttachmentDescription colorAttachmentDescription = fw::RenderPass::getColorAttachment();
+    colorAttachmentDescription.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    std::vector<VkAttachmentDescription> attachmentDescriptions = {colorAttachmentDescription, colorAttachmentDescription, colorAttachmentDescription, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = fw::ui32size(attachments);
-    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.attachmentCount = fw::ui32size(attachmentDescriptions);
+    renderPassInfo.pAttachments = attachmentDescriptions.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = 1;
@@ -138,30 +152,25 @@ void GBufferPass::createFramebuffer()
     uint32_t height = extent.height;
 
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    CHECK(m_image.create(width, height, c_format, 0, usage, 1));
+    CHECK(m_albedo.image.create(width, height, c_format, 0, usage, 1));
+    CHECK(m_albedo.image.createView(c_format, VK_IMAGE_ASPECT_COLOR_BIT, &m_albedo.imageView));
+    CHECK(m_albedo.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = c_format;
-    viewInfo.flags = 0;
-    viewInfo.subresourceRange = {};
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-    viewInfo.image = m_image.getHandle();
+    CHECK(m_position.image.create(width, height, c_format, 0, usage, 1));
+    CHECK(m_position.image.createView(c_format, VK_IMAGE_ASPECT_COLOR_BIT, &m_position.imageView));
+    CHECK(m_position.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
-    VK_CHECK(vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, &m_imageView));
+    CHECK(m_normal.image.create(width, height, c_format, 0, usage, 1));
+    CHECK(m_normal.image.createView(c_format, VK_IMAGE_ASPECT_COLOR_BIT, &m_normal.imageView));
+    CHECK(m_normal.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
     VkFormat depthFormat = fw::Constants::depthFormat;
     VkImageUsageFlags depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    CHECK(m_depthImage.create(width, height, depthFormat, 0, depthImageUsage, 1));
-    CHECK(m_depthImage.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depthImageView));
-    CHECK(m_depthImage.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+    CHECK(m_depth.image.create(width, height, depthFormat, 0, depthImageUsage, 1));
+    CHECK(m_depth.image.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depth.imageView));
+    CHECK(m_depth.image.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
 
-    std::array<VkImageView, 2> attachments = {m_imageView, m_depthImageView};
+    std::vector<VkImageView> attachments{m_albedo.imageView, m_position.imageView, m_normal.imageView, m_depth.imageView};
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -173,23 +182,6 @@ void GBufferPass::createFramebuffer()
     framebufferInfo.layers = 1;
 
     VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferInfo, nullptr, &m_framebuffer));
-
-    VkCommandBuffer commandBuffer = fw::Command::beginSingleTimeCommands();
-
-    VkImageMemoryBarrier imageMemoryBarrier{};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.image = m_image.getHandle();
-    imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    imageMemoryBarrier.srcAccessMask = 0;
-    imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    imageMemoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-
-    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-    fw::Command::endSingleTimeCommands(commandBuffer);
 }
 
 void GBufferPass::createDescriptorSetLayouts()
@@ -259,7 +251,10 @@ void GBufferPass::createPipeline()
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates(3, colorBlendAttachmentState);
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
+    colorBlendState.attachmentCount = 3;
+    colorBlendState.pAttachments = colorBlendAttachmentStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

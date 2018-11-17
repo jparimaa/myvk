@@ -3,11 +3,22 @@
 
 layout(set = 1, binding = 0) uniform sampler2D albedo;
 
-layout(location = 0) in vec2 inUv;
+layout (location = 0) in vec4 outViewPos;
+layout (location = 1) in vec2 inUv;
+layout (location = 2) in vec3 inNormal;
 
-layout(location = 0) out vec4 outColor;
+layout (location = 0) out vec4 outAlbedo;
+layout (location = 1) out vec4 outPosition;
+layout (location = 2) out vec4 outNormal;
 
 void main()
 {
-    outColor = texture(albedo, inUv);
+    outPosition = vec4(outViewPos.xyz, 1.0);
+	outPosition.z = -outPosition.z;
+
+	vec3 N = normalize(inNormal);
+	outNormal = vec4(N, 1.0);
+
+	outAlbedo = texture(albedo, inUv);
+	//outAlbedo.a = reflectivity;
 }

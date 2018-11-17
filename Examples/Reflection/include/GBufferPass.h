@@ -39,6 +39,12 @@ private:
         glm::mat4 proj;
     };
 
+    struct Attachment
+    {
+        fw::Image image;
+        VkImageView imageView = VK_NULL_HANDLE;
+    };
+
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
@@ -58,10 +64,11 @@ private:
     std::vector<VkDescriptorSet> m_matrixDescriptorSets;
     std::vector<VkDescriptorSet> m_textureDescriptorSets;
 
-    fw::Image m_image;
-    VkImageView m_imageView = VK_NULL_HANDLE;
-    fw::Image m_depthImage;
-    VkImageView m_depthImageView = VK_NULL_HANDLE;
+    Attachment m_albedo;
+    Attachment m_position;
+    Attachment m_normal;
+    Attachment m_depth;
+
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
     void createRenderPass();
