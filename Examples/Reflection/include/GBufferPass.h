@@ -26,21 +26,28 @@ public:
     VkImageView getNormalImageView() const;
 
 private:
-    struct RenderObject
-    {
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-        VkDescriptorSet matrixDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
-    };
-
     struct MatrixUBO
     {
         glm::mat4 world;
         glm::mat4 view;
         glm::mat4 proj;
+    };
+
+    struct ObjectData
+    {
+        fw::Buffer vertexBuffer;
+        fw::Buffer indexBuffer;
+        uint32_t numIndices;
+        fw::Texture texture;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    };
+
+    struct RenderObject
+    {
+        fw::Transformation transformation;
+        MatrixUBO matrices;
+        fw::Buffer uniformBuffer;
+        std::vector<ObjectData> objectData;
     };
 
     struct Attachment
@@ -51,22 +58,17 @@ private:
 
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_matrixDescriptorSetLayout = VK_NULL_HANDLE;
-    VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
     fw::Sampler m_sampler;
     const fw::Camera* m_camera = nullptr;
 
-    fw::Transformation m_trans;
-    MatrixUBO m_ubo;
-    fw::Buffer m_uniformBuffer;
-    std::vector<RenderObject> m_renderObjects;
-
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_matrixDescriptorSets;
-    std::vector<VkDescriptorSet> m_textureDescriptorSets;
+
+    RenderObject m_droid;
+    RenderObject m_cube;
 
     Attachment m_albedo;
     Attachment m_position;
@@ -75,12 +77,11 @@ private:
 
     VkFramebuffer m_framebuffer = VK_NULL_HANDLE;
 
+    void renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity);
     void createRenderPass();
     void createFramebuffer();
     void createDescriptorSetLayouts();
     void createPipeline();
     void createDescriptorPool();
     void createRenderObjects();
-    void createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView);
 };

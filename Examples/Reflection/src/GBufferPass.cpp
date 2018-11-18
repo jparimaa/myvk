@@ -18,6 +18,7 @@ namespace
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const VkFormat c_format = VK_FORMAT_R8G8B8A8_UNORM;
+const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 }
 
 GBufferPass::~GBufferPass()
@@ -30,8 +31,7 @@ GBufferPass::~GBufferPass()
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_logicalDevice, m_matrixDescriptorSetLayout, nullptr);
-    vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
@@ -48,14 +48,23 @@ void GBufferPass::initialize(const fw::Camera* camera)
     createRenderObjects();
 
     m_camera = camera;
-    m_ubo.proj = m_camera->getProjectionMatrix();
+    m_droid.matrices.proj = m_camera->getProjectionMatrix();
+    m_cube.transformation.setScale(45.0f);
+    m_cube.transformation.setPosition(0.0f, -45.0f, 0.0f);
+    m_cube.matrices.proj = m_camera->getProjectionMatrix();
 }
 
 void GBufferPass::update()
 {
-    m_ubo.world = m_trans.getWorldMatrix();
-    m_ubo.view = m_camera->getViewMatrix();
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+    m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    m_droid.matrices.world = m_droid.transformation.getWorldMatrix();
+    m_cube.matrices.world = m_cube.transformation.getWorldMatrix();
+
+    m_droid.matrices.view = m_camera->getViewMatrix();
+    m_cube.matrices.view = m_camera->getViewMatrix();
+
+    m_droid.uniformBuffer.setData(sizeof(m_droid.matrices), &m_droid.matrices);
+    m_cube.uniformBuffer.setData(sizeof(m_cube.matrices), &m_cube.matrices);
 }
 
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
@@ -80,17 +89,25 @@ void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
     vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-    for (const RenderObject& ro : m_renderObjects)
-    {
-        VkBuffer vb = ro.vertexBuffer.getBuffer();
-        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        std::vector<VkDescriptorSet> sets{ro.matrixDescriptorSet, ro.textureDescriptorSet};
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, fw::ui32size(sets), sets.data(), 0, nullptr);
-        vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-    }
+    renderObject(cb, m_droid, 0.0f);
+    renderObject(cb, m_cube, 1.0f);
 
     vkCmdEndRenderPass(cb);
+}
+
+void GBufferPass::renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity)
+{
+    //vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &reflectivity);
+
+    VkDeviceSize offsets[] = {0};
+    for (const ObjectData& data : object.objectData)
+    {
+        VkBuffer vb = data.vertexBuffer.getBuffer();
+        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+        vkCmdBindIndexBuffer(cb, data.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &data.descriptorSet, 0, nullptr);
+        vkCmdDrawIndexed(cb, data.numIndices, 1, 0, 0, 0);
+    }
 }
 
 VkImageView GBufferPass::getAlbedoImageView() const
@@ -201,38 +218,37 @@ void GBufferPass::createFramebuffer()
 
 void GBufferPass::createDescriptorSetLayouts()
 {
-    VkDescriptorSetLayoutBinding matrixLayoutBinding{};
-    matrixLayoutBinding.binding = 0;
-    matrixLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    matrixLayoutBinding.descriptorCount = 1;
-    matrixLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    matrixLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    auto createDescriptorSetLayout = [this](const std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayout& descriptorSetLayout) {
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = fw::ui32size(bindings);
+        layoutInfo.pBindings = bindings.data();
 
-    VkDescriptorSetLayoutCreateInfo matrixLayoutInfo{};
-    matrixLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    matrixLayoutInfo.bindingCount = 1;
-    matrixLayoutInfo.pBindings = &matrixLayoutBinding;
+        VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
+    };
 
-    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &matrixLayoutInfo, nullptr, &m_matrixDescriptorSetLayout));
+    // GBuffer
+    VkDescriptorSetLayoutBinding matrixBinding{};
+    matrixBinding.binding = 0;
+    matrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    matrixBinding.descriptorCount = 1;
+    matrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    matrixBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutBinding textureLayoutBinding{};
-    textureLayoutBinding.binding = 0;
-    textureLayoutBinding.descriptorCount = 1;
-    textureLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    textureLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    textureLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    VkDescriptorSetLayoutBinding samplerBinding{};
+    samplerBinding.binding = 1;
+    samplerBinding.descriptorCount = 1;
+    samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerBinding.pImmutableSamplers = nullptr;
 
-    VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
-    textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    textureLayoutInfo.bindingCount = 1;
-    textureLayoutInfo.pBindings = &textureLayoutBinding;
-
-    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &textureLayoutInfo, nullptr, &m_textureDescriptorSetLayout));
+    std::vector<VkDescriptorSetLayoutBinding> gbufferBindings{matrixBinding, samplerBinding};
+    createDescriptorSetLayout(gbufferBindings, m_descriptorSetLayout);
 }
 
 void GBufferPass::createPipeline()
 {
-    std::vector<VkDescriptorSetLayout> layouts{m_matrixDescriptorSetLayout, m_textureDescriptorSetLayout};
+    std::vector<VkDescriptorSetLayout> layouts{m_descriptorSetLayout};
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
@@ -296,15 +312,15 @@ void GBufferPass::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 2;
+    poolSizes[0].descriptorCount = 3;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 2;
+    poolSizes[1].descriptorCount = 3;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 4;
+    poolInfo.maxSets = 3;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
@@ -312,87 +328,76 @@ void GBufferPass::createDescriptorPool()
 void GBufferPass::createRenderObjects()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(sizeof(MatrixUBO), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
+    auto loadModel = [this, uboProperties](const std::string modelName, RenderObject& renderObject, std::string texture = "") {
+        // Load model
+        CHECK(renderObject.uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+        fw::Model model;
+        CHECK(model.loadModel(c_assetsFolder + modelName));
+        const fw::Model::Meshes& meshes = model.getMeshes();
+        uint32_t numMeshes = fw::ui32size(meshes);
+        renderObject.objectData.resize(numMeshes);
 
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
+        // Allocate desc sets
+        std::vector<VkDescriptorSet> descriptorSets(numMeshes);
+        std::vector<VkDescriptorSetLayout> gbufferLayouts(numMeshes, m_descriptorSetLayout);
+        VkDescriptorSetAllocateInfo gbufferAllocInfo{};
+        gbufferAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        gbufferAllocInfo.descriptorPool = m_descriptorPool;
+        gbufferAllocInfo.descriptorSetCount = numMeshes;
+        gbufferAllocInfo.pSetLayouts = gbufferLayouts.data();
 
-    createDescriptorSets(numMeshes);
+        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &gbufferAllocInfo, descriptorSets.data()));
 
-    m_renderObjects.resize(numMeshes);
+        for (unsigned int i = 0; i < numMeshes; ++i)
+        {
+            const fw::Mesh& mesh = meshes[i];
+            ObjectData& data = renderObject.objectData[i];
 
-    bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
-    {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
+            // Create buffers and textures
+            CHECK(data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
+            CHECK(data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
 
-        success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+            data.numIndices = fw::ui32size(mesh.indices);
 
-        ro.numIndices = fw::ui32size(mesh.indices);
+            std::string textureFile = c_assetsFolder + (!texture.empty() ? texture : mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE));
+            data.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
 
-        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_matrixDescriptorSets[i], m_textureDescriptorSets[i], ro.texture.getImageView());
-        ro.matrixDescriptorSet = m_matrixDescriptorSets[i];
-        ro.textureDescriptorSet = m_textureDescriptorSets[i];
-    }
+            // Update descriptor set
+            data.descriptorSet = descriptorSets[i];
 
-    CHECK(success);
-}
+            VkDescriptorBufferInfo matrixBufferInfo{};
+            matrixBufferInfo.buffer = renderObject.uniformBuffer.getBuffer();
+            matrixBufferInfo.offset = 0;
+            matrixBufferInfo.range = c_transformMatricesSize;
 
-void GBufferPass::createDescriptorSets(uint32_t setCount)
-{
-    auto allocateDescriptorSets = [this, setCount](std::vector<VkDescriptorSet>& sets, VkDescriptorSetLayout layout) {
-        sets.resize(setCount);
-        std::vector<VkDescriptorSetLayout> layouts(setCount, layout);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = m_descriptorPool;
-        allocInfo.descriptorSetCount = setCount;
-        allocInfo.pSetLayouts = layouts.data();
+            VkDescriptorImageInfo albedoTextureInfo{};
+            albedoTextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            albedoTextureInfo.imageView = renderObject.objectData[i].texture.getImageView();
+            albedoTextureInfo.sampler = m_sampler.getSampler();
 
-        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, sets.data()));
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = data.descriptorSet;
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &matrixBufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = data.descriptorSet;
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &albedoTextureInfo;
+
+            vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+        }
     };
 
-    allocateDescriptorSets(m_matrixDescriptorSets, m_matrixDescriptorSetLayout);
-    allocateDescriptorSets(m_textureDescriptorSets, m_textureDescriptorSetLayout);
-}
-
-void GBufferPass::updateDescriptorSet(VkDescriptorSet matrixDescriptorSet, VkDescriptorSet textureDescriptorSet, VkImageView imageView)
-{
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(MatrixUBO);
-
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = matrixDescriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = textureDescriptorSet;
-    descriptorWrites[1].dstBinding = 0;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
-    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    loadModel("attack_droid.obj", m_droid);
+    loadModel("cube.3ds", m_cube, "checker.png");
 }

@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 1, binding = 0) uniform sampler2D albedo;
+layout(set = 0, binding = 1) uniform sampler2D albedo;
 
 layout (location = 0) in vec4 inViewPos;
 layout (location = 1) in vec2 inUv;
