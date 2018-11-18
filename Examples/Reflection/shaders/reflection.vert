@@ -3,11 +3,8 @@
 
 layout (location = 0) out vec2 outUv;
 
-out gl_PerVertex
-{
-	vec4 gl_Position;
-};
-
+// https://www.saschawillems.de/?page_id=2122
+// Vulkan tip: Rendering a fullscreen quad* without buffers
 void main()
 {
 	outUv = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);

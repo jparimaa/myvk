@@ -29,76 +29,27 @@ public:
     virtual void onGUI() final{};
 
 private:
-    struct MatrixUBO
-    {
-        glm::mat4 world;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
-    struct ObjectData
-    {
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-    };
-
-    struct RenderObject
-    {
-        fw::Transformation transformation;
-        MatrixUBO matrices;
-        fw::Buffer uniformBuffer;
-        std::vector<ObjectData> objectData;
-    };
-
-    struct Subpass
-    {
-        ~Subpass();
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    };
-
-    struct FramebufferAttachment
-    {
-        ~FramebufferAttachment();
-        fw::Image image;
-        VkImageView imageView = VK_NULL_HANDLE;
-        VkFormat format = VK_FORMAT_UNDEFINED;
-    };
-
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
-    std::vector<VkFramebuffer> m_framebuffers;
-
-    Subpass m_gbuffer;
-    Subpass m_composite;
-    VkDescriptorSet m_compositeDescriptorSet;
-
-    std::vector<FramebufferAttachment> m_framebufferAttachments;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 
     fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
 
-    RenderObject m_droid;
-    RenderObject m_cube;
+    VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
+
+    VkImageView m_inputImageView = VK_NULL_HANDLE;
 
     GBufferPass m_gbufferPass;
 
-    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-
-    void createGBufferAttachments();
     void createRenderPass();
-    void createFramebuffers();
     void createDescriptorSetLayouts();
-    void createGBufferPipeline();
-    void createCompositePipeline();
+    void createPipeline();
     void createDescriptorPool();
-    void createRenderObjects();
-    void createAndUpdateCompositeDescriptorSet();
+    void createDescriptorSets();
     void createCommandBuffers();
-    void renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity);
 };

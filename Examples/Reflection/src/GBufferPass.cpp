@@ -93,6 +93,21 @@ void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
     vkCmdEndRenderPass(cb);
 }
 
+VkImageView GBufferPass::getAlbedoImageView() const
+{
+    return m_albedo.imageView;
+}
+
+VkImageView GBufferPass::getPositionImageView() const
+{
+    return m_position.imageView;
+}
+
+VkImageView GBufferPass::getNormalImageView() const
+{
+    return m_normal.imageView;
+}
+
 void GBufferPass::createRenderPass()
 {
     VkSubpassDependency dependency{};
@@ -226,7 +241,7 @@ void GBufferPass::createPipeline()
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "object.vert.spv", c_shaderFolder + "object.frag.spv");
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
 
     CHECK(!shaderStages.empty());
 

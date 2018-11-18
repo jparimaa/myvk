@@ -16,59 +16,34 @@
 
 namespace
 {
-const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
-const uint32_t c_gbufferTextureCount = 3;
-// + 1 = final composite
-const uint32_t c_colorAttachmentCount = 3 + 1;
-// + 2 = Depth & final composite
-const uint32_t c_totalAttachmentCount = c_gbufferTextureCount + 2;
-
-const size_t c_pushConstantsSize = sizeof(float);
-
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
-
+const int c_inputTextureCount = 3;
 } // unnamed
-
-ReflectionApp::Subpass::~Subpass()
-{
-    VkDevice logicalDevice = fw::Context::getLogicalDevice();
-    vkDestroyPipeline(logicalDevice, pipeline, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
-}
-
-ReflectionApp::FramebufferAttachment::~FramebufferAttachment()
-{
-    VkDevice logicalDevice = fw::Context::getLogicalDevice();
-    vkDestroyImageView(logicalDevice, imageView, nullptr);
-}
 
 ReflectionApp::~ReflectionApp()
 {
-    for (VkFramebuffer fb : m_framebuffers)
-    {
-        vkDestroyFramebuffer(m_logicalDevice, fb, nullptr);
-    }
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_logicalDevice, m_textureDescriptorSetLayout, nullptr);
     vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
 bool ReflectionApp::initialize()
 {
+    m_gbufferPass.initialize(&m_camera);
+
     m_logicalDevice = fw::Context::getLogicalDevice();
 
-    CHECK(fw::API::initializeSwapChain());
-    createGBufferAttachments();
     createRenderPass();
-    createFramebuffers();
+    CHECK(fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass));
     createDescriptorSetLayouts();
-    createGBufferPipeline();
-    createCompositePipeline();
+    createPipeline();
     CHECK(m_sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
-    createRenderObjects();
-    createAndUpdateCompositeDescriptorSet();
+    createDescriptorSets();
+    createCommandBuffers();
 
     m_cameraController.setCamera(&m_camera);
     m_cameraController.setMovementSpeed(20.0f);
@@ -76,308 +51,99 @@ bool ReflectionApp::initialize()
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
-    m_droid.matrices.proj = m_camera.getProjectionMatrix();
-    m_cube.transformation.setScale(45.0f);
-    m_cube.transformation.setPosition(0.0f, -45.0f, 0.0f);
-    m_cube.matrices.proj = m_camera.getProjectionMatrix();
-
-    m_gbufferPass.initialize(&m_camera);
-
-    createCommandBuffers();
-
     return true;
 }
 
 void ReflectionApp::update()
 {
-    m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_droid.matrices.world = m_droid.transformation.getWorldMatrix();
-    m_cube.matrices.world = m_cube.transformation.getWorldMatrix();
-
     m_cameraController.update();
-    m_droid.matrices.view = m_camera.getViewMatrix();
-    m_cube.matrices.view = m_camera.getViewMatrix();
-
-    m_droid.uniformBuffer.setData(sizeof(m_droid.matrices), &m_droid.matrices);
-    m_cube.uniformBuffer.setData(sizeof(m_cube.matrices), &m_cube.matrices);
-
     m_gbufferPass.update();
-}
-
-void ReflectionApp::createGBufferAttachments()
-{
-    auto createAttachment = [this](VkFormat format, FramebufferAttachment& attachment) {
-        VkExtent2D extent = fw::API::getSwapChainExtent();
-        VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-        attachment.image.create(extent.width, extent.height, format, 0, usage);
-        attachment.image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &attachment.imageView);
-        attachment.format = format;
-    };
-
-    m_framebufferAttachments.resize(c_gbufferTextureCount);
-
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[0]); // Positions
-    createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, m_framebufferAttachments[1]); // Normals
-    createAttachment(VK_FORMAT_R8G8B8A8_UNORM, m_framebufferAttachments[2]); // Albedo
 }
 
 void ReflectionApp::createRenderPass()
 {
-    std::array<VkSubpassDescription, 2> subpassDescriptions{};
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    // First subpass for creating the G-Buffer
-    VkAttachmentReference colorReferences[c_gbufferTextureCount];
-    colorReferences[0] = {1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    colorReferences[1] = {2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    colorReferences[2] = {3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentReference depthReference = {4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescriptions[0].colorAttachmentCount = c_gbufferTextureCount;
-    subpassDescriptions[0].pColorAttachments = colorReferences;
-    subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    // Second subpass for composition using G-Buffer outputs
-    VkAttachmentReference colorReference = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-    VkAttachmentReference inputReferences[c_gbufferTextureCount];
-    inputReferences[0] = {1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    inputReferences[1] = {2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-    inputReferences[2] = {3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
-    subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescriptions[1].colorAttachmentCount = 1;
-    subpassDescriptions[1].pColorAttachments = &colorReference;
-    subpassDescriptions[1].pDepthStencilAttachment = &depthReference;
-    subpassDescriptions[1].inputAttachmentCount = c_gbufferTextureCount;
-    subpassDescriptions[1].pInputAttachments = inputReferences;
-
-    // Subpass dependencies
-    std::array<VkSubpassDependency, 3> dependencies;
-
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = 0;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    dependencies[1].srcSubpass = 0;
-    dependencies[1].dstSubpass = 1;
-    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    dependencies[2].srcSubpass = 1;
-    dependencies[2].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[2].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-    dependencies[2].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    dependencies[2].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    // Attachments
-    VkAttachmentDescription defaultAttachment{};
-    defaultAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    defaultAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    defaultAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    defaultAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    defaultAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    defaultAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    defaultAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    defaultAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    std::vector<VkAttachmentDescription> attachments(c_totalAttachmentCount, defaultAttachment);
-
-    // Output attachment
-    attachments[0].format = fw::API::getSwapChainImageFormat();
-    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    // Position
-    attachments[1].format = m_framebufferAttachments[0].format;
-    // Normals
-    attachments[2].format = m_framebufferAttachments[1].format;
-    // Albedo
-    attachments[3].format = m_framebufferAttachments[2].format;
-    // Depth attachment
-    attachments[4].format = fw::Constants::depthFormat;
-    attachments[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
     renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = fw::ui32size(subpassDescriptions);
-    renderPassInfo.pSubpasses = subpassDescriptions.data();
-    renderPassInfo.dependencyCount = fw::ui32size(dependencies);
-    renderPassInfo.pDependencies = dependencies.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
 }
 
-void ReflectionApp::createFramebuffers()
-{
-    VkImageView attachments[c_totalAttachmentCount];
-
-    VkExtent2D extent = fw::API::getSwapChainExtent();
-
-    VkFramebufferCreateInfo framebufferCreateInfo{};
-    framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferCreateInfo.pNext = nullptr;
-    framebufferCreateInfo.renderPass = m_renderPass;
-    framebufferCreateInfo.attachmentCount = c_totalAttachmentCount;
-    framebufferCreateInfo.pAttachments = attachments;
-    framebufferCreateInfo.width = extent.width;
-    framebufferCreateInfo.height = extent.height;
-    framebufferCreateInfo.layers = 1;
-
-    m_framebuffers.resize(fw::API::getSwapChainImageCount());
-    const std::vector<VkImageView>& swapChainImageViews = fw::API::getSwapChainImageViews();
-    const VkImageView& depthImageView = fw::API::getSwapChainDepthImageView();
-
-    for (unsigned int i = 0; i < m_framebuffers.size(); ++i)
-    {
-        attachments[0] = swapChainImageViews[i];
-        attachments[1] = m_framebufferAttachments[0].imageView;
-        attachments[2] = m_framebufferAttachments[1].imageView;
-        attachments[3] = m_framebufferAttachments[2].imageView;
-        attachments[4] = depthImageView;
-        VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferCreateInfo, nullptr, &m_framebuffers[i]));
-    }
-}
-
 void ReflectionApp::createDescriptorSetLayouts()
 {
-    auto createDescriptorSetLayout = [this](const std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayout& descriptorSetLayout) {
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = fw::ui32size(bindings);
-        layoutInfo.pBindings = bindings.data();
+    std::vector<VkDescriptorSetLayoutBinding> bindings(c_inputTextureCount);
 
-        VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
-    };
+    bindings[0].binding = 0;
+    bindings[0].descriptorCount = 1;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[0].pImmutableSamplers = nullptr; // Optional
 
-    // GBuffer
-    VkDescriptorSetLayoutBinding matrixBinding{};
-    matrixBinding.binding = 0;
-    matrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    matrixBinding.descriptorCount = 1;
-    matrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    matrixBinding.pImmutableSamplers = nullptr;
+    bindings[1].binding = 1;
+    bindings[1].descriptorCount = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[1].pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding samplerBinding{};
-    samplerBinding.binding = 1;
-    samplerBinding.descriptorCount = 1;
-    samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerBinding.pImmutableSamplers = nullptr;
+    bindings[2].binding = 2;
+    bindings[2].descriptorCount = 1;
+    bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[2].pImmutableSamplers = nullptr; // Optional
 
-    std::vector<VkDescriptorSetLayoutBinding> gbufferBindings{matrixBinding, samplerBinding};
-    createDescriptorSetLayout(gbufferBindings, m_gbuffer.descriptorSetLayout);
+    VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
+    textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    textureLayoutInfo.bindingCount = fw::ui32size(bindings);
+    textureLayoutInfo.pBindings = bindings.data();
 
-    // Composite
-    VkDescriptorSetLayoutBinding positionSamplerBinding{};
-    positionSamplerBinding.binding = 0;
-    positionSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    positionSamplerBinding.descriptorCount = 1;
-    positionSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    positionSamplerBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding normalSamplerBinding{};
-    normalSamplerBinding.binding = 1;
-    normalSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    normalSamplerBinding.descriptorCount = 1;
-    normalSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    normalSamplerBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutBinding albedoSamplerBinding{};
-    albedoSamplerBinding.binding = 2;
-    albedoSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    albedoSamplerBinding.descriptorCount = 1;
-    albedoSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    albedoSamplerBinding.pImmutableSamplers = nullptr;
-
-    std::vector<VkDescriptorSetLayoutBinding> compositeBindings{positionSamplerBinding, normalSamplerBinding, albedoSamplerBinding};
-    createDescriptorSetLayout(compositeBindings, m_composite.descriptorSetLayout);
+    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &textureLayoutInfo, nullptr, &m_textureDescriptorSetLayout));
 }
 
-void ReflectionApp::createGBufferPipeline()
+void ReflectionApp::createPipeline()
 {
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = c_pushConstantsSize;
-
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    std::vector<VkDescriptorSetLayout> layouts{m_gbuffer.descriptorSetLayout};
+    std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_gbuffer.pipelineLayout));
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "gbuffer.vert.spv", c_shaderFolder + "gbuffer.frag.spv");
-
-    CHECK(!shaderStages.empty());
-
-    fw::Cleaner cleaner([&shaderStages, this]() {
-        for (const auto& info : shaderStages)
-        {
-            vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
-        }
-    });
-
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
-
-    VkViewport viewport = fw::Pipeline::getViewport();
-    VkRect2D scissor = fw::Pipeline::getScissorRect();
-    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
-
-    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
-    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates(c_gbufferTextureCount, colorBlendAttachmentState);
-    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(nullptr);
-    colorBlendState.pAttachments = blendAttachmentStates.data();
-    colorBlendState.attachmentCount = c_gbufferTextureCount;
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = fw::ui32size(shaderStages);
-    pipelineInfo.pStages = shaderStages.data();
-    pipelineInfo.pVertexInputState = &vertexInputState;
-    pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizationState;
-    pipelineInfo.pMultisampleState = &multisampleState;
-    pipelineInfo.pDepthStencilState = &depthStencilState;
-    pipelineInfo.pColorBlendState = &colorBlendState;
-    pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = m_gbuffer.pipelineLayout;
-    pipelineInfo.renderPass = m_renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
-
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_gbuffer.pipeline));
-}
-
-void ReflectionApp::createCompositePipeline()
-{
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "composite.vert.spv", c_shaderFolder + "composite.frag.spv");
+        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "reflection.vert.spv", c_shaderFolder + "reflection.frag.spv");
 
     CHECK(!shaderStages.empty());
 
@@ -397,15 +163,20 @@ void ReflectionApp::createCompositePipeline()
     VkRect2D scissor = fw::Pipeline::getScissorRect();
     VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
 
+    VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencilState.depthTestEnable = VK_FALSE;
+    depthStencilState.depthWriteEnable = VK_FALSE;
+    depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencilState.front = depthStencilState.back;
+    depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     rasterizationState.cullMode = VK_CULL_MODE_NONE;
+
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_composite.descriptorSetLayout);
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_composite.pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -419,24 +190,20 @@ void ReflectionApp::createCompositePipeline()
     pipelineInfo.pDepthStencilState = &depthStencilState;
     pipelineInfo.pColorBlendState = &colorBlendState;
     pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = m_composite.pipelineLayout;
+    pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.renderPass = m_renderPass;
-    pipelineInfo.subpass = 1;
+    pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_composite.pipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
 }
 
 void ReflectionApp::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 3> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[0].descriptorCount = 16;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 16;
-    poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    poolSizes[2].descriptorCount = 16;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -447,110 +214,35 @@ void ReflectionApp::createDescriptorPool()
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void ReflectionApp::createRenderObjects()
+void ReflectionApp::createDescriptorSets()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = m_descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_textureDescriptorSetLayout;
 
-    auto loadModel = [this, uboProperties](const std::string modelName, RenderObject& renderObject, std::string texture = "") {
-        // Load model
-        CHECK(renderObject.uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-        fw::Model model;
-        CHECK(model.loadModel(c_assetsFolder + modelName));
-        const fw::Model::Meshes& meshes = model.getMeshes();
-        uint32_t numMeshes = fw::ui32size(meshes);
-        renderObject.objectData.resize(numMeshes);
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_textureDescriptorSet));
 
-        // Allocate desc sets
-        std::vector<VkDescriptorSet> descriptorSets(numMeshes);
-        std::vector<VkDescriptorSetLayout> gbufferLayouts(numMeshes, m_gbuffer.descriptorSetLayout);
-        VkDescriptorSetAllocateInfo gbufferAllocInfo{};
-        gbufferAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        gbufferAllocInfo.descriptorPool = m_descriptorPool;
-        gbufferAllocInfo.descriptorSetCount = numMeshes;
-        gbufferAllocInfo.pSetLayouts = gbufferLayouts.data();
+    std::vector<VkImageView> imageViews{
+        m_gbufferPass.getAlbedoImageView(),
+        m_gbufferPass.getPositionImageView(),
+        m_gbufferPass.getNormalImageView()};
 
-        VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &gbufferAllocInfo, descriptorSets.data()));
+    std::vector<VkWriteDescriptorSet> descriptorWrites(c_inputTextureCount);
+    std::vector<VkDescriptorImageInfo> imageInfos(c_inputTextureCount);
 
-        for (unsigned int i = 0; i < numMeshes; ++i)
-        {
-            const fw::Mesh& mesh = meshes[i];
-            ObjectData& data = renderObject.objectData[i];
-
-            // Create buffers and textures
-            CHECK(data.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
-            CHECK(data.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
-
-            data.numIndices = fw::ui32size(mesh.indices);
-
-            std::string textureFile = c_assetsFolder + (!texture.empty() ? texture : mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE));
-            data.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-
-            // Update descriptor set
-            data.descriptorSet = descriptorSets[i];
-
-            VkDescriptorBufferInfo matrixBufferInfo{};
-            matrixBufferInfo.buffer = renderObject.uniformBuffer.getBuffer();
-            matrixBufferInfo.offset = 0;
-            matrixBufferInfo.range = c_transformMatricesSize;
-
-            VkDescriptorImageInfo albedoTextureInfo{};
-            albedoTextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            albedoTextureInfo.imageView = renderObject.objectData[i].texture.getImageView();
-            albedoTextureInfo.sampler = m_sampler.getSampler();
-
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = data.descriptorSet;
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &matrixBufferInfo;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = data.descriptorSet;
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &albedoTextureInfo;
-
-            vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
-        }
-    };
-
-    loadModel("attack_droid.obj", m_droid);
-    loadModel("cube.3ds", m_cube, "checker.png");
-}
-
-void ReflectionApp::createAndUpdateCompositeDescriptorSet()
-{
-    std::vector<VkDescriptorSetLayout> compositeLayouts(1, m_composite.descriptorSetLayout);
-    VkDescriptorSetAllocateInfo compositeAllocInfo{};
-    compositeAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    compositeAllocInfo.descriptorPool = m_descriptorPool;
-    compositeAllocInfo.descriptorSetCount = fw::ui32size(compositeLayouts);
-    compositeAllocInfo.pSetLayouts = compositeLayouts.data();
-
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &compositeAllocInfo, &m_compositeDescriptorSet));
-
-    uint32_t numAttachments = fw::ui32size(m_framebufferAttachments);
-    std::vector<VkWriteDescriptorSet> descriptorWrites(numAttachments);
-    std::vector<VkDescriptorImageInfo> imageInfos(numAttachments);
-
-    for (uint32_t i = 0; i < numAttachments; ++i)
+    for (int i = 0; i < c_inputTextureCount; ++i)
     {
-        imageInfos[i] = VkDescriptorImageInfo{};
         imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfos[i].imageView = m_framebufferAttachments[i].imageView;
-        imageInfos[i].sampler = VK_NULL_HANDLE;
+        imageInfos[i].imageView = imageViews[i];
+        imageInfos[i].sampler = m_sampler.getSampler();
 
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[i].dstSet = m_compositeDescriptorSet;
+        descriptorWrites[i].dstSet = m_textureDescriptorSet;
         descriptorWrites[i].dstBinding = i;
         descriptorWrites[i].dstArrayElement = 0;
-        descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[i].descriptorCount = 1;
         descriptorWrites[i].pImageInfo = &imageInfos[i];
     }
@@ -560,6 +252,7 @@ void ReflectionApp::createAndUpdateCompositeDescriptorSet()
 
 void ReflectionApp::createCommandBuffers()
 {
+    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
     std::vector<VkCommandBuffer> commandBuffers(fw::API::getSwapChainImageCount());
 
     VkCommandBufferAllocateInfo allocInfo{};
@@ -575,11 +268,9 @@ void ReflectionApp::createCommandBuffers()
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    VkClearValue clearValue;
-    clearValue.color = {{0.0f, 0.0f, 0.5f, 0.0f}};
-    std::vector<VkClearValue> clearValues(c_colorAttachmentCount, clearValue);
-    clearValue.depthStencil = {1.0f, 0};
-    clearValues.push_back(clearValue);
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[1].color = {0.0f, 0.0f, 0.0f, 1.0f};
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -594,42 +285,19 @@ void ReflectionApp::createCommandBuffers()
         VkCommandBuffer cb = commandBuffers[i];
         VK_CHECK(vkBeginCommandBuffer(cb, &beginInfo));
 
-        renderPassInfo.framebuffer = m_framebuffers[i];
+        m_gbufferPass.writeRenderCommands(cb);
+
+        renderPassInfo.framebuffer = swapChainFramebuffers[i];
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        // G-Buffer
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipeline);
-
-        renderObject(cb, m_droid, 0.0f);
-        renderObject(cb, m_cube, 1.0f);
-
-        // Composite
-        vkCmdNextSubpass(cb, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipeline);
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_composite.pipelineLayout, 0, 1, &m_compositeDescriptorSet, 0, nullptr);
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_textureDescriptorSet, 0, nullptr);
         vkCmdDraw(cb, 3, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);
-
-        m_gbufferPass.writeRenderCommands(cb);
 
         VK_CHECK(vkEndCommandBuffer(cb));
     }
 
     fw::API::setCommandBuffers(commandBuffers);
-}
-
-void ReflectionApp::renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity)
-{
-    vkCmdPushConstants(cb, m_gbuffer.pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &reflectivity);
-
-    VkDeviceSize offsets[] = {0};
-    for (const ObjectData& data : object.objectData)
-    {
-        VkBuffer vb = data.vertexBuffer.getBuffer();
-        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-        vkCmdBindIndexBuffer(cb, data.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gbuffer.pipelineLayout, 0, 1, &data.descriptorSet, 0, nullptr);
-        vkCmdDrawIndexed(cb, data.numIndices, 1, 0, 0, 0);
-    }
 }

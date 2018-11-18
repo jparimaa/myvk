@@ -21,6 +21,10 @@ public:
     void update();
     void writeRenderCommands(VkCommandBuffer cb);
 
+    VkImageView getAlbedoImageView() const;
+    VkImageView getPositionImageView() const;
+    VkImageView getNormalImageView() const;
+
 private:
     struct RenderObject
     {
