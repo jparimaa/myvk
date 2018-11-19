@@ -3,6 +3,10 @@
 
 layout(set = 0, binding = 1) uniform sampler2D albedo;
 
+layout(push_constant) uniform PushConsts {
+	float reflectivity;
+} ;
+
 layout (location = 0) in vec4 inViewPos;
 layout (location = 1) in vec2 inUv;
 layout (location = 2) in vec3 inNormal;
@@ -20,5 +24,5 @@ void main()
 	outNormal = vec4(N, 1.0);
 
 	outAlbedo = texture(albedo, inUv);
-	//outAlbedo.a = reflectivity;
+	outAlbedo.a = reflectivity;
 }

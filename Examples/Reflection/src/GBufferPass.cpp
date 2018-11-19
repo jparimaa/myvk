@@ -19,6 +19,7 @@ const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const VkFormat c_format = VK_FORMAT_R8G8B8A8_UNORM;
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const size_t c_pushConstantsSize = sizeof(float);
 }
 
 GBufferPass::~GBufferPass()
@@ -70,7 +71,7 @@ void GBufferPass::update()
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 {
     std::array<VkClearValue, 4> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
     clearValues[1].color = {0.0f, 0.0f, 0.0f, 1.0f};
     clearValues[2].color = {0.0f, 0.0f, 0.0f, 1.0f};
     clearValues[3].depthStencil = {1.0f, 0};
@@ -97,7 +98,7 @@ void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 
 void GBufferPass::renderObject(VkCommandBuffer cb, const RenderObject& object, float reflectivity)
 {
-    //vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &reflectivity);
+    vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &reflectivity);
 
     VkDeviceSize offsets[] = {0};
     for (const ObjectData& data : object.objectData)
@@ -248,11 +249,18 @@ void GBufferPass::createDescriptorSetLayouts()
 
 void GBufferPass::createPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
     std::vector<VkDescriptorSetLayout> layouts{m_descriptorSetLayout};
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
