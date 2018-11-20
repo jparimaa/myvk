@@ -5,7 +5,7 @@ layout(set = 0, binding = 1) uniform sampler2D albedo;
 
 layout(push_constant) uniform PushConsts {
 	float reflectivity;
-} ;
+};
 
 layout (location = 0) in vec4 inViewPos;
 layout (location = 1) in vec2 inUv;

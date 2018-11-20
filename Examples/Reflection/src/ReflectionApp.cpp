@@ -19,6 +19,7 @@ namespace
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const int c_inputTextureCount = 3;
+const size_t c_pushConstantsSize = 16 * sizeof(float);
 } // unnamed
 
 ReflectionApp::~ReflectionApp()
@@ -45,9 +46,9 @@ bool ReflectionApp::initialize()
     createDescriptorSets();
     createCommandBuffers();
 
+    glm::vec3 initPos(0.0f, 5.0f, 30.0f);
     m_cameraController.setCamera(&m_camera);
-    m_cameraController.setMovementSpeed(20.0f);
-    glm::vec3 initPos(0.0f, 10.0f, 40.0f);
+    m_cameraController.setMovementSpeed(10.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
@@ -132,13 +133,18 @@ void ReflectionApp::createDescriptorSetLayouts()
 
 void ReflectionApp::createPipeline()
 {
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = c_pushConstantsSize;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
@@ -284,6 +290,8 @@ void ReflectionApp::createCommandBuffers()
     {
         VkCommandBuffer cb = commandBuffers[i];
         VK_CHECK(vkBeginCommandBuffer(cb, &beginInfo));
+
+        vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &m_camera.getProjectionMatrix());
 
         m_gbufferPass.writeRenderCommands(cb);
 

@@ -18,6 +18,7 @@ namespace
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const VkFormat c_format = VK_FORMAT_R8G8B8A8_UNORM;
+const VkFormat c_positionFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const size_t c_pushConstantsSize = sizeof(float);
 }
@@ -50,8 +51,9 @@ void GBufferPass::initialize(const fw::Camera* camera)
 
     m_camera = camera;
     m_droid.matrices.proj = m_camera->getProjectionMatrix();
-    m_cube.transformation.setScale(45.0f);
-    m_cube.transformation.setPosition(0.0f, -45.0f, 0.0f);
+    m_droid.transformation.setScale(0.5f);
+    m_cube.transformation.setScale(60.0f);
+    m_cube.transformation.setPosition(0.0f, -30.0f, 0.0f);
     m_cube.matrices.proj = m_camera->getProjectionMatrix();
 }
 
@@ -71,9 +73,9 @@ void GBufferPass::update()
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 {
     std::array<VkClearValue, 4> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
+    clearValues[0].color = {0, 0, 0, 255};
     clearValues[1].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[2].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[2].color = {0, 0, 0, 255};
     clearValues[3].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -91,7 +93,7 @@ void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
     renderObject(cb, m_droid, 0.0f);
-    renderObject(cb, m_cube, 1.0f);
+    renderObject(cb, m_cube, 0.5f);
 
     vkCmdEndRenderPass(cb);
 }
@@ -161,11 +163,16 @@ void GBufferPass::createRenderPass()
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     VkAttachmentDescription colorAttachmentDescription = fw::RenderPass::getColorAttachment();
-    colorAttachmentDescription.format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorAttachmentDescription.format = c_format;
     colorAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkAttachmentDescription positionAttachmentDescription = fw::RenderPass::getColorAttachment();
+    positionAttachmentDescription.format = c_positionFormat;
+    positionAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
     VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
-    std::vector<VkAttachmentDescription> attachmentDescriptions = {colorAttachmentDescription, colorAttachmentDescription, colorAttachmentDescription, depthAttachment};
+    std::vector<VkAttachmentDescription> attachmentDescriptions = {colorAttachmentDescription, positionAttachmentDescription, colorAttachmentDescription, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachmentDescriptions);
@@ -189,8 +196,8 @@ void GBufferPass::createFramebuffer()
     CHECK(m_albedo.image.createView(c_format, VK_IMAGE_ASPECT_COLOR_BIT, &m_albedo.imageView));
     CHECK(m_albedo.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
-    CHECK(m_position.image.create(width, height, c_format, 0, usage, 1));
-    CHECK(m_position.image.createView(c_format, VK_IMAGE_ASPECT_COLOR_BIT, &m_position.imageView));
+    CHECK(m_position.image.create(width, height, c_positionFormat, 0, usage, 1));
+    CHECK(m_position.image.createView(c_positionFormat, VK_IMAGE_ASPECT_COLOR_BIT, &m_position.imageView));
     CHECK(m_position.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
 
     CHECK(m_normal.image.create(width, height, c_format, 0, usage, 1));
@@ -407,5 +414,5 @@ void GBufferPass::createRenderObjects()
     };
 
     loadModel("attack_droid.obj", m_droid);
-    loadModel("cube.3ds", m_cube, "checker.png");
+    loadModel("cube.obj", m_cube, "checker.png");
 }

@@ -27,6 +27,6 @@ void main()
 {
     outViewPos = ubo.view * ubo.world * vec4(inPosition, 1.0);
     outUv = inUv;
-	outNormal = mat3(ubo.view) * transpose(inverse(mat3(ubo.world))) * normalize(inNormal);
+    outNormal = mat3(ubo.view) * mat3(ubo.world) * normalize(inNormal);
     gl_Position = ubo.proj * outViewPos;
 }
