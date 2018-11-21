@@ -42,9 +42,9 @@ private:
     VkDescriptorSetLayout m_textureDescriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorSet m_textureDescriptorSet = VK_NULL_HANDLE;
 
-    VkImageView m_inputImageView = VK_NULL_HANDLE;
-
     GBufferPass m_gbufferPass;
+
+    fw::Buffer m_projUniformBuffer;
 
     void createRenderPass();
     void createDescriptorSetLayouts();

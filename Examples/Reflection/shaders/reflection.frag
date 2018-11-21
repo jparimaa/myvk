@@ -3,9 +3,9 @@
 layout(set = 0, binding = 0) uniform sampler2D albedo;
 layout(set = 0, binding = 1) uniform sampler2D position;
 layout(set = 0, binding = 2) uniform sampler2D normal;
-
-layout(push_constant) uniform PushConsts {
-	mat4 projection;
+layout(set = 0, binding = 3) uniform ProjectionMatrix
+{
+    mat4 projectionMatrix;
 };
 
 layout (location = 0) in vec2 inUv;
@@ -22,7 +22,7 @@ vec3 raycast(vec3 dir, vec3 hitCoord)
     {
         hitCoord += dir;
  
-        vec4 projectedCoord = projection * vec4(hitCoord, 1.0);
+        vec4 projectedCoord = projectionMatrix * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
  

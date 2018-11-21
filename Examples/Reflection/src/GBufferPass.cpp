@@ -50,11 +50,13 @@ void GBufferPass::initialize(const fw::Camera* camera)
     createRenderObjects();
 
     m_camera = camera;
+
     m_droid.matrices.proj = m_camera->getProjectionMatrix();
     m_droid.transformation.setScale(0.5f);
+
+    m_cube.matrices.proj = m_camera->getProjectionMatrix();
     m_cube.transformation.setScale(60.0f);
     m_cube.transformation.setPosition(0.0f, -30.0f, 0.0f);
-    m_cube.matrices.proj = m_camera->getProjectionMatrix();
 }
 
 void GBufferPass::update()

@@ -19,7 +19,8 @@ namespace
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const int c_inputTextureCount = 3;
-const size_t c_pushConstantsSize = 16 * sizeof(float);
+const int c_uniformCount = c_inputTextureCount + 1;
+const size_t c_projMatrixSize = sizeof(glm::mat4);
 } // unnamed
 
 ReflectionApp::~ReflectionApp()
@@ -50,6 +51,7 @@ bool ReflectionApp::initialize()
     m_cameraController.setCamera(&m_camera);
     m_cameraController.setMovementSpeed(10.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
+    m_cameraController.update();
     m_camera.setPosition(initPos);
 
     return true;
@@ -59,6 +61,7 @@ void ReflectionApp::update()
 {
     m_cameraController.update();
     m_gbufferPass.update();
+    m_projUniformBuffer.setData(c_projMatrixSize, &m_camera.getProjectionMatrix());
 }
 
 void ReflectionApp::createRenderPass()
@@ -103,7 +106,7 @@ void ReflectionApp::createRenderPass()
 
 void ReflectionApp::createDescriptorSetLayouts()
 {
-    std::vector<VkDescriptorSetLayoutBinding> bindings(c_inputTextureCount);
+    std::vector<VkDescriptorSetLayoutBinding> bindings(c_uniformCount);
 
     bindings[0].binding = 0;
     bindings[0].descriptorCount = 1;
@@ -123,6 +126,12 @@ void ReflectionApp::createDescriptorSetLayouts()
     bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     bindings[2].pImmutableSamplers = nullptr; // Optional
 
+    bindings[3].binding = 3;
+    bindings[3].descriptorCount = 1;
+    bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings[3].pImmutableSamplers = nullptr; // Optional
+
     VkDescriptorSetLayoutCreateInfo textureLayoutInfo{};
     textureLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     textureLayoutInfo.bindingCount = fw::ui32size(bindings);
@@ -133,18 +142,11 @@ void ReflectionApp::createDescriptorSetLayouts()
 
 void ReflectionApp::createPipeline()
 {
-    VkPushConstantRange pushConstantRange{};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = c_pushConstantsSize;
-
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     std::vector<VkDescriptorSetLayout> layouts{m_textureDescriptorSetLayout};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = fw::ui32size(layouts);
     pipelineLayoutInfo.pSetLayouts = layouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
@@ -207,9 +209,11 @@ void ReflectionApp::createPipeline()
 
 void ReflectionApp::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[0].descriptorCount = 16;
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -235,7 +239,7 @@ void ReflectionApp::createDescriptorSets()
         m_gbufferPass.getPositionImageView(),
         m_gbufferPass.getNormalImageView()};
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites(c_inputTextureCount);
+    std::vector<VkWriteDescriptorSet> descriptorWrites(c_uniformCount);
     std::vector<VkDescriptorImageInfo> imageInfos(c_inputTextureCount);
 
     for (int i = 0; i < c_inputTextureCount; ++i)
@@ -252,6 +256,22 @@ void ReflectionApp::createDescriptorSets()
         descriptorWrites[i].descriptorCount = 1;
         descriptorWrites[i].pImageInfo = &imageInfos[i];
     }
+
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CHECK(m_projUniformBuffer.create(c_projMatrixSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+
+    VkDescriptorBufferInfo projMatrixBufferInfo{};
+    projMatrixBufferInfo.buffer = m_projUniformBuffer.getBuffer();
+    projMatrixBufferInfo.offset = 0;
+    projMatrixBufferInfo.range = c_projMatrixSize;
+
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = m_textureDescriptorSet;
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = &projMatrixBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
@@ -290,8 +310,6 @@ void ReflectionApp::createCommandBuffers()
     {
         VkCommandBuffer cb = commandBuffers[i];
         VK_CHECK(vkBeginCommandBuffer(cb, &beginInfo));
-
-        vkCmdPushConstants(cb, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, c_pushConstantsSize, &m_camera.getProjectionMatrix());
 
         m_gbufferPass.writeRenderCommands(cb);
 
