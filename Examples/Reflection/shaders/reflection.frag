@@ -11,8 +11,8 @@ layout(set = 0, binding = 3) uniform ProjectionMatrix
 layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
 
-const float rayStep = 0.01;
-const float maxSteps = 1000;
+const float rayStep = 0.25;
+const float maxSteps = 100;
 
 vec3 raycast(vec3 dir, vec3 hitCoord)
 {
@@ -24,7 +24,7 @@ vec3 raycast(vec3 dir, vec3 hitCoord)
  
         vec4 projectedCoord = projectionMatrix * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
-        projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
+        projectedCoord.xy = projectedCoord.xy * -0.5 + 0.5;
  
         float depth = texture(position, projectedCoord.xy).z;
   
