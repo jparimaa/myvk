@@ -17,8 +17,7 @@ layout (location = 2) out vec4 outNormal;
 
 void main()
 {
-    outPosition = vec4(inViewPos.xyz, 1.0);
-	outPosition.z = -outPosition.z;
+    outPosition = inViewPos;
 
 	vec3 N = normalize(inNormal);
 	outNormal = vec4(N, 1.0);

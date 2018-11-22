@@ -61,7 +61,7 @@ void GBufferPass::initialize(const fw::Camera* camera)
 
 void GBufferPass::update()
 {
-    m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    //m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     m_droid.matrices.world = m_droid.transformation.getWorldMatrix();
     m_cube.matrices.world = m_cube.transformation.getWorldMatrix();
 
@@ -75,8 +75,8 @@ void GBufferPass::update()
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 {
     std::array<VkClearValue, 4> clearValues{};
-    clearValues[0].color = {0, 0, 0, 255};
-    clearValues[1].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[0].color = {0, 0, 0, 0};
+    clearValues[1].color = {0.0f, 0.0f, -1000.0f, 1.0f};
     clearValues[2].color = {0, 0, 0, 255};
     clearValues[3].depthStencil = {1.0f, 0};
 

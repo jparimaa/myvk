@@ -11,8 +11,8 @@ layout(set = 0, binding = 3) uniform ProjectionMatrix
 layout (location = 0) in vec2 inUv;
 layout (location = 0) out vec4 outColor;
 
-const float rayStep = 0.25;
-const float maxSteps = 100;
+const float rayStep = 0.007;
+const float maxSteps = 1000;
 
 vec3 raycast(vec3 dir, vec3 hitCoord)
 {
@@ -24,13 +24,13 @@ vec3 raycast(vec3 dir, vec3 hitCoord)
  
         vec4 projectedCoord = projectionMatrix * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
-        projectedCoord.xy = projectedCoord.xy * -0.5 + 0.5;
- 
+        projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
+
         float depth = texture(position, projectedCoord.xy).z;
-  
-        if ((depth - hitCoord.z) < 0.0)
+
+        if (depth > (hitCoord.z + 0.01))
         {
-            return vec3(projectedCoord.xy, 1.0);
+            return vec3(projectedCoord.xy, (maxSteps - i) / maxSteps);
         }
     }
  
@@ -42,18 +42,21 @@ void main()
     vec3 viewNormal = texture(normal, inUv).xyz;
     vec4 viewPos = texture(position, inUv);
     vec4 color = texture(albedo, inUv);
-
-    vec3 reflected = normalize(reflect(normalize(viewPos.xyz), normalize(viewNormal)));
-    vec3 hitCoordinates = raycast(reflected, viewPos.xyz);
-
-    float diffuseAmount = 1.0 - color.a;
-    vec4 reflectionColor = vec4(0.0);
-    if (hitCoordinates.z > 0.5)
+    float reflectivity = color.a;
+    if (reflectivity == 0.0)
     {
-        reflectionColor = texture(albedo, hitCoordinates.xy);
-        reflectionColor.rgb *= color.a;        
+        outColor.rgb = color.rgb;
+        outColor.a = 1.0;
     }
+    else
+    {
+        vec3 reflected = normalize(reflect(viewPos.xyz, normalize(viewNormal)));
+        vec3 hitCoordinates = raycast(reflected, viewPos.xyz);                
+        vec4 reflectionColor = texture(albedo, hitCoordinates.xy) * hitCoordinates.z;
 
-    outColor.rgb = color.rgb * diffuseAmount + reflectionColor.rgb;    
-    outColor.a = 1.0;
+        float diffuseAmount = 1.0 - reflectivity;
+        outColor.rgb = color.rgb * diffuseAmount + reflectionColor.rgb * reflectivity;
+        outColor.a = 1.0;
+    }
+    
 }
