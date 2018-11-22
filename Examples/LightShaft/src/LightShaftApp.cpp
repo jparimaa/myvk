@@ -63,12 +63,10 @@ void LightShaftApp::update()
     pos = proj * view * world * pos;
 
     VkExtent2D size = fw::API::getSwapChainExtent();
-    glm::vec2 halfSize{size.width / 2.0f, size.height / 2.0f};
     glm::vec2 ndc{pos.x / pos.w, pos.y / pos.w};
-    // Viewport transform
-    glm::vec2 screen{(halfSize.x * ndc.x) + (halfSize.x), (halfSize.y * ndc.y) + (halfSize.y)};
-    glm::vec2 uv{screen.x / size.width, screen.y / size.height};
-    m_shaderParameters.lightPosScreen = uv;
+    glm::vec2 uv2{(0.5 * ndc.x) + (0.5), (0.5 * ndc.y) + (0.5)};
+
+    m_shaderParameters.lightPosScreen = uv2;
 
     updateCommandBuffers();
 }
