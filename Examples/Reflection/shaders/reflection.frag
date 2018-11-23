@@ -25,6 +25,7 @@ vec3 raycast(vec3 dir, vec3 hitCoord)
         vec4 projectedCoord = projectionMatrix * vec4(hitCoord, 1.0);
         projectedCoord.xy /= projectedCoord.w;
         projectedCoord.xy = projectedCoord.xy * 0.5 + 0.5;
+        projectedCoord.xy = clamp(projectedCoord.xy, vec2(0.0), vec2(1.0));
 
         float depth = texture(position, projectedCoord.xy).z;
 
@@ -51,7 +52,7 @@ void main()
     else
     {
         vec3 reflected = normalize(reflect(viewPos.xyz, normalize(viewNormal)));
-        vec3 hitCoordinates = raycast(reflected, viewPos.xyz);                
+        vec3 hitCoordinates = raycast(reflected, viewPos.xyz);
         vec4 reflectionColor = texture(albedo, hitCoordinates.xy) * hitCoordinates.z;
 
         float diffuseAmount = 1.0 - reflectivity;

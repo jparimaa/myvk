@@ -57,6 +57,10 @@ void GBufferPass::initialize(const fw::Camera* camera)
     m_cube.matrices.proj = m_camera->getProjectionMatrix();
     m_cube.transformation.setScale(60.0f);
     m_cube.transformation.setPosition(0.0f, -30.0f, 0.0f);
+
+    m_wall.matrices.proj = m_camera->getProjectionMatrix();
+    m_wall.transformation.setScale(60.0f);
+    m_wall.transformation.setPosition(0.0f, 0.0f, -60.0f);
 }
 
 void GBufferPass::update()
@@ -64,12 +68,15 @@ void GBufferPass::update()
     //m_droid.transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     m_droid.matrices.world = m_droid.transformation.getWorldMatrix();
     m_cube.matrices.world = m_cube.transformation.getWorldMatrix();
+    m_wall.matrices.world = m_wall.transformation.getWorldMatrix();
 
     m_droid.matrices.view = m_camera->getViewMatrix();
     m_cube.matrices.view = m_camera->getViewMatrix();
+    m_wall.matrices.view = m_camera->getViewMatrix();
 
     m_droid.uniformBuffer.setData(sizeof(m_droid.matrices), &m_droid.matrices);
     m_cube.uniformBuffer.setData(sizeof(m_cube.matrices), &m_cube.matrices);
+    m_wall.uniformBuffer.setData(sizeof(m_wall.matrices), &m_wall.matrices);
 }
 
 void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
@@ -96,6 +103,7 @@ void GBufferPass::writeRenderCommands(VkCommandBuffer cb)
 
     renderObject(cb, m_droid, 0.0f);
     renderObject(cb, m_cube, 0.5f);
+    renderObject(cb, m_wall, 0.0f);
 
     vkCmdEndRenderPass(cb);
 }
@@ -329,15 +337,15 @@ void GBufferPass::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 3;
+    poolSizes[0].descriptorCount = 4;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    poolSizes[1].descriptorCount = 4;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 3;
+    poolInfo.maxSets = 4;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
@@ -417,4 +425,5 @@ void GBufferPass::createRenderObjects()
 
     loadModel("attack_droid.obj", m_droid);
     loadModel("cube.obj", m_cube, "checker.png");
+    loadModel("cube.obj", m_wall, "wall.jpg");
 }

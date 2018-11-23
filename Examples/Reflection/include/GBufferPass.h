@@ -69,6 +69,7 @@ private:
 
     RenderObject m_droid;
     RenderObject m_cube;
+    RenderObject m_wall;
 
     Attachment m_albedo;
     Attachment m_position;
