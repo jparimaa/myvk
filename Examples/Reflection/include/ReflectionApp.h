@@ -44,7 +44,7 @@ private:
 
     GBufferPass m_gbufferPass;
 
-    fw::Buffer m_projUniformBuffer;
+    fw::Buffer m_projectionMatrixUniformBuffer;
 
     void createRenderPass();
     void createDescriptorSetLayouts();

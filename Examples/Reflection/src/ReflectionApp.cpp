@@ -54,6 +54,8 @@ bool ReflectionApp::initialize()
     m_cameraController.update();
     m_camera.setPosition(initPos);
 
+    m_projectionMatrixUniformBuffer.setData(c_projMatrixSize, &m_camera.getProjectionMatrix());
+
     return true;
 }
 
@@ -61,7 +63,6 @@ void ReflectionApp::update()
 {
     m_cameraController.update();
     m_gbufferPass.update();
-    m_projUniformBuffer.setData(c_projMatrixSize, &m_camera.getProjectionMatrix());
 }
 
 void ReflectionApp::createRenderPass()
@@ -258,10 +259,10 @@ void ReflectionApp::createDescriptorSets()
     }
 
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_projUniformBuffer.create(c_projMatrixSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    CHECK(m_projectionMatrixUniformBuffer.create(c_projMatrixSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
     VkDescriptorBufferInfo projMatrixBufferInfo{};
-    projMatrixBufferInfo.buffer = m_projUniformBuffer.getBuffer();
+    projMatrixBufferInfo.buffer = m_projectionMatrixUniformBuffer.getBuffer();
     projMatrixBufferInfo.offset = 0;
     projMatrixBufferInfo.range = c_projMatrixSize;
 

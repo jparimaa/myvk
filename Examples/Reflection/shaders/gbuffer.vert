@@ -7,7 +7,7 @@ layout(set = 0, binding = 0) uniform TransformationMatrices
     mat4 view;
     mat4 proj;
 }
-ubo;
+matrices;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -25,8 +25,8 @@ out gl_PerVertex
 
 void main()
 {
-    outViewPos = ubo.view * ubo.world * vec4(inPosition, 1.0);
+    outViewPos = matrices.view * matrices.world * vec4(inPosition, 1.0);
     outUv = inUv;
-    outNormal = mat3(ubo.view) * mat3(ubo.world) * normalize(inNormal);
-    gl_Position = ubo.proj * outViewPos;
+    outNormal = mat3(matrices.view) * mat3(matrices.world) * normalize(inNormal);
+    gl_Position = matrices.proj * outViewPos;
 }

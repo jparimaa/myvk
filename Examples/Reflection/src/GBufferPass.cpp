@@ -236,16 +236,6 @@ void GBufferPass::createFramebuffer()
 
 void GBufferPass::createDescriptorSetLayouts()
 {
-    auto createDescriptorSetLayout = [this](const std::vector<VkDescriptorSetLayoutBinding>& bindings, VkDescriptorSetLayout& descriptorSetLayout) {
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = fw::ui32size(bindings);
-        layoutInfo.pBindings = bindings.data();
-
-        VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout));
-    };
-
-    // GBuffer
     VkDescriptorSetLayoutBinding matrixBinding{};
     matrixBinding.binding = 0;
     matrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -261,7 +251,12 @@ void GBufferPass::createDescriptorSetLayouts()
     samplerBinding.pImmutableSamplers = nullptr;
 
     std::vector<VkDescriptorSetLayoutBinding> gbufferBindings{matrixBinding, samplerBinding};
-    createDescriptorSetLayout(gbufferBindings, m_descriptorSetLayout);
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = fw::ui32size(gbufferBindings);
+    layoutInfo.pBindings = gbufferBindings.data();
+
+    VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout));
 }
 
 void GBufferPass::createPipeline()
