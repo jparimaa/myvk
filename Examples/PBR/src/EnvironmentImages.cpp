@@ -117,7 +117,7 @@ void EnvironmentImages::createCubeImage(uint32_t size, uint32_t mipLevels, fw::I
     VkImageCreateFlags flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     VkImageUsageFlags imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-    CHECK(image.create(size, size, format, flags, imageUsage, 6, mipLevels));
+    CHECK(image.create(size, size, format, flags, imageUsage, 6, mipLevels, VK_SAMPLE_COUNT_1_BIT));
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

@@ -26,7 +26,7 @@ bool Image::create(const VkImageCreateInfo& imageInfo)
 
 bool Image::create(uint32_t width, uint32_t height, VkFormat format, VkImageCreateFlags flags, VkImageUsageFlags usage)
 {
-    return create(width, height, format, flags, usage, 1, 1);
+    return create(width, height, format, flags, usage, 1, 1, VK_SAMPLE_COUNT_1_BIT);
 }
 
 bool Image::create(uint32_t width,
@@ -36,7 +36,7 @@ bool Image::create(uint32_t width,
                    VkImageUsageFlags usage,
                    uint32_t arrayLayers)
 {
-    return create(width, height, format, flags, usage, arrayLayers, 1);
+    return create(width, height, format, flags, usage, arrayLayers, 1, VK_SAMPLE_COUNT_1_BIT);
 }
 
 bool Image::create(uint32_t width,
@@ -45,7 +45,8 @@ bool Image::create(uint32_t width,
                    VkImageCreateFlags flags,
                    VkImageUsageFlags usage,
                    uint32_t arrayLayers,
-                   uint32_t mipLevels)
+                   uint32_t mipLevels,
+                   VkSampleCountFlagBits sampleCount)
 {
     m_logicalDevice = Context::getLogicalDevice();
 
@@ -61,7 +62,7 @@ bool Image::create(uint32_t width,
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.samples = sampleCount;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.flags = flags;
 

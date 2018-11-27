@@ -175,6 +175,11 @@ bool SwapChain::initialize()
     return createImageViews() && createDepthImage();
 }
 
+bool SwapChain::initializeWithoutDepthImage()
+{
+    return createImageViews();
+}
+
 bool SwapChain::initializeWithDefaultFramebuffer(VkRenderPass renderPass)
 {
     return createImageViews() && createDepthImage() && createFramebuffers(renderPass);

@@ -40,9 +40,15 @@ public:
 
     virtual bool initialize() final;
     virtual void update() final;
-    virtual void onGUI() final;
+    virtual void onGUI() final{};
 
 private:
+    struct Attachment
+    {
+        fw::Image image;
+        VkImageView imageView = VK_NULL_HANDLE;
+    };
+
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -60,8 +66,11 @@ private:
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
-    VkExtent2D extent;
+    Attachment m_multisampleAttachment;
+    Attachment m_depthAttachment;
+    std::vector<VkFramebuffer> m_framebuffers;
 
+    void createFramebuffer();
     void createRenderPass();
     void createDescriptorSetLayout();
     void createPipeline();

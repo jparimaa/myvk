@@ -24,7 +24,9 @@ public:
                 VkImageCreateFlags flags,
                 VkImageUsageFlags usage,
                 uint32_t arrayLayers,
-                uint32_t mipLevels);
+                uint32_t mipLevels,
+                VkSampleCountFlagBits sampleCount);
+
     bool createView(VkFormat format, VkImageAspectFlags aspectFlags, VkImageView* imageView);
     bool transitLayout(VkImageLayout newLayout);
 

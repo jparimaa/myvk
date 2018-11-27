@@ -10,6 +10,11 @@ bool API::initializeSwapChain()
     return s_framework->m_swapChain.initialize();
 }
 
+bool API::initializeSwapChainWithoutDepthImage()
+{
+    return s_framework->m_swapChain.initializeWithoutDepthImage();
+}
+
 bool API::initializeSwapChainWithDefaultFramebuffer(VkRenderPass renderPass)
 {
     return s_framework->m_swapChain.initializeWithDefaultFramebuffer(renderPass);

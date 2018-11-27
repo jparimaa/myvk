@@ -20,11 +20,17 @@ namespace
 const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
-
+const VkSampleCountFlagBits c_sampleCount = VK_SAMPLE_COUNT_4_BIT;
 } // unnamed
 
 MultisamplingApp::~MultisamplingApp()
 {
+    vkDestroyImageView(m_logicalDevice, m_depthAttachment.imageView, nullptr);
+    vkDestroyImageView(m_logicalDevice, m_multisampleAttachment.imageView, nullptr);
+    for (VkFramebuffer fb : m_framebuffers)
+    {
+        vkDestroyFramebuffer(m_logicalDevice, fb, nullptr);
+    }
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -36,19 +42,16 @@ bool MultisamplingApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    CHECK(fw::API::initializeSwapChainWithoutDepthImage());
     createRenderPass();
-    bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
+    createFramebuffer();
     createDescriptorSetLayout();
     createPipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
+    CHECK(m_sampler.create(VK_COMPARE_OP_ALWAYS));
     createDescriptorPool();
     createRenderObjects();
-    success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
 
-    CHECK(success);
-
-    extent = fw::API::getSwapChainExtent();
     m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
@@ -61,7 +64,7 @@ bool MultisamplingApp::initialize()
 
 void MultisamplingApp::update()
 {
-    m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    //m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
     m_ubo.world = m_trans.getWorldMatrix();
 
     m_cameraController.update();
@@ -70,35 +73,26 @@ void MultisamplingApp::update()
     m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
 }
 
-void MultisamplingApp::onGUI()
-{
-#ifndef WIN32
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
-    glm::vec3 p = m_camera.getTransformation().getPosition();
-    ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
-    ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-#ifndef WIN32
-#pragma GCC diagnostic pop
-#endif
-}
-
 void MultisamplingApp::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference resolveAttachmentRef{};
+    resolveAttachmentRef.attachment = 2;
+    resolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpass.pResolveAttachments = &resolveAttachmentRef;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -108,13 +102,16 @@ void MultisamplingApp::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    colorAttachment.samples = c_sampleCount;
 
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
+    depthAttachment.samples = c_sampleCount;
+
+    VkAttachmentDescription resolveAttachment = fw::RenderPass::getColorAttachment();
+    resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+
+    std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, resolveAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = fw::ui32size(attachments);
@@ -125,6 +122,49 @@ void MultisamplingApp::createRenderPass()
     renderPassInfo.pDependencies = &dependency;
 
     VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
+}
+
+void MultisamplingApp::createFramebuffer()
+{
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    uint32_t width = extent.width;
+    uint32_t height = extent.height;
+
+    VkFormat format = fw::API::getSwapChainImageFormat();
+    VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    CHECK(m_multisampleAttachment.image.create(width, height, format, 0, usage, 1, 1, c_sampleCount));
+    CHECK(m_multisampleAttachment.image.createView(format, VK_IMAGE_ASPECT_COLOR_BIT, &m_multisampleAttachment.imageView));
+    CHECK(m_multisampleAttachment.image.transitLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
+
+    VkFormat depthFormat = fw::Constants::depthFormat;
+    VkImageUsageFlags depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    CHECK(m_depthAttachment.image.create(width, height, depthFormat, 0, depthImageUsage, 1, 1, c_sampleCount));
+    CHECK(m_depthAttachment.image.createView(depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, &m_depthAttachment.imageView));
+    CHECK(m_depthAttachment.image.transitLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL));
+
+    const int attachmentCount = 3;
+    VkImageView attachments[attachmentCount];
+
+    VkFramebufferCreateInfo framebufferCreateInfo{};
+    framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferCreateInfo.pNext = nullptr;
+    framebufferCreateInfo.renderPass = m_renderPass;
+    framebufferCreateInfo.attachmentCount = attachmentCount;
+    framebufferCreateInfo.pAttachments = attachments;
+    framebufferCreateInfo.width = extent.width;
+    framebufferCreateInfo.height = extent.height;
+    framebufferCreateInfo.layers = 1;
+
+    m_framebuffers.resize(fw::API::getSwapChainImageCount());
+    const std::vector<VkImageView>& swapChainImageViews = fw::API::getSwapChainImageViews();
+
+    for (unsigned int i = 0; i < m_framebuffers.size(); ++i)
+    {
+        attachments[0] = m_multisampleAttachment.imageView;
+        attachments[1] = m_depthAttachment.imageView;
+        attachments[2] = swapChainImageViews[i];
+        VK_CHECK(vkCreateFramebuffer(m_logicalDevice, &framebufferCreateInfo, nullptr, &m_framebuffers[i]));
+    }
 }
 
 void MultisamplingApp::createDescriptorSetLayout()
@@ -179,6 +219,7 @@ void MultisamplingApp::createPipeline()
 
     VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
     VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
+    multisampleState.rasterizationSamples = c_sampleCount;
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
@@ -309,8 +350,7 @@ void MultisamplingApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImag
 
 void MultisamplingApp::createCommandBuffers()
 {
-    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
+    std::vector<VkCommandBuffer> commandBuffers(m_framebuffers.size());
 
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -345,7 +385,7 @@ void MultisamplingApp::createCommandBuffers()
 
         vkBeginCommandBuffer(cb, &beginInfo);
 
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
+        renderPassInfo.framebuffer = m_framebuffers[i];
 
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
