@@ -17,10 +17,43 @@
 
 namespace
 {
-const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::size_t c_transformMatricesSize = sizeof(MultisamplingApp::Matrices);
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 const VkSampleCountFlagBits c_sampleCount = VK_SAMPLE_COUNT_4_BIT;
+
+int sampleCountToInt(VkSampleCountFlags count)
+{
+    if (count & VK_SAMPLE_COUNT_64_BIT)
+    {
+        return 64;
+    }
+    if (count & VK_SAMPLE_COUNT_32_BIT)
+    {
+        return 32;
+    }
+    if (count & VK_SAMPLE_COUNT_16_BIT)
+    {
+        return 16;
+    }
+    if (count & VK_SAMPLE_COUNT_8_BIT)
+    {
+        return 8;
+    }
+    if (count & VK_SAMPLE_COUNT_4_BIT)
+    {
+        return 4;
+    }
+    if (count & VK_SAMPLE_COUNT_2_BIT)
+    {
+        return 2;
+    }
+    if (count & VK_SAMPLE_COUNT_1_BIT)
+    {
+        return 1;
+    }
+    return 0;
+}
 } // unnamed
 
 MultisamplingApp::~MultisamplingApp()
@@ -42,6 +75,12 @@ bool MultisamplingApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    VkPhysicalDeviceProperties physicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(fw::Context::getPhysicalDevice(), &physicalDeviceProperties);
+
+    std::cout << "max color sample count: " << sampleCountToInt(physicalDeviceProperties.limits.framebufferColorSampleCounts) << "\n"
+              << "max depth sample count: " << sampleCountToInt(physicalDeviceProperties.limits.framebufferDepthSampleCounts) << "\n";
+
     CHECK(fw::API::initializeSwapChainWithoutDepthImage());
     createRenderPass();
     createFramebuffer();
@@ -57,7 +96,7 @@ bool MultisamplingApp::initialize()
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
-    m_ubo.proj = m_camera.getProjectionMatrix();
+    m_matrices.proj = m_camera.getProjectionMatrix();
 
     return true;
 }
@@ -65,12 +104,12 @@ bool MultisamplingApp::initialize()
 void MultisamplingApp::update()
 {
     //m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_ubo.world = m_trans.getWorldMatrix();
+    m_matrices.world = m_trans.getWorldMatrix();
 
     m_cameraController.update();
-    m_ubo.view = m_camera.getViewMatrix();
+    m_matrices.view = m_camera.getViewMatrix();
 
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+    m_uniformBuffer.setData(sizeof(m_matrices), &m_matrices);
 }
 
 void MultisamplingApp::createRenderPass()

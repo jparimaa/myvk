@@ -15,20 +15,11 @@
 class MultisamplingApp : public fw::Application
 {
 public:
-    struct MatrixUBO
+    struct Matrices
     {
         glm::mat4 world;
         glm::mat4 view;
         glm::mat4 proj;
-    };
-
-    struct RenderObject
-    {
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
     };
 
     MultisamplingApp(){};
@@ -43,6 +34,15 @@ public:
     virtual void onGUI() final{};
 
 private:
+    struct RenderObject
+    {
+        fw::Buffer vertexBuffer;
+        fw::Buffer indexBuffer;
+        uint32_t numIndices;
+        fw::Texture texture;
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    };
+
     struct Attachment
     {
         fw::Image image;
@@ -59,7 +59,7 @@ private:
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
     fw::Transformation m_trans;
-    MatrixUBO m_ubo;
+    Matrices m_matrices;
     fw::Buffer m_uniformBuffer;
     std::vector<RenderObject> m_renderObjects;
 
