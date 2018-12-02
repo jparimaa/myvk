@@ -17,11 +17,10 @@
 
 namespace
 {
-const std::size_t c_transformMatricesSize = sizeof(glm::mat4x4) * 3;
+const std::size_t c_transformMatricesSize = sizeof(ExampleApp::Matrices);
 const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
-
-} // unnamed
+} // namespace
 
 ExampleApp::~ExampleApp()
 {
@@ -48,26 +47,25 @@ bool ExampleApp::initialize()
 
     CHECK(success);
 
-    extent = fw::API::getSwapChainExtent();
     m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 10.0f, 40.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
     m_camera.setPosition(initPos);
 
-    m_ubo.proj = m_camera.getProjectionMatrix();
+    m_matrices.proj = m_camera.getProjectionMatrix();
 
     return true;
 }
 
 void ExampleApp::update()
 {
-    m_trans.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_ubo.world = m_trans.getWorldMatrix();
+    m_transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
+    m_matrices.world = m_transformation.getWorldMatrix();
 
     m_cameraController.update();
-    m_ubo.view = m_camera.getViewMatrix();
+    m_matrices.view = m_camera.getViewMatrix();
 
-    m_uniformBuffer.setData(sizeof(m_ubo), &m_ubo);
+    m_uniformBuffer.setData(sizeof(m_matrices), &m_matrices);
 }
 
 void ExampleApp::onGUI()
@@ -88,17 +86,22 @@ void ExampleApp::onGUI()
 
 void ExampleApp::createRenderPass()
 {
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
+    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
+    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -107,12 +110,6 @@ void ExampleApp::createRenderPass()
     dependency.srcAccessMask = 0;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
@@ -154,6 +151,10 @@ void ExampleApp::createDescriptorSetLayout()
 
 void ExampleApp::createPipeline()
 {
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
+
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages
         = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
 
@@ -168,8 +169,7 @@ void ExampleApp::createPipeline()
 
     VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState
-        = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
 
@@ -182,9 +182,6 @@ void ExampleApp::createPipeline()
     VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
     VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
-
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -276,17 +273,12 @@ void ExampleApp::createDescriptorSets(uint32_t setCount)
 
 void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_uniformBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = c_transformMatricesSize;
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = descriptorSet;
@@ -295,6 +287,11 @@ void ExampleApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView 
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = imageView;
+    imageInfo.sampler = m_sampler.getSampler();
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = descriptorSet;

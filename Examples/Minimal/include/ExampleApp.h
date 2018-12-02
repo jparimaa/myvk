@@ -15,7 +15,7 @@
 class ExampleApp : public fw::Application
 {
 public:
-    struct MatrixUBO
+    struct Matrices
     {
         glm::mat4 world;
         glm::mat4 view;
@@ -52,15 +52,13 @@ private:
     fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
-    fw::Transformation m_trans;
-    MatrixUBO m_ubo;
+    fw::Transformation m_transformation;
+    Matrices m_matrices;
     fw::Buffer m_uniformBuffer;
     std::vector<RenderObject> m_renderObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets;
-
-    VkExtent2D extent;
 
     void createRenderPass();
     void createDescriptorSetLayout();
