@@ -54,6 +54,9 @@ bool MandelbrotApp::initialize()
 
     m_matrices.proj = m_camera.getProjectionMatrix();
 
+    std::cout << "Compute queue: " << fw::Context::getComputeQueue() << "\n"
+              << "Graphics queue: " << fw::Context::getGraphicsQueue() << "\n";
+
     return true;
 }
 

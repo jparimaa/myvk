@@ -7,6 +7,7 @@ VkSurfaceKHR Context::s_surface = VK_NULL_HANDLE;
 VkPhysicalDevice Context::s_physicalDevice = VK_NULL_HANDLE;
 VkDevice Context::s_logicalDevice = VK_NULL_HANDLE;
 VkQueue Context::s_graphicsQueue = VK_NULL_HANDLE;
+VkQueue Context::s_computeQueue = VK_NULL_HANDLE;
 VkQueue Context::s_presentQueue = VK_NULL_HANDLE;
 VkPhysicalDeviceProperties* Context::s_physicalDeviceProperties = nullptr;
 
@@ -33,6 +34,11 @@ VkDevice Context::getLogicalDevice()
 VkQueue Context::getGraphicsQueue()
 {
     return s_graphicsQueue;
+}
+
+VkQueue Context::getComputeQueue()
+{
+    return s_computeQueue;
 }
 
 VkQueue Context::getPresentQueue()

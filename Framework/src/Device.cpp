@@ -46,7 +46,7 @@ bool isDeviceSuitable(VkPhysicalDevice physicalDevice)
     return false;
 }
 
-} // unnamed
+} // namespace
 
 Device::~Device()
 {
@@ -94,7 +94,10 @@ bool Device::createLogicalDevice()
     QueueFamilyIndices indices = getQueueFamilies(physicalDevice, Context::getSurface());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+    std::set<int> uniqueQueueFamilies = {
+        indices.graphicsFamily,
+        indices.computeFamily,
+        indices.presentFamily};
 
     float queuePriority = 1.0f;
     for (int queueFamily : uniqueQueueFamilies)
@@ -134,11 +137,13 @@ bool Device::createLogicalDevice()
     }
 
     vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, indices.computeFamily, 0, &computeQueue);
     vkGetDeviceQueue(logicalDevice, indices.presentFamily, 0, &presentQueue);
 
     Context::s_physicalDevice = physicalDevice;
     Context::s_logicalDevice = logicalDevice;
     Context::s_graphicsQueue = graphicsQueue;
+    Context::s_computeQueue = computeQueue;
     Context::s_presentQueue = presentQueue;
     Context::s_physicalDeviceProperties = &physicalDeviceProperties;
 

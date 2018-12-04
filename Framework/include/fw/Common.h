@@ -15,6 +15,7 @@ void printLog(std::string_view msg);
 struct QueueFamilyIndices
 {
     int graphicsFamily = -1;
+    int computeFamily = -1;
     int presentFamily = -1;
     bool hasGraphicsAndPresentFamily() const;
 };

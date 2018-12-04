@@ -19,6 +19,7 @@ public:
     static VkPhysicalDevice getPhysicalDevice();
     static VkDevice getLogicalDevice();
     static VkQueue getGraphicsQueue();
+    static VkQueue getComputeQueue();
     static VkQueue getPresentQueue();
     static VkPhysicalDeviceProperties* getPhysicalDeviceProperties();
 
@@ -28,6 +29,7 @@ private:
     static VkPhysicalDevice s_physicalDevice;
     static VkDevice s_logicalDevice;
     static VkQueue s_graphicsQueue;
+    static VkQueue s_computeQueue;
     static VkQueue s_presentQueue;
     static VkPhysicalDeviceProperties* s_physicalDeviceProperties;
 };
