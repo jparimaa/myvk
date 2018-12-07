@@ -18,18 +18,17 @@ Framework::~Framework()
     vkDestroySemaphore(m_logicalDevice, m_renderFinished, nullptr);
     vkDestroySemaphore(m_logicalDevice, m_imageAvailable, nullptr);
     vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
+    vkDestroyCommandPool(m_logicalDevice, m_computeCommandPool, nullptr);
 }
 
 bool Framework::initialize()
 {
     glfwInit();
-    bool success = m_instance.initialize() && m_window.initialize() && m_device.initialize()
-        && m_swapChain.create(m_window.getWidth(), m_window.getHeight())
-        && Command::createGraphicsCommandPool(&m_commandPool) && createSemaphores()
-        && m_input.initialize(m_window.getWindow());
+    bool success = m_instance.initialize() && m_window.initialize() && m_device.initialize() && m_swapChain.create(m_window.getWidth(), m_window.getHeight()) && Command::createGraphicsCommandPool(&m_commandPool) && Command::createComputeCommandPool(&m_computeCommandPool) && createSemaphores() && m_input.initialize(m_window.getWindow());
 
     m_logicalDevice = Context::getLogicalDevice();
     m_graphicsQueue = Context::getGraphicsQueue();
+    m_computeQueue = Context::getComputeQueue();
     m_presentQueue = Context::getPresentQueue();
     m_swapChainHandle = m_swapChain.getSwapChain();
 
@@ -43,13 +42,13 @@ void Framework::setApplication(Application* application)
 
 void Framework::execute()
 {
-    while (!m_window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE))
+    while (!m_window.shouldClose() && !API::isKeyReleased(GLFW_KEY_ESCAPE) && !m_quit)
     {
         m_input.clearKeyStatus();
         m_window.pollEvents();
         m_input.update();
         m_time.update();
-        if (!acquireNextSwapChainImage())
+        if (m_renderingEnabled && !acquireNextSwapChainImage())
         {
             break;
         }
@@ -59,7 +58,8 @@ void Framework::execute()
             m_gui.beginPass();
             m_app->onGUI();
         }
-        if (!render())
+        compute();
+        if (m_renderingEnabled && !render())
         {
             break;
         }
@@ -83,6 +83,42 @@ bool Framework::createSemaphores()
     };
 
     return createSemaphore(m_imageAvailable) && createSemaphore(m_renderFinished);
+}
+
+void Framework::compute()
+{
+    if (m_nextComputeCommandBuffer != nullptr)
+    {
+        VkFence fence;
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = 0;
+
+        if (VkResult r = vkCreateFence(m_logicalDevice, &fenceCreateInfo, NULL, &fence); r != VK_SUCCESS)
+        {
+            printError("Failed to create fence in compute", &r);
+            return;
+        }
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &m_nextComputeCommandBuffer;
+
+        if (VkResult r = vkQueueSubmit(m_computeQueue, 1, &submitInfo, fence); r != VK_SUCCESS)
+        {
+            printError("Failed to submit queue in compute", &r);
+            return;
+        }
+
+        if (VkResult r = vkWaitForFences(m_logicalDevice, 1, &fence, VK_TRUE, 1000000000); r != VK_SUCCESS)
+        {
+            printError("Failed to wait for fence in compute", &r);
+            return;
+        }
+
+        vkDestroyFence(m_logicalDevice, fence, NULL);
+    }
 }
 
 bool Framework::render()
@@ -162,6 +198,11 @@ bool Framework::acquireNextSwapChainImage()
         return false;
     }
     return true;
+}
+
+void Framework::quit()
+{
+    m_quit = true;
 }
 
 } // namespace fw

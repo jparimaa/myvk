@@ -28,6 +28,7 @@ public:
     static const VkImageView& getSwapChainDepthImageView();
 
     static VkCommandPool getCommandPool();
+    static VkCommandPool getComputeCommandPool();
 
     static float getTimeSinceStart();
     static float getTimeDelta();
@@ -40,9 +41,14 @@ public:
 
     static void setCommandBuffers(const std::vector<VkCommandBuffer>& commandBuffers);
     static void setNextCommandBuffer(VkCommandBuffer commandBuffer);
+    static void setNextComputeCommandBuffer(VkCommandBuffer commandBuffer);
     static void setRenderBufferFence(VkFence fence);
 
     static GLFWwindow* getGLFWwindow();
+
+    static void setRenderingEnabled(bool status);
+
+    static void quitApplication();
 
 private:
     static Framework* s_framework;

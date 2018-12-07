@@ -5,8 +5,7 @@
 
 namespace fw
 {
-std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(const std::string& vertexShaderFilename,
-                                                                           const std::string& fragmentShaderFilename)
+std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename)
 {
     VkShaderModule vertexShaderModule = createShaderModule(vertexShaderFilename);
     VkShaderModule fragmentShaderModule = createShaderModule(fragmentShaderFilename);
@@ -31,6 +30,26 @@ std::vector<VkPipelineShaderStageCreateInfo> Pipeline::getShaderStageInfos(const
     fragmentShaderStageInfo.pName = "main";
 
     return std::vector<VkPipelineShaderStageCreateInfo>{vertexShaderStageInfo, fragmentShaderStageInfo};
+}
+
+VkPipelineShaderStageCreateInfo Pipeline::getComputeShaderStageInfo(const std::string& computeShaderFilename)
+{
+    VkShaderModule computeShaderModule = createShaderModule(computeShaderFilename);
+
+    auto isNull = [](VkShaderModule shaderModule) { return shaderModule == VK_NULL_HANDLE; };
+
+    if (isNull(computeShaderModule))
+    {
+        return VkPipelineShaderStageCreateInfo{};
+    }
+
+    VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
+    computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    computeShaderStageInfo.module = computeShaderModule;
+    computeShaderStageInfo.pName = "main";
+
+    return computeShaderStageInfo;
 }
 
 VkVertexInputBindingDescription Pipeline::getVertexDescription()
@@ -70,8 +89,7 @@ std::vector<VkVertexInputAttributeDescription> Pipeline::getAttributeDescription
 }
 
 VkPipelineVertexInputStateCreateInfo
-Pipeline::getVertexInputState(const VkVertexInputBindingDescription* vertexDescription,
-                              const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions)
+Pipeline::getVertexInputState(const VkVertexInputBindingDescription* vertexDescription, const std::vector<VkVertexInputAttributeDescription>* attributeDescriptions)
 {
     VkPipelineVertexInputStateCreateInfo vertexInputState{};
     vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

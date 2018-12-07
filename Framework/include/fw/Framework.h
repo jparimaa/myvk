@@ -39,11 +39,13 @@ private:
     GUI m_gui;
 
     VkCommandPool m_commandPool = VK_NULL_HANDLE;
+    VkCommandPool m_computeCommandPool = VK_NULL_HANDLE;
     VkSemaphore m_imageAvailable = VK_NULL_HANDLE;
     VkSemaphore m_renderFinished = VK_NULL_HANDLE;
 
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+    VkQueue m_computeQueue = VK_NULL_HANDLE;
     VkQueue m_presentQueue = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChainHandle = VK_NULL_HANDLE;
 
@@ -52,11 +54,19 @@ private:
     VkCommandBuffer m_nextCommandBuffer = nullptr;
     VkFence m_renderBufferFence = VK_NULL_HANDLE;
 
+    VkCommandBuffer m_nextComputeCommandBuffer = nullptr;
+
     uint32_t m_currentImageIndex = std::numeric_limits<uint32_t>::max();
 
+    bool m_renderingEnabled = true;
+
+    bool m_quit = false;
+
     bool createSemaphores();
+    void compute();
     bool render();
     bool acquireNextSwapChainImage();
+    void quit();
 };
 
 } // namespace fw

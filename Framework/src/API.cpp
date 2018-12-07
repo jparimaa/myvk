@@ -65,6 +65,11 @@ VkCommandPool API::getCommandPool()
     return s_framework->m_commandPool;
 }
 
+VkCommandPool API::getComputeCommandPool()
+{
+    return s_framework->m_computeCommandPool;
+}
+
 float API::getTimeSinceStart()
 {
     return s_framework->m_time.getSinceStart();
@@ -114,6 +119,11 @@ void API::setNextCommandBuffer(VkCommandBuffer commandBuffer)
     s_framework->m_nextCommandBuffer = commandBuffer;
 }
 
+void API::setNextComputeCommandBuffer(VkCommandBuffer commandBuffer)
+{
+    s_framework->m_nextComputeCommandBuffer = commandBuffer;
+}
+
 void API::setRenderBufferFence(VkFence fence)
 {
     s_framework->m_renderBufferFence = fence;
@@ -122,6 +132,16 @@ void API::setRenderBufferFence(VkFence fence)
 GLFWwindow* API::getGLFWwindow()
 {
     return s_framework->m_window.getWindow();
+}
+
+void API::setRenderingEnabled(bool status)
+{
+    s_framework->m_renderingEnabled = status;
+}
+
+void API::quitApplication()
+{
+    s_framework->quit();
 }
 
 } // namespace fw

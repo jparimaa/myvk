@@ -4,55 +4,39 @@
 #include "fw/Common.h"
 #include "fw/Context.h"
 #include "fw/Macros.h"
-#include "fw/Mesh.h"
-#include "fw/Model.h"
 #include "fw/Pipeline.h"
-#include "fw/RenderPass.h"
-
-#include <glm/gtc/matrix_transform.hpp>
-#include <vulkan/vulkan.h>
 
 #include <array>
 #include <iostream>
 
 namespace
 {
-const std::size_t c_transformMatricesSize = sizeof(MandelbrotApp::Matrices);
-const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
+const int c_width = 1024;
+const int c_height = 1024;
+const int c_bufferSize = sizeof(glm::vec4) * c_width * c_height;
+const int c_workgroupSize = 32;
 } // namespace
 
 MandelbrotApp::~MandelbrotApp()
 {
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
-    vkDestroyPipeline(m_logicalDevice, m_graphicsPipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_computePipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
-    vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
 }
 
 bool MandelbrotApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
-    createRenderPass();
-    bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
+    createBuffer();
     createDescriptorSetLayout();
     createPipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
-    createDescriptorPool();
-    createRenderObjects();
-    success = success && fw::API::initializeGUI(m_descriptorPool);
+    createDescriptorSets();
     createCommandBuffers();
 
-    CHECK(success);
-
-    m_cameraController.setCamera(&m_camera);
-    glm::vec3 initPos(0.0f, 10.0f, 40.0f);
-    m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
-    m_camera.setPosition(initPos);
-
-    m_matrices.proj = m_camera.getProjectionMatrix();
+    fw::API::setRenderingEnabled(false);
 
     std::cout << "Compute queue: " << fw::Context::getComputeQueue() << "\n"
               << "Graphics queue: " << fw::Context::getGraphicsQueue() << "\n";
@@ -62,88 +46,25 @@ bool MandelbrotApp::initialize()
 
 void MandelbrotApp::update()
 {
-    m_transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_matrices.world = m_transformation.getWorldMatrix();
-
-    m_cameraController.update();
-    m_matrices.view = m_camera.getViewMatrix();
-
-    m_uniformBuffer.setData(sizeof(m_matrices), &m_matrices);
+    fw::API::quitApplication();
 }
 
-void MandelbrotApp::onGUI()
+void MandelbrotApp::createBuffer()
 {
-#ifndef WIN32
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdouble-promotion"
-#endif
-
-    glm::vec3 p = m_camera.getTransformation().getPosition();
-    ImGui::Text("Camera position: %.1f %.1f %.1f", p.x, p.y, p.z);
-    ImGui::Text("%.2f ms/frame (%.0f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-#ifndef WIN32
-#pragma GCC diagnostic pop
-#endif
-}
-
-void MandelbrotApp::createRenderPass()
-{
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    VkAttachmentDescription colorAttachment = fw::RenderPass::getColorAttachment();
-    VkAttachmentDescription depthAttachment = fw::RenderPass::getDepthAttachment();
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = fw::ui32size(attachments);
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    VK_CHECK(vkCreateRenderPass(m_logicalDevice, &renderPassInfo, nullptr, &m_renderPass));
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    m_storageBuffer.create(c_bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, uboProperties);
 }
 
 void MandelbrotApp::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    VkDescriptorSetLayoutBinding storageLayoutBinding{};
+    storageLayoutBinding.binding = 0;
+    storageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    storageLayoutBinding.descriptorCount = 1;
+    storageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    storageLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {storageLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -155,215 +76,92 @@ void MandelbrotApp::createDescriptorSetLayout()
 void MandelbrotApp::createPipeline()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
-
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages
-        = fw::Pipeline::getShaderStageInfos(c_shaderFolder + "shader.vert.spv", c_shaderFolder + "shader.frag.spv");
+    VkPipelineShaderStageCreateInfo shaderStage = fw::Pipeline::getComputeShaderStageInfo(c_shaderFolder + "shader.comp.spv");
 
-    CHECK(!shaderStages.empty());
-
-    fw::Cleaner cleaner([&shaderStages, this]() {
-        for (const auto& info : shaderStages)
-        {
-            vkDestroyShaderModule(m_logicalDevice, info.module, nullptr);
-        }
+    fw::Cleaner cleaner([&shaderStage, this]() {
+        vkDestroyShaderModule(m_logicalDevice, shaderStage.module, nullptr);
     });
 
-    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
-    VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
+    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutCreateInfo.setLayoutCount = 1;
+    pipelineLayoutCreateInfo.pSetLayouts = &m_descriptorSetLayout;
+    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutCreateInfo, NULL, &m_pipelineLayout));
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
+    VkComputePipelineCreateInfo pipelineCreateInfo{};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.stage = shaderStage;
+    pipelineCreateInfo.layout = m_pipelineLayout;
 
-    VkViewport viewport = fw::Pipeline::getViewport();
-    VkRect2D scissor = fw::Pipeline::getScissorRect();
-    VkPipelineViewportStateCreateInfo viewportState = fw::Pipeline::getViewportState(&viewport, &scissor);
-
-    VkPipelineRasterizationStateCreateInfo rasterizationState = fw::Pipeline::getRasterizationState();
-    VkPipelineMultisampleStateCreateInfo multisampleState = fw::Pipeline::getMultisampleState();
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = fw::Pipeline::getDepthStencilState();
-    VkPipelineColorBlendAttachmentState colorBlendAttachmentState = fw::Pipeline::getColorBlendAttachmentState();
-    VkPipelineColorBlendStateCreateInfo colorBlendState = fw::Pipeline::getColorBlendState(&colorBlendAttachmentState);
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = fw::ui32size(shaderStages);
-    pipelineInfo.pStages = shaderStages.data();
-    pipelineInfo.pVertexInputState = &vertexInputState;
-    pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizationState;
-    pipelineInfo.pMultisampleState = &multisampleState;
-    pipelineInfo.pDepthStencilState = &depthStencilState;
-    pipelineInfo.pColorBlendState = &colorBlendState;
-    pipelineInfo.pDynamicState = nullptr;
-    pipelineInfo.layout = m_pipelineLayout;
-    pipelineInfo.renderPass = m_renderPass;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
-
-    VK_CHECK(vkCreateGraphicsPipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline));
+    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_computePipeline));
 }
 
-void MandelbrotApp::createDescriptorPool()
+void MandelbrotApp::createDescriptorSets()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 2;
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[0].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 3;
+    poolInfo.maxSets = 1;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
-}
 
-void MandelbrotApp::createRenderObjects()
-{
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
-
-    createDescriptorSets(numMeshes);
-
-    m_renderObjects.resize(numMeshes);
-
-    bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
-    {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
-
-        success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-        ro.numIndices = fw::ui32size(mesh.indices);
-
-        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = m_descriptorSets[i];
-    }
-
-    CHECK(success);
-}
-
-void MandelbrotApp::createDescriptorSets(uint32_t setCount)
-{
-    m_descriptorSets.resize(setCount);
-
-    std::vector<VkDescriptorSetLayout> layouts(setCount, m_descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = setCount;
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_descriptorSetLayout;
 
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, m_descriptorSets.data()));
-}
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_descriptorSet));
 
-void MandelbrotApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
-{
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    VkWriteDescriptorSet descriptorWrite{};
 
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
+    bufferInfo.buffer = m_storageBuffer.getBuffer();
     bufferInfo.offset = 0;
-    bufferInfo.range = c_transformMatricesSize;
+    bufferInfo.range = c_bufferSize;
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_descriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
 
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-
-    vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
 }
 
 void MandelbrotApp::createCommandBuffers()
 {
-    const std::vector<VkFramebuffer>& swapChainFramebuffers = fw::API::getSwapChainFramebuffers();
-    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = fw::API::getCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = fw::ui32size(commandBuffers);
-
-    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &allocInfo, commandBuffers.data()));
+    VkCommandBuffer commandBuffer;
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.commandPool = fw::API::getComputeCommandPool();
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = 1;
+    VK_CHECK(vkAllocateCommandBuffers(m_logicalDevice, &commandBufferAllocateInfo, &commandBuffer));
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    beginInfo.pInheritanceInfo = nullptr; // Optional
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.2f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = fw::API::getSwapChainExtent();
-    renderPassInfo.clearValueCount = fw::ui32size(clearValues);
-    renderPassInfo.pClearValues = clearValues.data();
+    vkCmdDispatch(commandBuffer,
+                  (uint32_t)ceil(c_width / float(c_workgroupSize)),
+                  (uint32_t)ceil(c_height / float(c_workgroupSize)),
+                  1);
 
-    VkDeviceSize offsets[] = {0};
+    VK_CHECK(vkEndCommandBuffer(commandBuffer));
 
-    for (size_t i = 0; i < commandBuffers.size(); ++i)
-    {
-        VkCommandBuffer cb = commandBuffers[i];
-
-        vkBeginCommandBuffer(cb, &beginInfo);
-
-        renderPassInfo.framebuffer = swapChainFramebuffers[i];
-
-        vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-        for (const RenderObject& ro : m_renderObjects)
-        {
-            VkBuffer vb = ro.vertexBuffer.getBuffer();
-            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-            vkCmdBindDescriptorSets(
-                cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
-        }
-
-        vkCmdEndRenderPass(cb);
-
-        VK_CHECK(vkEndCommandBuffer(cb));
-    }
-
-    fw::API::setCommandBuffers(commandBuffers);
+    fw::API::setNextComputeCommandBuffer(commandBuffer);
 }

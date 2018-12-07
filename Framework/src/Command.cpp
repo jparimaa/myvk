@@ -16,7 +16,24 @@ bool Command::createGraphicsCommandPool(VkCommandPool* commandPool)
 
     if (VkResult r = vkCreateCommandPool(Context::getLogicalDevice(), &poolInfo, nullptr, commandPool); r != VK_SUCCESS)
     {
-        printError("Failed to create command pool", &r);
+        printError("Failed to create grahpics command pool", &r);
+        return false;
+    }
+    return true;
+}
+
+bool Command::createComputeCommandPool(VkCommandPool* commandPool)
+{
+    QueueFamilyIndices indices = getQueueFamilies(Context::getPhysicalDevice(), Context::getSurface());
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = indices.computeFamily;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (VkResult r = vkCreateCommandPool(Context::getLogicalDevice(), &poolInfo, nullptr, commandPool); r != VK_SUCCESS)
+    {
+        printError("Failed to create compute command pool", &r);
         return false;
     }
     return true;
