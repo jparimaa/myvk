@@ -26,6 +26,7 @@ public:
     virtual bool initialize() final;
     virtual void update() final;
     virtual void onGUI() final;
+    virtual void postUpdate() final{};
 
 private:
     struct ShaderParameters

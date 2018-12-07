@@ -6,6 +6,9 @@
 #include "fw/Macros.h"
 #include "fw/Pipeline.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 #include <array>
 #include <iostream>
 
@@ -44,9 +47,31 @@ bool MandelbrotApp::initialize()
     return true;
 }
 
-void MandelbrotApp::update()
+void MandelbrotApp::postUpdate()
 {
     fw::API::quitApplication();
+
+    std::cout << "MandelbrotApp::postUpdate: Writing image...\n";
+
+    void* mappedMemory = NULL;
+    vkMapMemory(m_logicalDevice, m_storageBuffer.getMemory(), 0, c_bufferSize, 0, &mappedMemory);
+    glm::vec4* vecMemory = (glm::vec4*)mappedMemory;
+
+    std::vector<uint8_t> image;
+    image.reserve(c_bufferSize);
+    for (int i = 0; i < c_width * c_height; ++i)
+    {
+        image.push_back((uint8_t)(255.0f * (vecMemory[i].r)));
+        image.push_back((uint8_t)(255.0f * (vecMemory[i].g)));
+        image.push_back((uint8_t)(255.0f * (vecMemory[i].b)));
+        image.push_back((uint8_t)(255.0f * (vecMemory[i].a)));
+    }
+
+    vkUnmapMemory(m_logicalDevice, m_storageBuffer.getMemory());
+
+    std::string fileName = "output.png";
+    stbi_write_png(fileName.c_str(), c_width, c_height, 4, image.data(), 0);
+    std::cout << "Wrote file " << fileName << "\n";
 }
 
 void MandelbrotApp::createBuffer()

@@ -42,6 +42,7 @@ function(ADD_PROJECT_WITH_DEFAULT_SETTINGS PROJECT_NAME)
 
     if(MSVC)
         target_compile_options(${PROJECT_NAME} PRIVATE /W3 /WX /MP)
+        target_compile_definitions(${PROJECT_NAME} PUBLIC -D_CRT_SECURE_NO_WARNINGS)
     else()
         target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
     endif()

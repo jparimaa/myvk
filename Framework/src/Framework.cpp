@@ -63,6 +63,7 @@ void Framework::execute()
         {
             break;
         }
+        m_app->postUpdate();
     }
     vkDeviceWaitIdle(m_logicalDevice);
 }

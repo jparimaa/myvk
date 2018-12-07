@@ -19,8 +19,9 @@ public:
     MandelbrotApp& operator=(MandelbrotApp&&) = delete;
 
     virtual bool initialize() final;
-    virtual void update() final;
+    virtual void update() final{};
     virtual void onGUI() final{};
+    virtual void postUpdate() final;
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
