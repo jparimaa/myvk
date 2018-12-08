@@ -109,12 +109,6 @@ void MandelbrotApp::createPipeline()
         vkDestroyShaderModule(m_logicalDevice, shaderStage.module, nullptr);
     });
 
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts = &m_descriptorSetLayout;
-    VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutCreateInfo, NULL, &m_pipelineLayout));
-
     VkComputePipelineCreateInfo pipelineCreateInfo{};
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     pipelineCreateInfo.stage = shaderStage;
