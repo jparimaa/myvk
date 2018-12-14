@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Helpers.h"
+#include "ParticleCompute.h"
+
 #include "fw/Application.h"
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
@@ -15,13 +18,6 @@
 class ParticlesApp : public fw::Application
 {
 public:
-    struct Matrices
-    {
-        glm::mat4 world;
-        glm::mat4 view;
-        glm::mat4 proj;
-    };
-
     struct RenderObject
     {
         fw::Buffer vertexBuffer;
@@ -61,6 +57,10 @@ private:
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
+    ParticleCompute m_particleCompute;
+    fw::Buffer m_storageBuffer;
+
+    void createBuffer();
     void createRenderPass();
     void createDescriptorSetLayout();
     void createPipeline();

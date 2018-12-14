@@ -15,13 +15,6 @@
 #include <array>
 #include <iostream>
 
-namespace
-{
-const std::size_t c_transformMatricesSize = sizeof(ParticlesApp::Matrices);
-const std::string c_assetsFolder = ASSETS_PATH;
-const std::string c_shaderFolder = SHADER_PATH;
-} // namespace
-
 ParticlesApp::~ParticlesApp()
 {
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
@@ -35,6 +28,8 @@ bool ParticlesApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    createBuffer();
+    m_particleCompute.initialize(&m_storageBuffer);
     createRenderPass();
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayout();
@@ -82,6 +77,12 @@ void ParticlesApp::onGUI()
 #ifndef WIN32
 #pragma GCC diagnostic pop
 #endif
+}
+
+void ParticlesApp::createBuffer()
+{
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    m_storageBuffer.create(c_bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, uboProperties);
 }
 
 void ParticlesApp::createRenderPass()
