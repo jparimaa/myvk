@@ -9,12 +9,14 @@
 #include "fw/Pipeline.h"
 
 #include <array>
+#include <random>
 #include <iostream>
 
 ParticleCompute::~ParticleCompute()
 {
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
-    vkDestroyPipeline(m_logicalDevice, m_computePipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_positionPipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_directionPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
 }
@@ -24,12 +26,33 @@ bool ParticleCompute::initialize(fw::Buffer* storageBuffer)
     m_logicalDevice = fw::Context::getLogicalDevice();
     m_storageBuffer = storageBuffer;
 
+    writeRandomData();
     createDescriptorSetLayout();
-    createPipeline();
+    createDirectionPipeline();
+    createPositionPipeline();
     createDescriptorSets();
     createCommandBuffers();
 
     return true;
+}
+
+void ParticleCompute::writeRandomData()
+{
+    void* mappedMemory = NULL;
+    vkMapMemory(m_logicalDevice, m_storageBuffer->getMemory(), 0, c_bufferSize, 0, &mappedMemory);
+    Particle* particleMemory = (Particle*)mappedMemory;
+
+    std::default_random_engine randomEngine;
+    std::uniform_real_distribution<float> distribution(0.0, 1.0);
+    for (int i = 0; i < c_numParticles; ++i)
+    {
+        particleMemory[i].position = glm::vec4(distribution(randomEngine),
+                                               distribution(randomEngine),
+                                               distribution(randomEngine),
+                                               distribution(randomEngine));
+    }
+
+    vkUnmapMemory(m_logicalDevice, m_storageBuffer->getMemory());
 }
 
 void ParticleCompute::createDescriptorSetLayout()
@@ -50,7 +73,7 @@ void ParticleCompute::createDescriptorSetLayout()
     VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout));
 }
 
-void ParticleCompute::createPipeline()
+void ParticleCompute::createDirectionPipeline()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
@@ -66,7 +89,23 @@ void ParticleCompute::createPipeline()
     pipelineCreateInfo.stage = shaderStage;
     pipelineCreateInfo.layout = m_pipelineLayout;
 
-    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_computePipeline));
+    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_directionPipeline));
+}
+
+void ParticleCompute::createPositionPipeline()
+{
+    VkPipelineShaderStageCreateInfo shaderStage = fw::Pipeline::getComputeShaderStageInfo(c_shaderFolder + "position.comp.spv");
+
+    fw::Cleaner cleaner([&shaderStage, this]() {
+        vkDestroyShaderModule(m_logicalDevice, shaderStage.module, nullptr);
+    });
+
+    VkComputePipelineCreateInfo pipelineCreateInfo{};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.stage = shaderStage;
+    pipelineCreateInfo.layout = m_pipelineLayout;
+
+    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_positionPipeline));
 }
 
 void ParticleCompute::createDescriptorSets()
@@ -122,13 +161,76 @@ void ParticleCompute::createCommandBuffers()
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0;
-    //VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
+    VkBufferMemoryBarrier bufferBarrier{};
+    bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    bufferBarrier.buffer = m_storageBuffer->getBuffer();
+    bufferBarrier.size = c_bufferSize;
+    bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // Vertex shader invocations have finished reading from the buffer
+    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader wants to write to the buffer
+    bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
+    vkCmdPipelineBarrier(commandBuffer,
+                         VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         0,
+                         0,
+                         nullptr,
+                         1,
+                         &bufferBarrier,
+                         0,
+                         nullptr);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_directionPipeline);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
     vkCmdDispatch(commandBuffer, c_numParticles / c_workgroupSize, 1, 1);
+
+    // Add memory barrier to ensure that compute shader has finished writing to the buffer
+    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader has finished writes to the buffer
+    bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    bufferBarrier.buffer = m_storageBuffer->getBuffer();
+    bufferBarrier.size = c_bufferSize;
+    bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        0,
+        0,
+        nullptr,
+        1,
+        &bufferBarrier,
+        0,
+        nullptr);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_positionPipeline);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
+    vkCmdDispatch(commandBuffer, c_numParticles / c_workgroupSize, 1, 1);
+
+    // Add memory barrier to ensure that compute shader has finished writing to the buffer
+    // Without this the (rendering) vertex shader may display incomplete results (partial data from last frame)
+    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader has finished writes to the buffer
+    bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // Vertex shader invocations want to read from the buffer
+    bufferBarrier.buffer = m_storageBuffer->getBuffer();
+    bufferBarrier.size = c_bufferSize;
+    bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        0,
+        0,
+        nullptr,
+        1,
+        &bufferBarrier,
+        0,
+        nullptr);
 
     VK_CHECK(vkEndCommandBuffer(commandBuffer));
 

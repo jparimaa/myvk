@@ -15,7 +15,7 @@ layout(std140, binding = 0) buffer particleBuffer
    Particle particles[];
 };
 
-layout (constant_id = 0) const float c_gravity = 0.002;
+layout (constant_id = 0) const float c_gravity = 0.00002;
 layout (constant_id = 1) const int c_numParticles = 1024;
 
 void main() 
