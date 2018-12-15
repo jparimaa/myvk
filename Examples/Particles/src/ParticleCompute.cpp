@@ -43,7 +43,7 @@ void ParticleCompute::writeRandomData()
     Particle* particleMemory = (Particle*)mappedMemory;
 
     std::default_random_engine randomEngine;
-    std::uniform_real_distribution<float> distribution(0.0, 1.0);
+    std::uniform_real_distribution<float> distribution(-0.5, 0.5);
     for (int i = 0; i < c_numParticles; ++i)
     {
         particleMemory[i].position = glm::vec4(distribution(randomEngine),

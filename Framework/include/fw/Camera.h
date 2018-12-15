@@ -23,6 +23,8 @@ public:
     const glm::mat4x4& getViewMatrix() const;
     const glm::mat4x4& getProjectionMatrix() const;
 
+    void setNearClipDistance(float distance);
+    void setFarClipDistance(float distance);
     float getNearClipDistance() const;
     float getFarClipDistance() const;
 

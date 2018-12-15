@@ -22,6 +22,6 @@ void main()
 	int index = int(gl_GlobalInvocationID);
 	vec4 position = particles[index].position;
 	vec4 direction = particles[index].direction;
-	position += direction;
+	position.xyz += direction.xyz;
 	particles[index].position = position;
 }

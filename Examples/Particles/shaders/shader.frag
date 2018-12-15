@@ -3,11 +3,9 @@
 
 layout(binding = 1) uniform sampler2D albedo;
 
-layout(location = 0) in vec2 inUv;
-
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    outColor = texture(albedo, inUv);
+    outColor = vec4(1.0);
 }

@@ -62,6 +62,18 @@ const glm::mat4x4& Camera::getProjectionMatrix() const
     return m_projectionMatrix;
 }
 
+void Camera::setNearClipDistance(float distance)
+{
+    m_nearClipDistance = distance;
+    updateProjectionMatrix();
+}
+
+void Camera::setFarClipDistance(float distance)
+{
+    m_farClipDistance = distance;
+    updateProjectionMatrix();
+}
+
 float Camera::getNearClipDistance() const
 {
     return m_nearClipDistance;
