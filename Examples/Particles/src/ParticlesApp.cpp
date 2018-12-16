@@ -45,9 +45,10 @@ bool ParticlesApp::initialize()
     m_cameraController.setCamera(&m_camera);
     glm::vec3 initPos(0.0f, 0.0f, 15.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
+    m_cameraController.setMovementSpeed(50.0f);
     m_camera.setPosition(initPos);
-    m_camera.setNearClipDistance(1.0f);
-    m_camera.setFarClipDistance(1000.0f);
+    m_camera.setNearClipDistance(3.0f);
+    m_camera.setFarClipDistance(2000.0f);
 
     m_matrices.proj = m_camera.getProjectionMatrix();
 

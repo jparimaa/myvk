@@ -43,13 +43,19 @@ void ParticleCompute::writeRandomData()
     Particle* particleMemory = (Particle*)mappedMemory;
 
     std::default_random_engine randomEngine;
-    std::uniform_real_distribution<float> distribution(-0.5, 0.5);
+    std::uniform_real_distribution<float> positionDistribution(-0.5f, 0.5f);
+    std::uniform_real_distribution<float> scaleDistribution(0.8f, 1.0f);
+    std::uniform_real_distribution<float> directionDistribution(1.0f, 2.0f);
     for (int i = 0; i < c_numParticles; ++i)
     {
-        particleMemory[i].position = glm::vec4(distribution(randomEngine),
-                                               distribution(randomEngine),
-                                               distribution(randomEngine),
-                                               distribution(randomEngine));
+        glm::vec3 p(positionDistribution(randomEngine),
+                    positionDistribution(randomEngine),
+                    positionDistribution(randomEngine));
+        p = glm::normalize(p);
+        p *= scaleDistribution(randomEngine);
+        glm::vec4 position = glm::vec4(p.x, p.y, p.z, 1.0f);
+        particleMemory[i].position = position;
+        particleMemory[i].direction = position * c_initialSpeed;
     }
 
     vkUnmapMemory(m_logicalDevice, m_storageBuffer->getMemory());

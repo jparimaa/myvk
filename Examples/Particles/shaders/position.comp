@@ -15,13 +15,13 @@ layout(std140, binding = 0) buffer particleBuffer
    Particle particles[];
 };
 
-layout (constant_id = 1) const int c_numParticles = 1024;
+layout (constant_id = 1) const int c_numParticles = 16000;
 
 void main() 
 {
 	int index = int(gl_GlobalInvocationID);
 	vec4 position = particles[index].position;
 	vec4 direction = particles[index].direction;
-	position.xyz += direction.xyz;
+	position.xyz += direction.xyz * 0.0001;
 	particles[index].position = position;
 }

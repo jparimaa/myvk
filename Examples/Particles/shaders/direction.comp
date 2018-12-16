@@ -15,8 +15,8 @@ layout(std140, binding = 0) buffer particleBuffer
    Particle particles[];
 };
 
-layout (constant_id = 0) const float c_gravity = 0.0002;
-layout (constant_id = 1) const int c_numParticles = 1024;
+layout (constant_id = 0) const float c_gravity = 0.00003;
+layout (constant_id = 1) const int c_numParticles = 16000;
 
 void main() 
 {
@@ -27,7 +27,7 @@ void main()
   }
 
 	vec4 position = particles[index].position;
-	vec4 direction = vec4(0.0);
+	vec4 direction = particles[index].direction;
 
 	for (int i = 0; i < c_numParticles; ++i)
 	{
