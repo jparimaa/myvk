@@ -1,6 +1,6 @@
 # Particles
 
-N-body simulation with 16 000 particles. Each particle gets a speed outwards of in the beginning and after that they move according to gravitational-like forces.
+N-body simulation with 16 000 particles. Each particle gets a speed outwards in the beginning and after that they move according to gravitational-like forces.
 
 Simulation is done in two compute steps:
 1. Calculate new speed for each particle
