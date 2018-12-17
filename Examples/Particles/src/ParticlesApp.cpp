@@ -28,6 +28,26 @@ bool ParticlesApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
+    VkPhysicalDeviceProperties* physicalDeviceProperties = fw::Context::getPhysicalDeviceProperties();
+    VkPhysicalDeviceLimits limits = physicalDeviceProperties->limits;
+    uint32_t maxComputeWorkGroupCount[3] = {
+        limits.maxComputeWorkGroupCount[0],
+        limits.maxComputeWorkGroupCount[1],
+        limits.maxComputeWorkGroupCount[2]};
+    uint32_t maxComputeWorkGroupSize[3] = {
+        limits.maxComputeWorkGroupSize[0],
+        limits.maxComputeWorkGroupSize[1],
+        limits.maxComputeWorkGroupSize[2]};
+    uint32_t maxComputeWorkGroupInvocations = limits.maxComputeWorkGroupInvocations;
+
+    std::cout << "maxComputeWorkGroupCount[0]: " << maxComputeWorkGroupCount[0] << "\n"
+              << "maxComputeWorkGroupCount[1]: " << maxComputeWorkGroupCount[1] << "\n"
+              << "maxComputeWorkGroupCount[2]: " << maxComputeWorkGroupCount[2] << "\n"
+              << "maxComputeWorkGroupSize[0]: " << maxComputeWorkGroupSize[0] << "\n"
+              << "maxComputeWorkGroupSize[1]: " << maxComputeWorkGroupSize[1] << "\n"
+              << "maxComputeWorkGroupSize[2]: " << maxComputeWorkGroupSize[2] << "\n"
+              << "maxComputeWorkGroupInvocations: " << maxComputeWorkGroupInvocations << "\n";
+
     createBuffer();
     m_particleCompute.initialize(&m_storageBuffer);
     createRenderPass();
