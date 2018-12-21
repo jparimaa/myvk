@@ -7,9 +7,6 @@
 #include "fw/Buffer.h"
 #include "fw/Camera.h"
 #include "fw/CameraController.h"
-#include "fw/Sampler.h"
-#include "fw/Texture.h"
-#include "fw/Transformation.h"
 
 #include <glm/glm.hpp>
 
@@ -18,15 +15,6 @@
 class ParticlesApp : public fw::Application
 {
 public:
-    struct RenderObject
-    {
-        fw::Buffer vertexBuffer;
-        fw::Buffer indexBuffer;
-        uint32_t numIndices;
-        fw::Texture texture;
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-    };
-
     ParticlesApp(){};
     virtual ~ParticlesApp();
     ParticlesApp(const ParticlesApp&) = delete;
@@ -46,16 +34,13 @@ private:
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
-    fw::Sampler m_sampler;
     fw::Camera m_camera;
     fw::CameraController m_cameraController;
-    fw::Transformation m_transformation;
     Matrices m_matrices;
     fw::Buffer m_uniformBuffer;
-    std::vector<RenderObject> m_renderObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-    std::vector<VkDescriptorSet> m_descriptorSets;
+    VkDescriptorSet m_descriptorSet;
 
     ParticleCompute m_particleCompute;
     fw::Buffer m_storageBuffer;
@@ -65,8 +50,6 @@ private:
     void createDescriptorSetLayout();
     void createPipeline();
     void createDescriptorPool();
-    void createRenderObjects();
-    void createDescriptorSets(uint32_t setCount);
-    void updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView);
+    void createDescriptorSets();
     void createCommandBuffers();
 };

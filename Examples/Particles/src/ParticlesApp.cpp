@@ -4,8 +4,6 @@
 #include "fw/Common.h"
 #include "fw/Context.h"
 #include "fw/Macros.h"
-#include "fw/Mesh.h"
-#include "fw/Model.h"
 #include "fw/Pipeline.h"
 #include "fw/RenderPass.h"
 
@@ -54,9 +52,8 @@ bool ParticlesApp::initialize()
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayout();
     createPipeline();
-    success = success && m_sampler.create(VK_COMPARE_OP_ALWAYS);
     createDescriptorPool();
-    createRenderObjects();
+    createDescriptorSets();
     success = success && fw::API::initializeGUI(m_descriptorPool);
     createCommandBuffers();
 
@@ -77,12 +74,8 @@ bool ParticlesApp::initialize()
 
 void ParticlesApp::update()
 {
-    m_transformation.rotateUp(fw::API::getTimeDelta() * glm::radians(45.0f));
-    m_matrices.world = m_transformation.getWorldMatrix();
-
     m_cameraController.update();
     m_matrices.view = m_camera.getViewMatrix();
-
     m_uniformBuffer.setData(sizeof(m_matrices), &m_matrices);
 }
 
@@ -247,72 +240,34 @@ void ParticlesApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 2;
+    poolSizes[0].descriptorCount = 16;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    poolSizes[1].descriptorCount = 16;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = fw::ui32size(poolSizes);
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 3;
+    poolInfo.maxSets = 16;
 
     VK_CHECK(vkCreateDescriptorPool(m_logicalDevice, &poolInfo, nullptr, &m_descriptorPool));
 }
 
-void ParticlesApp::createRenderObjects()
+void ParticlesApp::createDescriptorSets()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-
-    fw::Model model;
-    CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
-
-    fw::Model::Meshes meshes = model.getMeshes();
-    uint32_t numMeshes = fw::ui32size(meshes);
-
-    createDescriptorSets(numMeshes);
-
-    m_renderObjects.resize(numMeshes);
-
-    bool success = true;
-    for (unsigned int i = 0; i < numMeshes; ++i)
-    {
-        const fw::Mesh& mesh = meshes[i];
-        RenderObject& ro = m_renderObjects[i];
-
-        success = success
-            && ro.vertexBuffer.createForDevice<fw::Mesh::Vertex>(mesh.getVertices(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)
-            && ro.indexBuffer.createForDevice<uint32_t>(mesh.indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-        ro.numIndices = fw::ui32size(mesh.indices);
-
-        std::string textureFile = c_assetsFolder + mesh.getFirstTextureOfType(aiTextureType::aiTextureType_DIFFUSE);
-        ro.texture.load(textureFile, VK_FORMAT_R8G8B8A8_UNORM);
-        updateDescriptorSet(m_descriptorSets[i], ro.texture.getImageView());
-        ro.descriptorSet = m_descriptorSets[i];
-    }
-
-    CHECK(success);
-}
-
-void ParticlesApp::createDescriptorSets(uint32_t setCount)
-{
-    m_descriptorSets.resize(setCount);
-
-    std::vector<VkDescriptorSetLayout> layouts(setCount, m_descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts{m_descriptorSetLayout};
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool;
-    allocInfo.descriptorSetCount = setCount;
+    allocInfo.descriptorSetCount = fw::ui32size(layouts);
     allocInfo.pSetLayouts = layouts.data();
 
-    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, m_descriptorSets.data()));
-}
+    VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_descriptorSet));
 
-void ParticlesApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
-{
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+
+    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_uniformBuffer.getBuffer();
@@ -320,25 +275,12 @@ void ParticlesApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageVie
     bufferInfo.range = c_transformMatricesSize;
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSet;
+    descriptorWrites[0].dstSet = m_descriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = imageView;
-    imageInfo.sampler = m_sampler.getSampler();
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSet;
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
@@ -386,13 +328,10 @@ void ParticlesApp::createCommandBuffers()
         vkCmdBeginRenderPass(cb, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
-        for (const RenderObject& ro : m_renderObjects)
-        {
-            VkBuffer vb = m_storageBuffer.getBuffer();
-            vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDraw(cb, c_numParticles, 1, 0, 0);
-        }
+        VkBuffer vb = m_storageBuffer.getBuffer();
+        vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, nullptr);
+        vkCmdDraw(cb, c_numParticles, 1, 0, 0);
 
         vkCmdEndRenderPass(cb);
 
