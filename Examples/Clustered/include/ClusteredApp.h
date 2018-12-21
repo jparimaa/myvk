@@ -57,7 +57,7 @@ private:
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
-    ClusteredCompute m_particleCompute;
+    ClusteredCompute m_clusteredCompute;
     fw::Buffer m_storageBuffer;
 
     void createBuffer();

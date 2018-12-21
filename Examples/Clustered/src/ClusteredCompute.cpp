@@ -15,8 +15,7 @@
 ClusteredCompute::~ClusteredCompute()
 {
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
-    vkDestroyPipeline(m_logicalDevice, m_positionPipeline, nullptr);
-    vkDestroyPipeline(m_logicalDevice, m_directionPipeline, nullptr);
+    vkDestroyPipeline(m_logicalDevice, m_cullingPipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
 }
@@ -28,8 +27,7 @@ bool ClusteredCompute::initialize(fw::Buffer* storageBuffer)
 
     writeRandomData();
     createDescriptorSetLayout();
-    createDirectionPipeline();
-    createPositionPipeline();
+    createCullingPipeline();
     createDescriptorSets();
     createCommandBuffers();
 
@@ -40,22 +38,25 @@ void ClusteredCompute::writeRandomData()
 {
     void* mappedMemory = NULL;
     vkMapMemory(m_logicalDevice, m_storageBuffer->getMemory(), 0, c_bufferSize, 0, &mappedMemory);
-    Particle* particleMemory = (Particle*)mappedMemory;
+    Light* lightMemory = (Light*)mappedMemory;
 
     std::default_random_engine randomEngine;
-    std::uniform_real_distribution<float> positionDistribution(-0.5f, 0.5f);
-    std::uniform_real_distribution<float> scaleDistribution(0.8f, 1.0f);
-    std::uniform_real_distribution<float> directionDistribution(1.0f, 2.0f);
-    for (int i = 0; i < c_numParticles; ++i)
+    std::uniform_real_distribution<float> positionDistribution(-10.0f, 10.0f);
+    std::uniform_real_distribution<float> radiusDistribution(0.5f, 2.0f);
+    std::uniform_real_distribution<float> colorDistribution(0.0f, 1.0f);
+    for (int i = 0; i < c_numLights; ++i)
     {
-        glm::vec3 p(positionDistribution(randomEngine),
-                    positionDistribution(randomEngine),
-                    positionDistribution(randomEngine));
-        p = glm::normalize(p);
-        p *= scaleDistribution(randomEngine);
-        glm::vec4 position = glm::vec4(p.x, p.y, p.z, 1.0f);
-        particleMemory[i].position = position;
-        particleMemory[i].direction = position * c_initialSpeed;
+        glm::vec3 position(positionDistribution(randomEngine),
+                           positionDistribution(randomEngine),
+                           positionDistribution(randomEngine));
+        float radius = radiusDistribution(randomEngine);
+        lightMemory[i].position = glm::vec4(position.x, position.y, position.z, radius);
+
+        glm::vec3 color(colorDistribution(randomEngine),
+                        colorDistribution(randomEngine),
+                        colorDistribution(randomEngine));
+        float power = 1.0f;
+        lightMemory[i].color = glm::vec4(color.x, color.y, color.z, power);
     }
 
     vkUnmapMemory(m_logicalDevice, m_storageBuffer->getMemory());
@@ -79,12 +80,12 @@ void ClusteredCompute::createDescriptorSetLayout()
     VK_CHECK(vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout));
 }
 
-void ClusteredCompute::createDirectionPipeline()
+void ClusteredCompute::createCullingPipeline()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = fw::Pipeline::getPipelineLayoutInfo(&m_descriptorSetLayout);
     VK_CHECK(vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
 
-    VkPipelineShaderStageCreateInfo shaderStage = fw::Pipeline::getComputeShaderStageInfo(c_shaderFolder + "direction.comp.spv");
+    VkPipelineShaderStageCreateInfo shaderStage = fw::Pipeline::getComputeShaderStageInfo(c_shaderFolder + "culling.comp.spv");
 
     fw::Cleaner cleaner([&shaderStage, this]() {
         vkDestroyShaderModule(m_logicalDevice, shaderStage.module, nullptr);
@@ -95,23 +96,7 @@ void ClusteredCompute::createDirectionPipeline()
     pipelineCreateInfo.stage = shaderStage;
     pipelineCreateInfo.layout = m_pipelineLayout;
 
-    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_directionPipeline));
-}
-
-void ClusteredCompute::createPositionPipeline()
-{
-    VkPipelineShaderStageCreateInfo shaderStage = fw::Pipeline::getComputeShaderStageInfo(c_shaderFolder + "position.comp.spv");
-
-    fw::Cleaner cleaner([&shaderStage, this]() {
-        vkDestroyShaderModule(m_logicalDevice, shaderStage.module, nullptr);
-    });
-
-    VkComputePipelineCreateInfo pipelineCreateInfo{};
-    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineCreateInfo.stage = shaderStage;
-    pipelineCreateInfo.layout = m_pipelineLayout;
-
-    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_positionPipeline));
+    VK_CHECK(vkCreateComputePipelines(m_logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_cullingPipeline));
 }
 
 void ClusteredCompute::createDescriptorSets()
@@ -173,13 +158,13 @@ void ClusteredCompute::createCommandBuffers()
     bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
     bufferBarrier.buffer = m_storageBuffer->getBuffer();
     bufferBarrier.size = c_bufferSize;
-    bufferBarrier.srcAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // Vertex shader invocations have finished reading from the buffer
+    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT; // Rendering invocations have finished reading from the buffer
     bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader wants to write to the buffer
     bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     vkCmdPipelineBarrier(commandBuffer,
-                         VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          0,
                          0,
@@ -189,9 +174,10 @@ void ClusteredCompute::createCommandBuffers()
                          0,
                          nullptr);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_directionPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_cullingPipeline);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
-    vkCmdDispatch(commandBuffer, c_numParticles / c_workgroupSize, 1, 1);
+    VkExtent2D extent = fw::API::getSwapChainExtent();
+    vkCmdDispatch(commandBuffer, extent.width / c_workgroupSize, extent.height / c_workgroupSize, c_gridDepthSplitCount);
 
     // Add memory barrier to ensure that compute shader has finished writing to the buffer
     bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader has finished writes to the buffer
@@ -204,32 +190,7 @@ void ClusteredCompute::createCommandBuffers()
     vkCmdPipelineBarrier(
         commandBuffer,
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        0,
-        0,
-        nullptr,
-        1,
-        &bufferBarrier,
-        0,
-        nullptr);
-
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_positionPipeline);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSet, 0, NULL);
-    vkCmdDispatch(commandBuffer, c_numParticles / c_workgroupSize, 1, 1);
-
-    // Add memory barrier to ensure that compute shader has finished writing to the buffer
-    // Without this the (rendering) vertex shader may display incomplete results (partial data from last frame)
-    bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader has finished writes to the buffer
-    bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT; // Vertex shader invocations want to read from the buffer
-    bufferBarrier.buffer = m_storageBuffer->getBuffer();
-    bufferBarrier.size = c_bufferSize;
-    bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0,
         0,
         nullptr,

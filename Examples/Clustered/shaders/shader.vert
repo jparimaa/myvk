@@ -9,22 +9,20 @@ layout(binding = 0) uniform TransformationMatrices
 }
 ubo;
 
-layout(location = 0) in vec4 inPosition;
-layout(location = 1) in vec4 inDirection;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec3 inTangent;
+layout(location = 3) in vec2 inUv;
 
-layout(location = 0) out float outSpeed;
-
-layout (constant_id = 0) const float c_initialSpeed = 100.0;
+layout(location = 0) out vec2 outUv;
 
 out gl_PerVertex
 {
     vec4 gl_Position;
-   	float gl_PointSize;
 };
 
 void main()
 {
-    gl_PointSize = 2.0;
-    gl_Position = ubo.proj * ubo.view * vec4(inPosition.xyz, 1.0);
-    outSpeed = length(inDirection.xyz) * (1.0 / c_initialSpeed);
+    gl_Position = ubo.proj * ubo.view * ubo.world * vec4(inPosition, 1.0);
+    outUv = inUv;
 }

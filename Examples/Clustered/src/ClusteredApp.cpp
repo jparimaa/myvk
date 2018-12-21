@@ -28,28 +28,8 @@ bool ClusteredApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
-    VkPhysicalDeviceProperties* physicalDeviceProperties = fw::Context::getPhysicalDeviceProperties();
-    VkPhysicalDeviceLimits limits = physicalDeviceProperties->limits;
-    uint32_t maxComputeWorkGroupCount[3] = {
-        limits.maxComputeWorkGroupCount[0],
-        limits.maxComputeWorkGroupCount[1],
-        limits.maxComputeWorkGroupCount[2]};
-    uint32_t maxComputeWorkGroupSize[3] = {
-        limits.maxComputeWorkGroupSize[0],
-        limits.maxComputeWorkGroupSize[1],
-        limits.maxComputeWorkGroupSize[2]};
-    uint32_t maxComputeWorkGroupInvocations = limits.maxComputeWorkGroupInvocations;
-
-    std::cout << "maxComputeWorkGroupCount[0]: " << maxComputeWorkGroupCount[0] << "\n"
-              << "maxComputeWorkGroupCount[1]: " << maxComputeWorkGroupCount[1] << "\n"
-              << "maxComputeWorkGroupCount[2]: " << maxComputeWorkGroupCount[2] << "\n"
-              << "maxComputeWorkGroupSize[0]: " << maxComputeWorkGroupSize[0] << "\n"
-              << "maxComputeWorkGroupSize[1]: " << maxComputeWorkGroupSize[1] << "\n"
-              << "maxComputeWorkGroupSize[2]: " << maxComputeWorkGroupSize[2] << "\n"
-              << "maxComputeWorkGroupInvocations: " << maxComputeWorkGroupInvocations << "\n";
-
     createBuffer();
-    m_particleCompute.initialize(&m_storageBuffer);
+    m_clusteredCompute.initialize(&m_storageBuffer);
     createRenderPass();
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayout();
@@ -63,12 +43,11 @@ bool ClusteredApp::initialize()
     CHECK(success);
 
     m_cameraController.setCamera(&m_camera);
-    glm::vec3 initPos(0.0f, 0.0f, 15.0f);
+    glm::vec3 initPos(0.0f, 10.0f, 35.0f);
     m_cameraController.setResetMode(initPos, glm::vec3(), GLFW_KEY_R);
-    m_cameraController.setMovementSpeed(50.0f);
     m_camera.setPosition(initPos);
-    m_camera.setNearClipDistance(3.0f);
-    m_camera.setFarClipDistance(2000.0f);
+    m_camera.setNearClipDistance(1.0f);
+    m_camera.setFarClipDistance(100.0f);
 
     m_matrices.proj = m_camera.getProjectionMatrix();
 
@@ -191,26 +170,11 @@ void ClusteredApp::createPipeline()
         }
     });
 
-    VkVertexInputBindingDescription vertexDescription{};
-    vertexDescription.binding = 0;
-    vertexDescription.stride = sizeof(Particle);
-    vertexDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Particle, position);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Particle, direction);
-
+    VkVertexInputBindingDescription vertexDescription = fw::Pipeline::getVertexDescription();
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = fw::Pipeline::getAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputState = fw::Pipeline::getVertexInputState(&vertexDescription, &attributeDescriptions);
 
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = fw::Pipeline::getInputAssemblyState();
-    inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
     VkViewport viewport = fw::Pipeline::getViewport();
     VkRect2D scissor = fw::Pipeline::getScissorRect();
@@ -388,10 +352,11 @@ void ClusteredApp::createCommandBuffers()
 
         for (const RenderObject& ro : m_renderObjects)
         {
-            VkBuffer vb = m_storageBuffer.getBuffer();
+            VkBuffer vb = ro.vertexBuffer.getBuffer();
             vkCmdBindVertexBuffers(cb, 0, 1, &vb, offsets);
+            vkCmdBindIndexBuffer(cb, ro.indexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
             vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &ro.descriptorSet, 0, nullptr);
-            vkCmdDraw(cb, c_numParticles, 1, 0, 0);
+            vkCmdDrawIndexed(cb, ro.numIndices, 1, 0, 0, 0);
         }
 
         vkCmdEndRenderPass(cb);
