@@ -10,7 +10,7 @@ public:
     ClusteredCompute(){};
     ~ClusteredCompute();
 
-    bool initialize(fw::Buffer* storageBuffer);
+    bool initialize(fw::Buffer* lightBuffer, fw::Buffer* lightIndexBuffer, fw::Buffer* tileBuffer);
 
 private:
     VkDevice m_logicalDevice = VK_NULL_HANDLE;
@@ -18,7 +18,9 @@ private:
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_cullingPipeline = VK_NULL_HANDLE;
 
-    fw::Buffer* m_storageBuffer;
+    fw::Buffer* m_lightStorageBuffer;
+    fw::Buffer* m_lightIndexStorageBuffer;
+    fw::Buffer* m_tileStorageBuffer;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet m_descriptorSet;

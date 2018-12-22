@@ -58,9 +58,11 @@ private:
     std::vector<VkDescriptorSet> m_descriptorSets;
 
     ClusteredCompute m_clusteredCompute;
-    fw::Buffer m_storageBuffer;
+    fw::Buffer m_lightStorageBuffer;
+    fw::Buffer m_lightIndexStorageBuffer;
+    fw::Buffer m_tileStorageBuffer;
 
-    void createBuffer();
+    void createBuffers();
     void createRenderPass();
     void createDescriptorSetLayout();
     void createPipeline();

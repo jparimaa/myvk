@@ -15,8 +15,24 @@ layout(std140, binding = 0) buffer lightBuffer
    Light lights[];
 };
 
+layout(std140, binding = 1) buffer lightIndexBuffer 
+{
+   uint lightIndex[];
+};
+
+struct Tile
+{
+	uint offset;
+	uint count;
+};
+
+layout(std140, binding = 2) buffer tileBuffer 
+{
+   Tile tiles[];
+};
+
 void main() 
 {
 	int index = int(gl_GlobalInvocationID);
-	lights[index].color.w = 1.0;
+	lights[index].color.w = 9.0;
 }

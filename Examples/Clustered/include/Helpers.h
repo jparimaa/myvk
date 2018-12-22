@@ -23,10 +23,13 @@ const std::string c_shaderFolder = SHADER_PATH;
 
 const std::size_t c_transformMatricesSize = sizeof(Matrices);
 const int c_numLights = 2048;
-const int c_bufferSize = sizeof(Light) * c_numLights;
-const int c_workgroupSize = 16;
-const int c_gridDepthSplitCount = 4;
-const int c_numGridDepthValues = c_gridDepthSplitCount - 1;
+const int c_gridSize = 32;
+const int c_gridDepth = 4;
+const int c_cellCount = c_gridSize * c_gridSize * c_gridDepth;
+const int c_lightBufferSize = sizeof(Light) * c_numLights;
+const int c_lightIndexBufferSize = c_numLights * c_numLights * sizeof(uint32_t);
+const int c_tileBufferSize = c_cellCount * sizeof(uint32_t) * 2;
+const int c_numGridDepthValues = c_gridDepth - 1;
 const std::array<float, c_numGridDepthValues> c_gridDepthValues{
     5.0f,
     20.0f,

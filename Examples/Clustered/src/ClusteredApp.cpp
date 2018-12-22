@@ -28,8 +28,8 @@ bool ClusteredApp::initialize()
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
 
-    createBuffer();
-    m_clusteredCompute.initialize(&m_storageBuffer);
+    createBuffers();
+    m_clusteredCompute.initialize(&m_lightStorageBuffer, &m_lightIndexStorageBuffer, &m_tileStorageBuffer);
     createRenderPass();
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayout();
@@ -81,10 +81,12 @@ void ClusteredApp::onGUI()
 #endif
 }
 
-void ClusteredApp::createBuffer()
+void ClusteredApp::createBuffers()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    m_storageBuffer.create(c_bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
+    m_lightStorageBuffer.create(c_lightBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
+    m_lightIndexStorageBuffer.create(c_lightIndexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
+    m_tileStorageBuffer.create(c_tileBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
 }
 
 void ClusteredApp::createRenderPass()
@@ -129,21 +131,47 @@ void ClusteredApp::createRenderPass()
 
 void ClusteredApp::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+    VkDescriptorSetLayoutBinding uboBinding{};
+    uboBinding.binding = 0;
+    uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboBinding.descriptorCount = 1;
+    uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboBinding.pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding samplerBinding{};
+    samplerBinding.binding = 1;
+    samplerBinding.descriptorCount = 1;
+    samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    samplerBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutBinding lightStorageBinding{};
+    lightStorageBinding.binding = 2;
+    lightStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    lightStorageBinding.descriptorCount = 1;
+    lightStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightStorageBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutBinding lightIndexStorageBinding{};
+    lightIndexStorageBinding.binding = 3;
+    lightIndexStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    lightIndexStorageBinding.descriptorCount = 1;
+    lightIndexStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightIndexStorageBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutBinding tileStorageBinding{};
+    tileStorageBinding.binding = 4;
+    tileStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    tileStorageBinding.descriptorCount = 1;
+    tileStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    tileStorageBinding.pImmutableSamplers = nullptr; // Optional
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {
+        uboBinding,
+        samplerBinding,
+        lightStorageBinding,
+        lightIndexStorageBinding,
+        tileStorageBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -209,11 +237,13 @@ void ClusteredApp::createPipeline()
 
 void ClusteredApp::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = 2;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = 3;
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[2].descriptorCount = 6;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -276,7 +306,7 @@ void ClusteredApp::createDescriptorSets(uint32_t setCount)
 
 void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_uniformBuffer.getBuffer();
@@ -303,6 +333,45 @@ void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageVie
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     descriptorWrites[1].descriptorCount = 1;
     descriptorWrites[1].pImageInfo = &imageInfo;
+
+    VkDescriptorBufferInfo lightBufferInfo{};
+    lightBufferInfo.buffer = m_lightStorageBuffer.getBuffer();
+    lightBufferInfo.offset = 0;
+    lightBufferInfo.range = c_lightBufferSize;
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = descriptorSet;
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pBufferInfo = &lightBufferInfo;
+
+    VkDescriptorBufferInfo lightIndexBufferInfo{};
+    lightIndexBufferInfo.buffer = m_lightIndexStorageBuffer.getBuffer();
+    lightIndexBufferInfo.offset = 0;
+    lightIndexBufferInfo.range = c_lightIndexBufferSize;
+
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = descriptorSet;
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = &lightIndexBufferInfo;
+
+    VkDescriptorBufferInfo tileBufferInfo{};
+    tileBufferInfo.buffer = m_tileStorageBuffer.getBuffer();
+    tileBufferInfo.offset = 0;
+    tileBufferInfo.range = c_tileBufferSize;
+
+    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[4].dstSet = descriptorSet;
+    descriptorWrites[4].dstBinding = 4;
+    descriptorWrites[4].dstArrayElement = 0;
+    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[4].descriptorCount = 1;
+    descriptorWrites[4].pBufferInfo = &tileBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
