@@ -28,6 +28,7 @@ private:
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_computePipeline = VK_NULL_HANDLE;
+    VkFence m_commandBufferFence;
 
     fw::Buffer m_storageBuffer;
 
@@ -38,5 +39,6 @@ private:
     void createDescriptorSetLayout();
     void createPipeline();
     void createDescriptorSets();
+    void createFence();
     void createCommandBuffers();
 };

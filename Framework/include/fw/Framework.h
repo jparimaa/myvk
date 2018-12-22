@@ -53,6 +53,7 @@ private:
     std::vector<VkCommandBuffer> m_commandBuffers;
     VkCommandBuffer m_nextCommandBuffer = nullptr;
     VkFence m_renderBufferFence = VK_NULL_HANDLE;
+    VkFence m_commandBufferFence = VK_NULL_HANDLE;
 
     VkCommandBuffer m_nextComputeCommandBuffer = nullptr;
 

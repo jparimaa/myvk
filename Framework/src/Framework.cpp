@@ -90,35 +90,16 @@ void Framework::compute()
 {
     if (m_nextComputeCommandBuffer != nullptr)
     {
-        VkFence fence;
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.flags = 0;
-
-        if (VkResult r = vkCreateFence(m_logicalDevice, &fenceCreateInfo, NULL, &fence); r != VK_SUCCESS)
-        {
-            printError("Failed to create fence in compute", &r);
-            return;
-        }
-
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_nextComputeCommandBuffer;
 
-        if (VkResult r = vkQueueSubmit(m_computeQueue, 1, &submitInfo, fence); r != VK_SUCCESS)
+        if (VkResult r = vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_commandBufferFence); r != VK_SUCCESS)
         {
             printError("Failed to submit queue in compute", &r);
             return;
         }
-
-        if (VkResult r = vkWaitForFences(m_logicalDevice, 1, &fence, VK_TRUE, 1000000000); r != VK_SUCCESS)
-        {
-            printError("Failed to wait for fence in compute", &r);
-            return;
-        }
-
-        vkDestroyFence(m_logicalDevice, fence, NULL);
     }
 }
 

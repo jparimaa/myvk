@@ -129,6 +129,11 @@ void API::setRenderBufferFence(VkFence fence)
     s_framework->m_renderBufferFence = fence;
 }
 
+void API::setCommandBufferFence(VkFence fence)
+{
+    s_framework->m_commandBufferFence = fence;
+}
+
 GLFWwindow* API::getGLFWwindow()
 {
     return s_framework->m_window.getWindow();

@@ -23,6 +23,7 @@ const int c_workgroupSize = 32;
 
 MandelbrotApp::~MandelbrotApp()
 {
+    vkDestroyFence(m_logicalDevice, m_commandBufferFence, nullptr);
     vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
     vkDestroyPipeline(m_logicalDevice, m_computePipeline, nullptr);
     vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
@@ -37,6 +38,7 @@ bool MandelbrotApp::initialize()
     createDescriptorSetLayout();
     createPipeline();
     createDescriptorSets();
+    createFence();
     createCommandBuffers();
 
     fw::API::setRenderingEnabled(false);
@@ -50,6 +52,8 @@ bool MandelbrotApp::initialize()
 void MandelbrotApp::postUpdate()
 {
     fw::API::quitApplication();
+
+    VK_CHECK(vkWaitForFences(m_logicalDevice, 1, &m_commandBufferFence, VK_TRUE, 1000000000));
 
     std::cout << "MandelbrotApp::postUpdate: Writing image...\n";
 
@@ -155,6 +159,15 @@ void MandelbrotApp::createDescriptorSets()
     descriptorWrite.pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, 1, &descriptorWrite, 0, nullptr);
+}
+
+void MandelbrotApp::createFence()
+{
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags = 0;
+    VK_CHECK(vkCreateFence(m_logicalDevice, &fenceCreateInfo, NULL, &m_commandBufferFence));
+    fw::API::setCommandBufferFence(m_commandBufferFence);
 }
 
 void MandelbrotApp::createCommandBuffers()

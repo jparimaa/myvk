@@ -43,6 +43,7 @@ public:
     static void setNextCommandBuffer(VkCommandBuffer commandBuffer);
     static void setNextComputeCommandBuffer(VkCommandBuffer commandBuffer);
     static void setRenderBufferFence(VkFence fence);
+    static void setCommandBufferFence(VkFence fence);
 
     static GLFWwindow* getGLFWwindow();
 
