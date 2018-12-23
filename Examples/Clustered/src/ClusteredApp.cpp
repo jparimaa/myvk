@@ -29,7 +29,7 @@ bool ClusteredApp::initialize()
     m_logicalDevice = fw::Context::getLogicalDevice();
 
     createBuffers();
-    m_clusteredCompute.initialize(&m_lightStorageBuffer, &m_lightIndexStorageBuffer, &m_tileStorageBuffer);
+
     createRenderPass();
     bool success = fw::API::initializeSwapChainWithDefaultFramebuffer(m_renderPass);
     createDescriptorSetLayout();
@@ -50,6 +50,10 @@ bool ClusteredApp::initialize()
     m_camera.setFarClipDistance(100.0f);
 
     m_matrices.proj = m_camera.getProjectionMatrix();
+    m_matrices.inverseProj = glm::inverse(m_camera.getProjectionMatrix());
+
+    Buffers buffers{&m_uniformBuffer, &m_lightStorageBuffer, &m_lightIndexStorageBuffer, &m_tileStorageBuffer};
+    m_clusteredCompute.initialize(buffers);
 
     return true;
 }

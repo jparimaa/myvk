@@ -1,5 +1,4 @@
 #include "ClusteredCompute.h"
-#include "Helpers.h"
 
 #include "fw/API.h"
 #include "fw/Command.h"
@@ -20,12 +19,10 @@ ClusteredCompute::~ClusteredCompute()
     vkDestroyDescriptorSetLayout(m_logicalDevice, m_descriptorSetLayout, nullptr);
 }
 
-bool ClusteredCompute::initialize(fw::Buffer* lightBuffer, fw::Buffer* lightIndexBuffer, fw::Buffer* tileBuffer)
+bool ClusteredCompute::initialize(const Buffers& buffers)
 {
     m_logicalDevice = fw::Context::getLogicalDevice();
-    m_lightStorageBuffer = lightBuffer;
-    m_lightIndexStorageBuffer = lightIndexBuffer;
-    m_tileStorageBuffer = tileBuffer;
+    m_buffers = buffers;
 
     writeRandomData();
     createDescriptorSetLayout();
@@ -39,7 +36,7 @@ bool ClusteredCompute::initialize(fw::Buffer* lightBuffer, fw::Buffer* lightInde
 void ClusteredCompute::writeRandomData()
 {
     void* mappedMemory = NULL;
-    vkMapMemory(m_logicalDevice, m_lightStorageBuffer->getMemory(), 0, c_lightBufferSize, 0, &mappedMemory);
+    vkMapMemory(m_logicalDevice, m_buffers.lightBuffer->getMemory(), 0, c_lightBufferSize, 0, &mappedMemory);
     Light* lightMemory = (Light*)mappedMemory;
 
     std::default_random_engine randomEngine;
@@ -61,33 +58,44 @@ void ClusteredCompute::writeRandomData()
         lightMemory[i].color = glm::vec4(color.x, color.y, color.z, power);
     }
 
-    vkUnmapMemory(m_logicalDevice, m_lightStorageBuffer->getMemory());
+    vkUnmapMemory(m_logicalDevice, m_buffers.lightBuffer->getMemory());
 }
 
 void ClusteredCompute::createDescriptorSetLayout()
 {
+    VkDescriptorSetLayoutBinding matrixUniformBinding{};
+    matrixUniformBinding.binding = 0;
+    matrixUniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    matrixUniformBinding.descriptorCount = 1;
+    matrixUniformBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    matrixUniformBinding.pImmutableSamplers = nullptr; // Optional
+
     VkDescriptorSetLayoutBinding lightStorageBinding{};
-    lightStorageBinding.binding = 0;
+    lightStorageBinding.binding = 1;
     lightStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightStorageBinding.descriptorCount = 1;
     lightStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     lightStorageBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutBinding lightIndexStorageBinding{};
-    lightIndexStorageBinding.binding = 1;
+    lightIndexStorageBinding.binding = 2;
     lightIndexStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightIndexStorageBinding.descriptorCount = 1;
     lightIndexStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     lightIndexStorageBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutBinding tileStorageBinding{};
-    tileStorageBinding.binding = 2;
+    tileStorageBinding.binding = 3;
     tileStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     tileStorageBinding.descriptorCount = 1;
     tileStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     tileStorageBinding.pImmutableSamplers = nullptr; // Optional
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {lightStorageBinding, lightIndexStorageBinding, tileStorageBinding};
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {
+        matrixUniformBinding,
+        lightStorageBinding,
+        lightIndexStorageBinding,
+        tileStorageBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -117,9 +125,11 @@ void ClusteredCompute::createCullingPipeline()
 
 void ClusteredCompute::createDescriptorSets()
 {
-    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     poolSizes[0].descriptorCount = 3;
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].descriptorCount = 1;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -137,25 +147,25 @@ void ClusteredCompute::createDescriptorSets()
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_descriptorSet));
 
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
-    VkDescriptorBufferInfo lightBufferInfo{};
-    lightBufferInfo.buffer = m_lightStorageBuffer->getBuffer();
-    lightBufferInfo.offset = 0;
-    lightBufferInfo.range = c_lightBufferSize;
+    VkDescriptorBufferInfo matrixBufferInfo{};
+    matrixBufferInfo.buffer = m_buffers.matrixBuffer->getBuffer();
+    matrixBufferInfo.offset = 0;
+    matrixBufferInfo.range = c_transformMatricesSize;
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = m_descriptorSet;
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &lightBufferInfo;
+    descriptorWrites[0].pBufferInfo = &matrixBufferInfo;
 
-    VkDescriptorBufferInfo lightIndexBufferInfo{};
-    lightIndexBufferInfo.buffer = m_lightIndexStorageBuffer->getBuffer();
-    lightIndexBufferInfo.offset = 0;
-    lightIndexBufferInfo.range = c_lightIndexBufferSize;
+    VkDescriptorBufferInfo lightBufferInfo{};
+    lightBufferInfo.buffer = m_buffers.lightBuffer->getBuffer();
+    lightBufferInfo.offset = 0;
+    lightBufferInfo.range = c_lightBufferSize;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = m_descriptorSet;
@@ -163,12 +173,12 @@ void ClusteredCompute::createDescriptorSets()
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pBufferInfo = &lightIndexBufferInfo;
+    descriptorWrites[1].pBufferInfo = &lightBufferInfo;
 
-    VkDescriptorBufferInfo tileBufferInfo{};
-    tileBufferInfo.buffer = m_tileStorageBuffer->getBuffer();
-    tileBufferInfo.offset = 0;
-    tileBufferInfo.range = c_tileBufferSize;
+    VkDescriptorBufferInfo lightIndexBufferInfo{};
+    lightIndexBufferInfo.buffer = m_buffers.lightIndexBuffer->getBuffer();
+    lightIndexBufferInfo.offset = 0;
+    lightIndexBufferInfo.range = c_lightIndexBufferSize;
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[2].dstSet = m_descriptorSet;
@@ -176,7 +186,20 @@ void ClusteredCompute::createDescriptorSets()
     descriptorWrites[2].dstArrayElement = 0;
     descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pBufferInfo = &tileBufferInfo;
+    descriptorWrites[2].pBufferInfo = &lightIndexBufferInfo;
+
+    VkDescriptorBufferInfo tileBufferInfo{};
+    tileBufferInfo.buffer = m_buffers.tileBuffer->getBuffer();
+    tileBufferInfo.offset = 0;
+    tileBufferInfo.range = c_tileBufferSize;
+
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = m_descriptorSet;
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = &tileBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
@@ -198,8 +221,8 @@ void ClusteredCompute::createCommandBuffers()
 
     VkBufferMemoryBarrier bufferBarrier{};
     bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    bufferBarrier.buffer = m_lightStorageBuffer->getBuffer();
-    bufferBarrier.size = c_lightBufferSize;
+    bufferBarrier.buffer = m_buffers.tileBuffer->getBuffer();
+    bufferBarrier.size = c_tileBufferSize;
     bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT; // Rendering invocations have finished reading from the buffer
     bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader wants to write to the buffer
     bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -223,8 +246,8 @@ void ClusteredCompute::createCommandBuffers()
     // Add memory barrier to ensure that compute shader has finished writing to the buffer
     bufferBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Compute shader has finished writes to the buffer
     bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    bufferBarrier.buffer = m_lightStorageBuffer->getBuffer();
-    bufferBarrier.size = c_lightBufferSize;
+    bufferBarrier.buffer = m_buffers.tileBuffer->getBuffer();
+    bufferBarrier.size = c_tileBufferSize;
     bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
