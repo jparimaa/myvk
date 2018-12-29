@@ -70,19 +70,19 @@ void ClusteredCompute::createDescriptorSetLayout()
     matrixUniformBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     matrixUniformBinding.pImmutableSamplers = nullptr; // Optional
 
+    VkDescriptorSetLayoutBinding sceneUniformBinding{};
+    sceneUniformBinding.binding = 1;
+    sceneUniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    sceneUniformBinding.descriptorCount = 1;
+    sceneUniformBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    sceneUniformBinding.pImmutableSamplers = nullptr; // Optional
+
     VkDescriptorSetLayoutBinding lightStorageBinding{};
-    lightStorageBinding.binding = 1;
+    lightStorageBinding.binding = 2;
     lightStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightStorageBinding.descriptorCount = 1;
     lightStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     lightStorageBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutBinding lightIndexStorageBinding{};
-    lightIndexStorageBinding.binding = 2;
-    lightIndexStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    lightIndexStorageBinding.descriptorCount = 1;
-    lightIndexStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    lightIndexStorageBinding.pImmutableSamplers = nullptr; // Optional
 
     VkDescriptorSetLayoutBinding tileStorageBinding{};
     tileStorageBinding.binding = 3;
@@ -93,8 +93,8 @@ void ClusteredCompute::createDescriptorSetLayout()
 
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
         matrixUniformBinding,
+        sceneUniformBinding,
         lightStorageBinding,
-        lightIndexStorageBinding,
         tileStorageBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -129,7 +129,7 @@ void ClusteredCompute::createDescriptorSets()
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     poolSizes[0].descriptorCount = 3;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[1].descriptorCount = 1;
+    poolSizes[1].descriptorCount = 2;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -162,23 +162,23 @@ void ClusteredCompute::createDescriptorSets()
     descriptorWrites[0].descriptorCount = 1;
     descriptorWrites[0].pBufferInfo = &matrixBufferInfo;
 
-    VkDescriptorBufferInfo lightBufferInfo{};
-    lightBufferInfo.buffer = m_buffers.lightBuffer->getBuffer();
-    lightBufferInfo.offset = 0;
-    lightBufferInfo.range = c_lightBufferSize;
+    VkDescriptorBufferInfo sceneBufferInfo{};
+    sceneBufferInfo.buffer = m_buffers.sceneBuffer->getBuffer();
+    sceneBufferInfo.offset = 0;
+    sceneBufferInfo.range = c_sceneInfoSize;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = m_descriptorSet;
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pBufferInfo = &lightBufferInfo;
+    descriptorWrites[1].pBufferInfo = &sceneBufferInfo;
 
-    VkDescriptorBufferInfo lightIndexBufferInfo{};
-    lightIndexBufferInfo.buffer = m_buffers.lightIndexBuffer->getBuffer();
-    lightIndexBufferInfo.offset = 0;
-    lightIndexBufferInfo.range = c_lightIndexBufferSize;
+    VkDescriptorBufferInfo lightBufferInfo{};
+    lightBufferInfo.buffer = m_buffers.lightBuffer->getBuffer();
+    lightBufferInfo.offset = 0;
+    lightBufferInfo.range = c_lightBufferSize;
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[2].dstSet = m_descriptorSet;
@@ -186,7 +186,7 @@ void ClusteredCompute::createDescriptorSets()
     descriptorWrites[2].dstArrayElement = 0;
     descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pBufferInfo = &lightIndexBufferInfo;
+    descriptorWrites[2].pBufferInfo = &lightBufferInfo;
 
     VkDescriptorBufferInfo tileBufferInfo{};
     tileBufferInfo.buffer = m_buffers.tileBuffer->getBuffer();

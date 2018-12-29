@@ -51,7 +51,8 @@ private:
     fw::CameraController m_cameraController;
     fw::Transformation m_transformation;
     Matrices m_matrices;
-    fw::Buffer m_uniformBuffer;
+    fw::Buffer m_matrixBuffer;
+    fw::Buffer m_sceneBuffer;
     std::vector<RenderObject> m_renderObjects;
 
     VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
@@ -59,7 +60,6 @@ private:
 
     ClusteredCompute m_clusteredCompute;
     fw::Buffer m_lightStorageBuffer;
-    fw::Buffer m_lightIndexStorageBuffer;
     fw::Buffer m_tileStorageBuffer;
 
     void createBuffers();

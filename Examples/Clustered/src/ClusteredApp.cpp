@@ -52,7 +52,7 @@ bool ClusteredApp::initialize()
     m_matrices.proj = m_camera.getProjectionMatrix();
     m_matrices.inverseProj = glm::inverse(m_camera.getProjectionMatrix());
 
-    Buffers buffers{&m_uniformBuffer, &m_lightStorageBuffer, &m_lightIndexStorageBuffer, &m_tileStorageBuffer};
+    Buffers buffers{&m_matrixBuffer, &m_sceneBuffer, &m_lightStorageBuffer, &m_tileStorageBuffer};
     m_clusteredCompute.initialize(buffers);
 
     return true;
@@ -66,7 +66,14 @@ void ClusteredApp::update()
     m_cameraController.update();
     m_matrices.view = m_camera.getViewMatrix();
 
-    m_uniformBuffer.setData(sizeof(m_matrices), &m_matrices);
+    m_matrixBuffer.setData(sizeof(m_matrices), &m_matrices);
+
+    SceneInfo sceneInfo;
+    sceneInfo.ncp = m_camera.getNearClipDistance();
+    sceneInfo.fcp = m_camera.getFarClipDistance();
+    sceneInfo.lightCount = c_numLights;
+    sceneInfo.maxLightsPerTile = c_maxLightsPerTile;
+    m_sceneBuffer.setData(c_sceneInfoSize, &sceneInfo);
 }
 
 void ClusteredApp::onGUI()
@@ -88,9 +95,12 @@ void ClusteredApp::onGUI()
 void ClusteredApp::createBuffers()
 {
     VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    m_lightStorageBuffer.create(c_lightBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
-    m_lightIndexStorageBuffer.create(c_lightIndexBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
-    m_tileStorageBuffer.create(c_tileBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, uboProperties);
+    CHECK(m_matrixBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+    CHECK(m_sceneBuffer.create(c_sceneInfoSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
+
+    VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    CHECK(m_lightStorageBuffer.create(c_lightBufferSize, bufferUsage, uboProperties));
+    CHECK(m_tileStorageBuffer.create(c_tileBufferSize, bufferUsage, uboProperties));
 }
 
 void ClusteredApp::createRenderPass()
@@ -156,15 +166,8 @@ void ClusteredApp::createDescriptorSetLayout()
     lightStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     lightStorageBinding.pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding lightIndexStorageBinding{};
-    lightIndexStorageBinding.binding = 3;
-    lightIndexStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    lightIndexStorageBinding.descriptorCount = 1;
-    lightIndexStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    lightIndexStorageBinding.pImmutableSamplers = nullptr; // Optional
-
     VkDescriptorSetLayoutBinding tileStorageBinding{};
-    tileStorageBinding.binding = 4;
+    tileStorageBinding.binding = 3;
     tileStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     tileStorageBinding.descriptorCount = 1;
     tileStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -174,7 +177,6 @@ void ClusteredApp::createDescriptorSetLayout()
         uboBinding,
         samplerBinding,
         lightStorageBinding,
-        lightIndexStorageBinding,
         tileStorageBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -260,9 +262,6 @@ void ClusteredApp::createDescriptorPool()
 
 void ClusteredApp::createRenderObjects()
 {
-    VkMemoryPropertyFlags uboProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CHECK(m_uniformBuffer.create(c_transformMatricesSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uboProperties));
-
     fw::Model model;
     CHECK(model.loadModel(c_assetsFolder + "attack_droid.obj"));
 
@@ -310,10 +309,10 @@ void ClusteredApp::createDescriptorSets(uint32_t setCount)
 
 void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
-    std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_uniformBuffer.getBuffer();
+    bufferInfo.buffer = m_matrixBuffer.getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = c_transformMatricesSize;
 
@@ -351,10 +350,10 @@ void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageVie
     descriptorWrites[2].descriptorCount = 1;
     descriptorWrites[2].pBufferInfo = &lightBufferInfo;
 
-    VkDescriptorBufferInfo lightIndexBufferInfo{};
-    lightIndexBufferInfo.buffer = m_lightIndexStorageBuffer.getBuffer();
-    lightIndexBufferInfo.offset = 0;
-    lightIndexBufferInfo.range = c_lightIndexBufferSize;
+    VkDescriptorBufferInfo tileBufferInfo{};
+    tileBufferInfo.buffer = m_tileStorageBuffer.getBuffer();
+    tileBufferInfo.offset = 0;
+    tileBufferInfo.range = c_tileBufferSize;
 
     descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[3].dstSet = descriptorSet;
@@ -362,20 +361,7 @@ void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageVie
     descriptorWrites[3].dstArrayElement = 0;
     descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[3].descriptorCount = 1;
-    descriptorWrites[3].pBufferInfo = &lightIndexBufferInfo;
-
-    VkDescriptorBufferInfo tileBufferInfo{};
-    tileBufferInfo.buffer = m_tileStorageBuffer.getBuffer();
-    tileBufferInfo.offset = 0;
-    tileBufferInfo.range = c_tileBufferSize;
-
-    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[4].dstSet = descriptorSet;
-    descriptorWrites[4].dstBinding = 4;
-    descriptorWrites[4].dstArrayElement = 0;
-    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    descriptorWrites[4].descriptorCount = 1;
-    descriptorWrites[4].pBufferInfo = &tileBufferInfo;
+    descriptorWrites[3].pBufferInfo = &tileBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }

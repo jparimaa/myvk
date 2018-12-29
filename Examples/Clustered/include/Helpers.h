@@ -21,11 +21,19 @@ struct Light
     glm::vec4 color;
 };
 
+struct SceneInfo
+{
+    float ncp;
+    float fcp;
+    uint32_t lightCount;
+    uint32_t maxLightsPerTile;
+};
+
 struct Buffers
 {
     fw::Buffer* matrixBuffer;
+    fw::Buffer* sceneBuffer;
     fw::Buffer* lightBuffer;
-    fw::Buffer* lightIndexBuffer;
     fw::Buffer* tileBuffer;
 };
 
@@ -33,10 +41,11 @@ const std::string c_assetsFolder = ASSETS_PATH;
 const std::string c_shaderFolder = SHADER_PATH;
 
 const std::size_t c_transformMatricesSize = sizeof(Matrices);
+const std::size_t c_sceneInfoSize = sizeof(SceneInfo);
 const int c_numLights = 2048;
+const int c_maxLightsPerTile = 256;
 const int c_gridSize = 32;
 const int c_gridDepth = 4;
 const int c_cellCount = c_gridSize * c_gridSize * c_gridDepth;
 const int c_lightBufferSize = sizeof(Light) * c_numLights;
-const int c_lightIndexBufferSize = c_numLights * c_numLights * sizeof(uint32_t);
-const int c_tileBufferSize = c_cellCount * sizeof(uint32_t) * 2;
+const int c_tileBufferSize = c_cellCount * c_maxLightsPerTile * sizeof(uint32_t);

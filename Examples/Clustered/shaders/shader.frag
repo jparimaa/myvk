@@ -14,20 +14,9 @@ layout(std140, binding = 2) buffer lightBuffer
    Light lights[];
 };
 
-layout(std140, binding = 3) buffer lightIndexBuffer 
+layout(std140, binding = 3) buffer tileBuffer 
 {
    uint lightIndex[];
-};
-
-struct Tile
-{
-	uint offset;
-	uint count;
-};
-
-layout(std140, binding = 4) buffer tileBuffer 
-{
-   Tile tiles[];
 };
 
 layout(location = 0) in vec2 inUv;
