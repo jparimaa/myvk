@@ -42,8 +42,8 @@ const std::string c_shaderFolder = SHADER_PATH;
 
 const std::size_t c_transformMatricesSize = sizeof(Matrices);
 const std::size_t c_sceneInfoSize = sizeof(SceneInfo);
-const int c_numLights = 2048;
-const int c_maxLightsPerTile = 256;
+const int c_numLights = 128;
+const int c_maxLightsPerTile = 64;
 const int c_gridSize = 32;
 const int c_gridDepth = 4;
 const int c_cellCount = c_gridSize * c_gridSize * c_gridDepth;
