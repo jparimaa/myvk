@@ -40,7 +40,7 @@ void ClusteredCompute::writeRandomData()
     Light* lightMemory = (Light*)mappedMemory;
 
     std::default_random_engine randomEngine;
-    std::uniform_real_distribution<float> positionDistribution(-10.0f, 10.0f);
+    std::uniform_real_distribution<float> positionDistribution(-20.0f, 20.0f);
     std::uniform_real_distribution<float> radiusDistribution(0.5f, 2.0f);
     std::uniform_real_distribution<float> colorDistribution(0.0f, 1.0f);
     for (int i = 0; i < c_numLights; ++i)
