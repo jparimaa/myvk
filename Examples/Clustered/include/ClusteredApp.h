@@ -2,6 +2,7 @@
 
 #include "Helpers.h"
 #include "ClusteredCompute.h"
+#include "DebugDraw.h"
 
 #include "fw/Application.h"
 #include "fw/Buffer.h"
@@ -61,6 +62,8 @@ private:
     ClusteredCompute m_clusteredCompute;
     fw::Buffer m_lightStorageBuffer;
     fw::Buffer m_tileStorageBuffer;
+
+    DebugDraw m_debugDraw;
 
     void createBuffers();
     void createRenderPass();

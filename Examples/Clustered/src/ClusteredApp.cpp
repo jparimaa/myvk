@@ -55,6 +55,8 @@ bool ClusteredApp::initialize()
     Buffers buffers{&m_matrixBuffer, &m_sceneBuffer, &m_lightStorageBuffer, &m_tileStorageBuffer};
     m_clusteredCompute.initialize(buffers);
 
+    m_debugDraw.initialize(buffers);
+
     return true;
 }
 
@@ -74,6 +76,12 @@ void ClusteredApp::update()
     sceneInfo.lightCount = c_numLights;
     sceneInfo.maxLightsPerTile = c_maxLightsPerTile;
     m_sceneBuffer.setData(c_sceneInfoSize, &sceneInfo);
+
+    static int i = 0;
+    if (++i == 5)
+    {
+        m_debugDraw.writeImages(m_matrices);
+    }
 }
 
 void ClusteredApp::onGUI()
