@@ -37,6 +37,7 @@ void DebugDraw::writeLights(const Matrices& matrices)
     for (int i = 0; i < c_numLights; ++i)
     {
         glm::vec4 pos = lightMemory[i].position;
+        pos.w = 1.0f;
         pos = matrices.proj * matrices.view * pos;
         glm::vec2 ndc{pos.x / pos.w, pos.y / pos.w};
         glm::vec2 uv2{(0.5 * ndc.x) + (0.5), (0.5 * ndc.y) + (0.5)};
@@ -63,33 +64,26 @@ void DebugDraw::writeLights(const Matrices& matrices)
 
 void DebugDraw::writeTiles()
 {
-    void* mappedMemory = NULL;
     VkDevice logicalDevice = fw::Context::getLogicalDevice();
-    vkMapMemory(logicalDevice, m_buffers.tileBuffer->getMemory(), 0, c_tileBufferSize, 0, &mappedMemory);
-    uint32_t* tileMemory = (uint32_t*)mappedMemory;
+
+    void* mappedTileMemory = NULL;
+    vkMapMemory(logicalDevice, m_buffers.tileBuffer->getMemory(), 0, c_tileBufferSize, 0, &mappedTileMemory);
+    uint32_t* tileMemory = (uint32_t*)mappedTileMemory;
+
+    void* mappedNumLightsMemory = NULL;
+    vkMapMemory(logicalDevice, m_buffers.numLightsPerTileBuffer->getMemory(), 0, c_numLightsPerTileBufferSize, 0, &mappedNumLightsMemory);
+    uint32_t* numLightsMemory = (uint32_t*)mappedNumLightsMemory;
 
     int numCells = c_gridSize * c_gridSize;
     int numComponents = 3;
     std::vector<uint8_t> tileLights(numCells * numComponents, 0);
 
     int colorMultiplier = 64;
-    for (int depth = 0; depth < c_gridDepth; ++depth)
+    for (int depth = 0; depth < 1 /*c_gridDepth*/; ++depth)
     {
         for (int i = 0; i < numCells; ++i)
         {
-            int numLightsPerTile = 0;
-            for (int j = 0; j < c_maxLightsPerTile; ++j)
-            {
-                int index = (depth * numCells * c_maxLightsPerTile) + (i * c_maxLightsPerTile) + j;
-                if (tileMemory[index] != 0)
-                {
-                    ++numLightsPerTile;
-                }
-                else
-                {
-                    break;
-                }
-            }
+            int numLightsPerTile = numLightsMemory[i];
             int tileLightsIndex = i * numComponents;
             tileLights[tileLightsIndex] += std::clamp(numLightsPerTile * colorMultiplier, 0, 255);
         }

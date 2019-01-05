@@ -62,6 +62,7 @@ private:
     ClusteredCompute m_clusteredCompute;
     fw::Buffer m_lightStorageBuffer;
     fw::Buffer m_tileStorageBuffer;
+    fw::Buffer m_numLightsPertileStorageBuffer;
 
     DebugDraw m_debugDraw;
 

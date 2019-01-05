@@ -52,7 +52,7 @@ bool ClusteredApp::initialize()
     m_matrices.proj = m_camera.getProjectionMatrix();
     m_matrices.inverseProj = glm::inverse(m_camera.getProjectionMatrix());
 
-    Buffers buffers{&m_matrixBuffer, &m_sceneBuffer, &m_lightStorageBuffer, &m_tileStorageBuffer};
+    Buffers buffers{&m_matrixBuffer, &m_sceneBuffer, &m_lightStorageBuffer, &m_tileStorageBuffer, &m_numLightsPertileStorageBuffer};
     m_clusteredCompute.initialize(buffers);
 
     m_debugDraw.initialize(buffers);
@@ -109,6 +109,7 @@ void ClusteredApp::createBuffers()
     VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     CHECK(m_lightStorageBuffer.create(c_lightBufferSize, bufferUsage, uboProperties));
     CHECK(m_tileStorageBuffer.create(c_tileBufferSize, bufferUsage, uboProperties));
+    CHECK(m_numLightsPertileStorageBuffer.create(c_numLightsPerTileBufferSize, bufferUsage, uboProperties));
 }
 
 void ClusteredApp::createRenderPass()

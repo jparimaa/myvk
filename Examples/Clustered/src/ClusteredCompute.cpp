@@ -43,12 +43,22 @@ void ClusteredCompute::writeRandomData()
     std::uniform_real_distribution<float> positionDistribution(-20.0f, 20.0f);
     std::uniform_real_distribution<float> radiusDistribution(0.5f, 2.0f);
     std::uniform_real_distribution<float> colorDistribution(0.0f, 1.0f);
+
+    std::vector<glm::vec3> positions{
+        {0.0f, 10.0f, 30.0f},
+        {0.0f, 11.0f, 30.0f},
+        {1.0f, 10.0f, 30.0f}};
+
     for (int i = 0; i < c_numLights; ++i)
     {
+        /*
         glm::vec3 position(positionDistribution(randomEngine),
                            positionDistribution(randomEngine),
                            positionDistribution(randomEngine));
-        float radius = radiusDistribution(randomEngine);
+						   */
+        glm::vec3 position = positions[i];
+        float radius = 0.5f;
+        //radiusDistribution(randomEngine);
         lightMemory[i].position = glm::vec4(position.x, position.y, position.z, radius);
 
         glm::vec3 color(colorDistribution(randomEngine),
@@ -91,11 +101,19 @@ void ClusteredCompute::createDescriptorSetLayout()
     tileStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     tileStorageBinding.pImmutableSamplers = nullptr; // Optional
 
+    VkDescriptorSetLayoutBinding numLightsPerTileStorageBinding{};
+    numLightsPerTileStorageBinding.binding = 4;
+    numLightsPerTileStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    numLightsPerTileStorageBinding.descriptorCount = 1;
+    numLightsPerTileStorageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    numLightsPerTileStorageBinding.pImmutableSamplers = nullptr; // Optional
+
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
         matrixUniformBinding,
         sceneUniformBinding,
         lightStorageBinding,
-        tileStorageBinding};
+        tileStorageBinding,
+        numLightsPerTileStorageBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -127,7 +145,7 @@ void ClusteredCompute::createDescriptorSets()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    poolSizes[0].descriptorCount = 3;
+    poolSizes[0].descriptorCount = 4;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[1].descriptorCount = 2;
 
@@ -147,7 +165,7 @@ void ClusteredCompute::createDescriptorSets()
 
     VK_CHECK(vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &m_descriptorSet));
 
-    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 
     VkDescriptorBufferInfo matrixBufferInfo{};
     matrixBufferInfo.buffer = m_buffers.matrixBuffer->getBuffer();
@@ -200,6 +218,19 @@ void ClusteredCompute::createDescriptorSets()
     descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[3].descriptorCount = 1;
     descriptorWrites[3].pBufferInfo = &tileBufferInfo;
+
+    VkDescriptorBufferInfo numLightsPerTileBufferInfo{};
+    numLightsPerTileBufferInfo.buffer = m_buffers.numLightsPerTileBuffer->getBuffer();
+    numLightsPerTileBufferInfo.offset = 0;
+    numLightsPerTileBufferInfo.range = c_numLightsPerTileBufferSize;
+
+    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[4].dstSet = m_descriptorSet;
+    descriptorWrites[4].dstBinding = 4;
+    descriptorWrites[4].dstArrayElement = 0;
+    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[4].descriptorCount = 1;
+    descriptorWrites[4].pBufferInfo = &numLightsPerTileBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }
