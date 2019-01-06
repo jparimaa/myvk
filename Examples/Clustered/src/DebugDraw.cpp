@@ -86,7 +86,7 @@ void DebugDraw::writeTiles()
         {
             int numLightsPerTile = numLightsMemory[depthOffset + i];
             int tileLightsIndex = i * numComponents;
-            tileLights[tileLightsIndex] += std::clamp(numLightsPerTile * colorMultiplier, 0, 255);
+            tileLights[tileLightsIndex] = std::clamp(tileLights[tileLightsIndex] + numLightsPerTile * colorMultiplier, 0, 255);
         }
     }
 
