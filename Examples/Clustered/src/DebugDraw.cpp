@@ -79,11 +79,12 @@ void DebugDraw::writeTiles()
     std::vector<uint8_t> tileLights(numCells * numComponents, 0);
 
     int colorMultiplier = 64;
-    for (int depth = 0; depth < 1 /*c_gridDepth*/; ++depth)
+    for (int depth = 0; depth < c_gridDepth; ++depth)
     {
+        int depthOffset = numCells * depth;
         for (int i = 0; i < numCells; ++i)
         {
-            int numLightsPerTile = numLightsMemory[i];
+            int numLightsPerTile = numLightsMemory[depthOffset + i];
             int tileLightsIndex = i * numComponents;
             tileLights[tileLightsIndex] += std::clamp(numLightsPerTile * colorMultiplier, 0, 255);
         }
