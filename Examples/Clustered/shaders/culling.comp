@@ -2,8 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 const float c_gridDepthValues[5] = {1.0, 5.0, 20.0, 50.0, 100.0}; // This matches te NCP and FCP in ClusteredApp.cpp
-const int c_workgroupSize = 32;
-layout (local_size_x = c_workgroupSize, local_size_y = c_workgroupSize, local_size_z = 1) in;
+// Let's choose 32 and 30 since they divide nicely with 1600 x 1200 resolution
+layout (local_size_x = 32, local_size_y = 30, local_size_z = 1) in;
 
 layout(binding = 0) uniform TransformationMatrices
 {
@@ -71,17 +71,18 @@ bool isSphereBehindNCP(vec4 sphere, uint depth)
 void main() 
 {
 	vec2 tileId = gl_LocalInvocationID.xy;
-	float step = 2.0 / c_workgroupSize;
-	float xPos = -1.0 + tileId.x * step;
-	float yPos = -1.0 + tileId.y * step;
+	float xStep = 2.0 / gl_WorkGroupSize.x;
+	float yStep = 2.0 / gl_WorkGroupSize.y;
+	float xPos = -1.0 + tileId.x * xStep;
+	float yPos = -1.0 + tileId.y * yStep;
 	uint depth = gl_WorkGroupID.z;
 	float ncp = c_gridDepthValues[depth];
 	
 	vec4 clipSpace[4];
 	clipSpace[0] = vec4(xPos, yPos, 0.0, 1.0); // top left
-	clipSpace[1] = vec4(xPos + step, yPos, 0.0, 1.0); // top right
-	clipSpace[2] = vec4(xPos, yPos + step, 0.0, 1.0); // bottom left
-	clipSpace[3] = vec4(xPos + step, yPos + step, 0.0, 1.0); // bottom right
+	clipSpace[1] = vec4(xPos + xStep, yPos, 0.0, 1.0); // top right
+	clipSpace[2] = vec4(xPos, yPos + yStep, 0.0, 1.0); // bottom left
+	clipSpace[3] = vec4(xPos + xStep, yPos + yStep, 0.0, 1.0); // bottom right
 
 	vec3 viewSpace[4];
 	for (int i = 0; i < 4; ++i)

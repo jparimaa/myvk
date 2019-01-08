@@ -182,11 +182,27 @@ void ClusteredApp::createDescriptorSetLayout()
     tileStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     tileStorageBinding.pImmutableSamplers = nullptr; // Optional
 
+    VkDescriptorSetLayoutBinding numLightsPerTileStorageBinding{};
+    numLightsPerTileStorageBinding.binding = 4;
+    numLightsPerTileStorageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    numLightsPerTileStorageBinding.descriptorCount = 1;
+    numLightsPerTileStorageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    numLightsPerTileStorageBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutBinding sceneUniformBinding{};
+    sceneUniformBinding.binding = 5;
+    sceneUniformBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    sceneUniformBinding.descriptorCount = 1;
+    sceneUniformBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    sceneUniformBinding.pImmutableSamplers = nullptr; // Optional
+
     std::vector<VkDescriptorSetLayoutBinding> bindings = {
         uboBinding,
         samplerBinding,
         lightStorageBinding,
-        tileStorageBinding};
+        tileStorageBinding,
+        numLightsPerTileStorageBinding,
+        sceneUniformBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = fw::ui32size(bindings);
@@ -254,11 +270,11 @@ void ClusteredApp::createDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = 2;
+    poolSizes[0].descriptorCount = 8;
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = 3;
+    poolSizes[1].descriptorCount = 8;
     poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    poolSizes[2].descriptorCount = 6;
+    poolSizes[2].descriptorCount = 8;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -318,7 +334,7 @@ void ClusteredApp::createDescriptorSets(uint32_t setCount)
 
 void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageView imageView)
 {
-    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_matrixBuffer.getBuffer();
@@ -371,6 +387,32 @@ void ClusteredApp::updateDescriptorSet(VkDescriptorSet descriptorSet, VkImageVie
     descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[3].descriptorCount = 1;
     descriptorWrites[3].pBufferInfo = &tileBufferInfo;
+
+    VkDescriptorBufferInfo numLightsPerTileBufferInfo{};
+    numLightsPerTileBufferInfo.buffer = m_numLightsPertileStorageBuffer.getBuffer();
+    numLightsPerTileBufferInfo.offset = 0;
+    numLightsPerTileBufferInfo.range = c_numLightsPerTileBufferSize;
+
+    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[4].dstSet = descriptorSet;
+    descriptorWrites[4].dstBinding = 4;
+    descriptorWrites[4].dstArrayElement = 0;
+    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[4].descriptorCount = 1;
+    descriptorWrites[4].pBufferInfo = &numLightsPerTileBufferInfo;
+
+    VkDescriptorBufferInfo sceneBufferInfo{};
+    sceneBufferInfo.buffer = m_sceneBuffer.getBuffer();
+    sceneBufferInfo.offset = 0;
+    sceneBufferInfo.range = c_sceneInfoSize;
+
+    descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[5].dstSet = descriptorSet;
+    descriptorWrites[5].dstBinding = 5;
+    descriptorWrites[5].dstArrayElement = 0;
+    descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[5].descriptorCount = 1;
+    descriptorWrites[5].pBufferInfo = &sceneBufferInfo;
 
     vkUpdateDescriptorSets(m_logicalDevice, fw::ui32size(descriptorWrites), descriptorWrites.data(), 0, nullptr);
 }

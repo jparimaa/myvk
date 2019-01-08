@@ -16,6 +16,7 @@ layout(location = 2) in vec3 inTangent;
 layout(location = 3) in vec2 inUv;
 
 layout(location = 0) out vec2 outUv;
+layout(location = 1) out float depth;
 
 out gl_PerVertex
 {
@@ -24,6 +25,8 @@ out gl_PerVertex
 
 void main()
 {
-    gl_Position = matrices.proj * matrices.view * matrices.world * vec4(inPosition, 1.0);
+    vec4 view = matrices.view * matrices.world * vec4(inPosition, 1.0);
+    gl_Position = matrices.proj * view;
     outUv = inUv;
+    depth = -view.z;
 }
