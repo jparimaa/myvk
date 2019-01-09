@@ -17,6 +17,8 @@ layout(location = 3) in vec2 inUv;
 
 layout(location = 0) out vec2 outUv;
 layout(location = 1) out float depth;
+layout(location = 2) out vec3 outNormal;
+layout(location = 3) out vec3 outPosWorld;
 
 out gl_PerVertex
 {
@@ -25,8 +27,11 @@ out gl_PerVertex
 
 void main()
 {
-    vec4 view = matrices.view * matrices.world * vec4(inPosition, 1.0);
+    vec4 posWorld = matrices.world * vec4(inPosition, 1.0);
+    outPosWorld.xyz = posWorld.xyz;
+    vec4 view = matrices.view * posWorld;
     gl_Position = matrices.proj * view;
+   	outNormal = transpose(inverse(mat3(matrices.world))) * normalize(inNormal);
     outUv = inUv;
     depth = -view.z;
 }

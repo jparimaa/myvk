@@ -16,12 +16,12 @@ struct Light
 	vec4 color;
 };
 
-layout(std140, binding = 2) buffer lightBuffer 
+layout(std430, binding = 2) buffer lightBuffer 
 {
    Light lights[];
 };
 
-layout(std140, binding = 3) buffer tileBuffer 
+layout(std430, binding = 3) buffer tileBuffer 
 {
    uint lightIndex[];
 };
@@ -41,12 +41,14 @@ layout(std140, binding = 5) uniform sceneInfo
 
 layout(location = 0) in vec2 inUv;
 layout(location = 1) in float depth;
+layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec3 inPosWorld;
 
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-   outColor = texture(albedo, inUv);
+   vec3 albedo = texture(albedo, inUv).xyz;
    int x = int(gl_FragCoord.x / pixelsPerXTile);
    int y = int(gl_FragCoord.y / pixelsPerYTile);
    
@@ -56,15 +58,26 @@ void main()
       ++z;
    }
 
-   int index = (z * c_workgroupSizeX * c_workgroupSizeY) + (y * c_workgroupSizeX) + x;
-   uint lightCount = numLights[index];
+   int numLightsIndex = (z * c_workgroupSizeX * c_workgroupSizeY) + (y * c_workgroupSizeX) + x;
+   uint lightCount = numLights[numLightsIndex];
    uint offset = (z * c_workgroupSizeX * c_workgroupSizeY * scene.maxLightsPerTile) 
 	+ (y * c_workgroupSizeX * scene.maxLightsPerTile) 
 	+ (x * scene.maxLightsPerTile);
 
+   vec3 diff = vec3(0.0);
    for (uint i = 0; i < lightCount; ++i)
    {
-      uint lightIndex = offset + i;
-      Light light = lights[lightIndex];
+      uint lightTileIndex = offset + i;
+      uint index = lightIndex[lightTileIndex];
+      Light light = lights[index];
+
+      vec3 L = light.position.xyz - inPosWorld;
+      float dist = length(L);
+      L = normalize(L);
+      float attenuation = max(light.position.w - dist, 0.0);
+      vec3 N = normalize(inNormal);
+      float NdotL = max(0.0, dot(N, L));
+      diff += albedo * NdotL * attenuation * light.color.rgb * light.color.a;
    }
+   outColor.rgb = diff;
 }

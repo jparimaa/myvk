@@ -41,7 +41,7 @@ void ClusteredCompute::writeRandomData()
 
     std::default_random_engine randomEngine;
     std::uniform_real_distribution<float> positionDistribution(-20.0f, 25.0f);
-    std::uniform_real_distribution<float> radiusDistribution(0.5f, 3.0f);
+    std::uniform_real_distribution<float> radiusDistribution(5.0f, 15.0f);
     std::uniform_real_distribution<float> colorDistribution(0.1f, 1.0f);
 
     for (int i = 0; i < c_numLights; ++i)
