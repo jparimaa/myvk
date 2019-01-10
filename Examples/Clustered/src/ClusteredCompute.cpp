@@ -40,15 +40,17 @@ void ClusteredCompute::writeRandomData()
     Light* lightMemory = (Light*)mappedMemory;
 
     std::default_random_engine randomEngine;
-    std::uniform_real_distribution<float> positionDistribution(-20.0f, 25.0f);
-    std::uniform_real_distribution<float> radiusDistribution(5.0f, 15.0f);
+    std::uniform_real_distribution<float> xPositionDistribution(-10.0f, 10.0f);
+    std::uniform_real_distribution<float> yPositionDistribution(0.0f, 20.0f);
+    std::uniform_real_distribution<float> zPositionDistribution(0.0f, 20.0f);
+    std::uniform_real_distribution<float> radiusDistribution(1.0f, 5.0f);
     std::uniform_real_distribution<float> colorDistribution(0.1f, 1.0f);
 
     for (int i = 0; i < c_numLights; ++i)
     {
-        glm::vec3 position(positionDistribution(randomEngine),
-                           positionDistribution(randomEngine),
-                           positionDistribution(randomEngine));
+        glm::vec3 position(xPositionDistribution(randomEngine),
+                           yPositionDistribution(randomEngine),
+                           zPositionDistribution(randomEngine));
         float radius = radiusDistribution(randomEngine);
         lightMemory[i].position = glm::vec4(position.x, position.y, position.z, radius);
 

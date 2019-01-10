@@ -5,7 +5,7 @@ const float c_gridDepthValues[5] = {1.0, 5.0, 20.0, 50.0, 100.0}; // This matche
 // Let's choose 32 and 30 since they divide nicely with 1600 x 1200 resolution
 layout (local_size_x = 32, local_size_y = 30, local_size_z = 1) in;
 
-layout(binding = 0) uniform TransformationMatrices
+layout(binding = 0) readonly uniform TransformationMatrices
 {
     mat4 world;
     mat4 view;
@@ -13,7 +13,7 @@ layout(binding = 0) uniform TransformationMatrices
 	mat4 inverseProj;
 } matrices;
 
-layout(std140, binding = 1) uniform sceneInfo
+layout(std140, binding = 1) readonly uniform sceneInfo
 {
 	float ncp;
 	float fcp;
@@ -27,7 +27,7 @@ struct Light
 	vec4 color;
 };
 
-layout(std140, binding = 2) buffer lightBuffer 
+layout(std140, binding = 2) readonly buffer lightBuffer 
 {	
 	Light lights[];
 };

@@ -16,22 +16,22 @@ struct Light
 	vec4 color;
 };
 
-layout(std430, binding = 2) buffer lightBuffer 
+layout(std430, binding = 2) readonly buffer lightBuffer 
 {
    Light lights[];
 };
 
-layout(std430, binding = 3) buffer tileBuffer 
+layout(std430, binding = 3) readonly buffer tileBuffer 
 {
    uint lightIndex[];
 };
 
-layout(std430, binding = 4) buffer numLightsPerTileBuffer 
+layout(std430, binding = 4) readonly buffer numLightsPerTileBuffer 
 {
 	uint numLights[];
 };
 
-layout(std140, binding = 5) uniform sceneInfo
+layout(std140, binding = 5) readonly uniform sceneInfo
 {
 	float ncp;
 	float fcp;

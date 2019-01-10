@@ -74,15 +74,14 @@ void DebugDraw::writeTiles()
     vkMapMemory(logicalDevice, m_buffers.numLightsPerTileBuffer->getMemory(), 0, c_numLightsPerTileBufferSize, 0, &mappedNumLightsMemory);
     uint32_t* numLightsMemory = (uint32_t*)mappedNumLightsMemory;
 
-    int numCells = c_gridSize * c_gridSize;
     int numComponents = 3;
-    std::vector<uint8_t> tileLights(numCells * numComponents, 0);
+    std::vector<uint8_t> tileLights(c_cellsPerLayer * numComponents, 0);
 
-    int colorMultiplier = 64;
+    int colorMultiplier = 8;
     for (int depth = 0; depth < c_gridDepth; ++depth)
     {
-        int depthOffset = numCells * depth;
-        for (int i = 0; i < numCells; ++i)
+        int depthOffset = c_cellsPerLayer * depth;
+        for (int i = 0; i < c_cellsPerLayer; ++i)
         {
             int numLightsPerTile = numLightsMemory[depthOffset + i];
             int tileLightsIndex = i * numComponents;
@@ -93,7 +92,7 @@ void DebugDraw::writeTiles()
     std::string fileName = "heatmap.png";
     VkExtent2D extent = fw::API::getSwapChainExtent();
     std::vector<uint8_t> tileImage(extent.width * extent.height * numComponents);
-    stbir_resize_uint8(tileLights.data(), c_gridSize, c_gridSize, 0, tileImage.data(), extent.width, extent.height, 0, numComponents);
+    stbir_resize_uint8(tileLights.data(), c_gridWidth, c_gridHeight, 0, tileImage.data(), extent.width, extent.height, 0, numComponents);
     stbi_write_png(fileName.c_str(), extent.width, extent.height, numComponents, tileImage.data(), 0);
     std::cout << "Wrote file " << fileName << "\n";
 
