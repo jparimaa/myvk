@@ -1,6 +1,6 @@
 # Clustered
 
-Clustered forward rendering (also known as clustered forward+) is rendering technique where the frustum is divided into cells. Each cell has information which lights affect it. When the mesh is rendered the respective cell is located and all the lighting is calculated for each light. The benefit of this compared to deferred rendering is that there are less texture accesses which makes it less bandwidth heavy. The light grid, i.e. which light belongs to which cell, is calculated first with a separate compute pass.
+Clustered forward rendering (also known as clustered forward+) is a rendering technique where the frustum is divided into cells. Each cell has information which lights affect it. When the mesh is rendered the respective cell is located and the lighting is calculated for each light. The benefit of this compared to deferred rendering is that there are less texture accesses which makes it less bandwidth heavy. The light grid, i.e. which light belongs to which cell, is calculated first in a separate compute pass.
 
 More information about clustered or tiled rendering
 
