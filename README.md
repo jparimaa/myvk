@@ -1,6 +1,6 @@
 # myvk
 
-Minimal Vulkan framework and examples for testing Vulkan features and building small demos.
+Minimal Vulkan framework and examples for testing Vulkan features and building small demos. For a quick overview look at the examples in the _Examples_-folder.
 
 ## Clone
 
